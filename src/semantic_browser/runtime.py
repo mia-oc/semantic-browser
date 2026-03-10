@@ -1,0 +1,220 @@
+"""Primary runtime API."""
+
+from __future__ import annotations
+
+import json
+import uuid
+from typing import Any
+
+from semantic_browser.config import RuntimeConfig
+from semantic_browser.errors import AttachmentError, BrowserNotReadyError
+from semantic_browser.executor.actions import execute_action
+from semantic_browser.executor.results import build_execution, classify_status
+from semantic_browser.executor.validation import resolve_action
+from semantic_browser.extractor.diff import build_delta
+from semantic_browser.extractor.engine import observe_page
+from semantic_browser.extractor.settle import wait_for_settle
+from semantic_browser.models import ActionRequest, DiagnosticsReport, Observation, StepResult
+from semantic_browser.telemetry.debug_dump import export_json_bundle
+from semantic_browser.telemetry.trace import TraceStore
+
+
+class SemanticBrowserRuntime:
+    """Deterministic semantic runtime for a live page."""
+
+    def __init__(
+        self,
+        *,
+        page: Any,
+        config: RuntimeConfig | None = None,
+        managed: bool = False,
+        manager: Any | None = None,
+        attached_kind: str = "page",
+    ) -> None:
+        self._page = page
+        self._config = config or RuntimeConfig()
+        self._managed = managed
+        self._manager = manager
+        self._attached_kind = attached_kind
+        self._session_id = str(uuid.uuid4())
+        self._current_observation: Observation | None = None
+        self._id_map: dict[str, str] = {}
+        self._trace = TraceStore(max_events=self._config.telemetry.max_events)
+
+    @classmethod
+    def from_page(cls, page: Any, config: RuntimeConfig | None = None, profile_registry=None):
+        del profile_registry
+        if page is None:
+            raise AttachmentError("Cannot attach to null page.")
+        return cls(page=page, config=config, managed=False, attached_kind="page")
+
+    @classmethod
+    def from_context(cls, context: Any, config: RuntimeConfig | None = None, profile_registry=None):
+        del profile_registry
+        return cls(page=context.pages[0], config=config, managed=False, attached_kind="context")
+
+    @classmethod
+    async def from_cdp_endpoint(
+        cls, endpoint: str, config: RuntimeConfig | None = None, profile_registry=None
+    ):
+        del profile_registry
+        try:
+            from playwright.async_api import async_playwright
+        except Exception as exc:
+            raise AttachmentError("Playwright is required for CDP attach.") from exc
+        pw = await async_playwright().start()
+        browser = await pw.chromium.connect_over_cdp(endpoint)
+        context = browser.contexts[0] if browser.contexts else await browser.new_context()
+        page = context.pages[0] if context.pages else await context.new_page()
+        return cls(page=page, config=config, managed=True, manager={"pw": pw, "browser": browser})
+
+    @property
+    def session_id(self) -> str:
+        return self._session_id
+
+    async def observe(self, mode: str = "summary") -> Observation:
+        await wait_for_settle(self._page, self._config.settle)
+        observation, id_map = await observe_page(
+            session_id=self._session_id,
+            page=self._page,
+            mode=mode,
+            config=self._config,
+            previous_observation=self._current_observation,
+            previous_ids=self._id_map,
+        )
+        self._id_map = id_map
+        self._current_observation = observation
+        self._trace.add("observe", {"mode": mode, "actions": len(observation.available_actions)})
+        return observation
+
+    async def inspect(self, target_id: str, mode: str = "auto") -> dict[str, Any]:
+        del mode
+        obs = self._current_observation or await self.observe(mode="summary")
+        region = next((r for r in obs.regions if r.id == target_id), None)
+        if region:
+            return {"kind": "region", "region": region.model_dump()}
+        form = next((f for f in obs.forms if f.id == target_id), None)
+        if form:
+            return {"kind": "form", "form": form.model_dump()}
+        group = next((g for g in obs.content_groups if g.id == target_id), None)
+        if group:
+            return {"kind": "content_group", "content_group": group.model_dump()}
+        action = next((a for a in obs.available_actions if a.id == target_id), None)
+        if action:
+            return {"kind": "action", "action": action.model_dump()}
+        return {"kind": "unknown", "target_id": target_id}
+
+    async def act(self, request: ActionRequest) -> StepResult:
+        obs_before = self._current_observation or await self.observe(mode="summary")
+        action = resolve_action(request, obs_before)
+        self._trace.add("action_request", request.model_dump())
+        ok, message = await execute_action(self._page, action, request)
+        await wait_for_settle(self._page, self._config.settle)
+        obs_after = await self.observe(mode="delta")
+        delta = build_delta(obs_before, obs_after)
+        status = classify_status(ok, message, delta)
+        execution = build_execution(action.op, ok, message, obs_after)
+        result = StepResult(
+            request=request,
+            status=status,
+            message=message,
+            execution=execution,
+            observation=obs_after,
+            delta=delta,
+        )
+        self._trace.add("action_result", {"status": status, "message": message})
+        return result
+
+    async def navigate(self, url: str) -> StepResult:
+        if not self._page:
+            raise BrowserNotReadyError("No page bound to runtime.")
+        before = self._current_observation
+        req = ActionRequest(op="navigate", value=url)
+        await self._page.goto(url)
+        observation = await self.observe(mode="summary")
+        execution = build_execution("navigate", True, f"navigated to {url}", observation)
+        return StepResult(
+            request=req,
+            status="success",
+            message=f"navigated to {url}",
+            execution=execution,
+            observation=observation,
+            delta=build_delta(before, observation),
+        )
+
+    async def back(self) -> StepResult:
+        req = ActionRequest(op="back")
+        before = self._current_observation
+        await self._page.go_back()
+        observation = await self.observe(mode="delta")
+        return StepResult(
+            request=req,
+            status="success",
+            message="went back",
+            execution=build_execution("back", True, "went back", observation),
+            observation=observation,
+            delta=build_delta(before, observation),
+        )
+
+    async def forward(self) -> StepResult:
+        req = ActionRequest(op="forward")
+        before = self._current_observation
+        await self._page.go_forward()
+        observation = await self.observe(mode="delta")
+        return StepResult(
+            request=req,
+            status="success",
+            message="went forward",
+            execution=build_execution("forward", True, "went forward", observation),
+            observation=observation,
+            delta=build_delta(before, observation),
+        )
+
+    async def reload(self) -> StepResult:
+        req = ActionRequest(op="reload")
+        before = self._current_observation
+        await self._page.reload()
+        observation = await self.observe(mode="delta")
+        return StepResult(
+            request=req,
+            status="success",
+            message="reloaded",
+            execution=build_execution("reload", True, "reloaded", observation),
+            observation=observation,
+            delta=build_delta(before, observation),
+        )
+
+    async def current_observation(self):
+        return self._current_observation
+
+    async def diagnostics(self) -> DiagnosticsReport:
+        url = self._page.url if self._page else ""
+        return DiagnosticsReport(
+            session_id=self._session_id,
+            managed=self._managed,
+            attached_kind=self._attached_kind,
+            current_url=url,
+            last_observation_at=(self._current_observation.timestamp if self._current_observation else None),
+            trace_events=len(self._trace.events),
+            healthy=self._page is not None,
+            notes=[],
+        )
+
+    async def export_trace(self, path: str) -> str:
+        payload = {
+            "session_id": self._session_id,
+            "events": self._trace.events,
+            "observation": self._current_observation.model_dump() if self._current_observation else None,
+        }
+        self._trace.add("trace_export", {"path": path, "bytes": len(json.dumps(payload, default=str))})
+        return export_json_bundle(path, payload)
+
+    async def close(self) -> None:
+        if self._managed and self._manager:
+            if hasattr(self._manager, "close"):
+                await self._manager.close()
+            elif isinstance(self._manager, dict):
+                try:
+                    await self._manager["browser"].close()
+                finally:
+                    await self._manager["pw"].stop()

@@ -1,0 +1,220 @@
+"""CLI command implementations."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import subprocess
+import sys
+
+import click
+
+from semantic_browser.models import ActionRequest
+from semantic_browser.runtime import SemanticBrowserRuntime
+from semantic_browser.session import ManagedSession
+
+_sessions: dict[str, ManagedSession] = {}
+_attached_runtimes: dict[str, SemanticBrowserRuntime] = {}
+
+
+def _emit(data, as_json: bool):
+    if as_json:
+        click.echo(json.dumps(data, indent=2, default=str))
+    else:
+        click.echo(data if isinstance(data, str) else json.dumps(data, indent=2, default=str))
+
+
+def _runtime_for(session_id: str) -> SemanticBrowserRuntime:
+    if session_id in _sessions:
+        return _sessions[session_id].runtime
+    if session_id in _attached_runtimes:
+        return _attached_runtimes[session_id]
+    raise click.ClickException(f"Unknown session: {session_id}")
+
+
+@click.command("version")
+def version_cmd():
+    _emit({"name": "semantic-browser", "version": "0.1.0"}, as_json=True)
+
+
+@click.command("doctor")
+def doctor_cmd():
+    report = {"python": sys.version.split()[0], "playwright": False}
+    try:
+        import playwright  # type: ignore  # noqa: F401
+
+        report["playwright"] = True
+    except Exception:
+        report["playwright"] = False
+    _emit(report, as_json=True)
+
+
+@click.command("install-browser")
+def install_browser_cmd():
+    try:
+        subprocess.run(["playwright", "install", "chromium"], check=True)
+        _emit({"ok": True}, as_json=True)
+    except Exception as exc:
+        _emit({"ok": False, "error": str(exc)}, as_json=True)
+
+
+@click.command("launch")
+@click.option("--headful/--headless", default=True)
+@click.option("--json-output", is_flag=True, default=False)
+def launch_cmd(headful: bool, json_output: bool):
+    async def _run():
+        session = await ManagedSession.launch(headful=headful)
+        _sessions[session.runtime.session_id] = session
+        return {"session_id": session.runtime.session_id}
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("observe")
+@click.option("--session", "session_id", required=True)
+@click.option("--mode", default="summary")
+@click.option("--json-output", is_flag=True, default=False)
+def observe_cmd(session_id: str, mode: str, json_output: bool):
+    async def _run():
+        runtime = _runtime_for(session_id)
+        return (await runtime.observe(mode=mode)).model_dump(mode="json")
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("navigate")
+@click.option("--session", "session_id", required=True)
+@click.option("--url", required=True)
+@click.option("--json-output", is_flag=True, default=False)
+def navigate_cmd(session_id: str, url: str, json_output: bool):
+    async def _run():
+        runtime = _runtime_for(session_id)
+        return (await runtime.navigate(url)).model_dump(mode="json")
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("act")
+@click.option("--session", "session_id", required=True)
+@click.option("--action", "action_id", required=True)
+@click.option("--value", default=None)
+@click.option("--json-output", is_flag=True, default=False)
+def act_cmd(session_id: str, action_id: str, value: str | None, json_output: bool):
+    async def _run():
+        runtime = _runtime_for(session_id)
+        req = ActionRequest(action_id=action_id, value=value)
+        return (await runtime.act(req)).model_dump(mode="json")
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("inspect")
+@click.option("--session", "session_id", required=True)
+@click.option("--target", "target_id", required=True)
+@click.option("--json-output", is_flag=True, default=False)
+def inspect_cmd(session_id: str, target_id: str, json_output: bool):
+    async def _run():
+        runtime = _runtime_for(session_id)
+        return await runtime.inspect(target_id)
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("attach")
+@click.option("--cdp", "cdp_endpoint", required=True)
+@click.option("--json-output", is_flag=True, default=False)
+def attach_cmd(cdp_endpoint: str, json_output: bool):
+    async def _run():
+        runtime = await SemanticBrowserRuntime.from_cdp_endpoint(cdp_endpoint)
+        _attached_runtimes[runtime.session_id] = runtime
+        return {"session_id": runtime.session_id, "mode": "attached"}
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("diagnostics")
+@click.option("--session", "session_id", required=True)
+@click.option("--json-output", is_flag=True, default=False)
+def diagnostics_cmd(session_id: str, json_output: bool):
+    async def _run():
+        runtime = _runtime_for(session_id)
+        return (await runtime.diagnostics()).model_dump(mode="json")
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("export-trace")
+@click.option("--session", "session_id", required=True)
+@click.option("--out", "out_path", required=True)
+@click.option("--json-output", is_flag=True, default=False)
+def export_trace_cmd(session_id: str, out_path: str, json_output: bool):
+    async def _run():
+        runtime = _runtime_for(session_id)
+        path = await runtime.export_trace(out_path)
+        return {"path": path}
+
+    _emit(asyncio.run(_run()), as_json=json_output)
+
+
+@click.command("portal")
+@click.option("--url", required=True, help="Initial URL to navigate to.")
+@click.option("--headful/--headless", default=False)
+def portal_cmd(url: str, headful: bool):
+    """Interactive porthole loop in a single process."""
+
+    async def _run() -> None:
+        session = await ManagedSession.launch(headful=headful)
+        runtime = session.runtime
+        await runtime.navigate(url)
+        click.echo("portal ready. commands: observe [mode], actions, inspect <id>, act <id> [value], goto <url>, back, forward, reload, wait <ms>, trace <path>, quit")
+        while True:
+            raw = click.prompt("sb", prompt_suffix="> ", default="observe summary", show_default=False)
+            parts = raw.strip().split()
+            if not parts:
+                continue
+            cmd = parts[0].lower()
+            try:
+                if cmd in {"quit", "exit"}:
+                    break
+                if cmd == "observe":
+                    mode = parts[1] if len(parts) > 1 else "summary"
+                    obs = await runtime.observe(mode=mode)
+                    click.echo(json.dumps(obs.model_dump(mode="json"), indent=2, default=str))
+                elif cmd == "actions":
+                    obs = await runtime.observe(mode="summary")
+                    rows = [{"id": a.id, "op": a.op, "label": a.label, "enabled": a.enabled} for a in obs.available_actions[:30]]
+                    click.echo(json.dumps(rows, indent=2))
+                elif cmd == "inspect" and len(parts) > 1:
+                    detail = await runtime.inspect(parts[1])
+                    click.echo(json.dumps(detail, indent=2, default=str))
+                elif cmd == "act" and len(parts) > 1:
+                    value = " ".join(parts[2:]) if len(parts) > 2 else None
+                    res = await runtime.act(ActionRequest(action_id=parts[1], value=value))
+                    click.echo(json.dumps(res.model_dump(mode="json"), indent=2, default=str))
+                elif cmd == "goto" and len(parts) > 1:
+                    res = await runtime.navigate(parts[1])
+                    click.echo(json.dumps(res.model_dump(mode="json"), indent=2, default=str))
+                elif cmd == "back":
+                    res = await runtime.back()
+                    click.echo(json.dumps(res.model_dump(mode="json"), indent=2, default=str))
+                elif cmd == "forward":
+                    res = await runtime.forward()
+                    click.echo(json.dumps(res.model_dump(mode="json"), indent=2, default=str))
+                elif cmd == "reload":
+                    res = await runtime.reload()
+                    click.echo(json.dumps(res.model_dump(mode="json"), indent=2, default=str))
+                elif cmd == "wait":
+                    ms = int(parts[1]) if len(parts) > 1 else 500
+                    res = await runtime.act(ActionRequest(op="wait", value=ms))
+                    click.echo(json.dumps(res.model_dump(mode="json"), indent=2, default=str))
+                elif cmd == "trace":
+                    out = parts[1] if len(parts) > 1 else "portal-trace.json"
+                    path = await runtime.export_trace(out)
+                    click.echo(f"trace exported: {path}")
+                else:
+                    click.echo("unknown command")
+            except Exception as exc:
+                click.echo(f"error: {exc}")
+        await session.close()
+
+    asyncio.run(_run())

@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "semantic-browser"
+version = "0.1.0"
+description = "Deterministic semantic runtime over live Chromium for LLM planners"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Matt Visser" }]
+dependencies = [
+  "pydantic>=2.8.0",
+  "click>=8.1.7",
+]
+
+[project.optional-dependencies]
+managed = [
+  "playwright>=1.52.0",
+]
+server = [
+  "fastapi>=0.116.0",
+  "uvicorn>=0.35.0",
+]
+full = [
+  "semantic-browser[managed,server]",
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "httpx>=0.28.0",
+]
+
+[project.scripts]
+semantic-browser = "semantic_browser.cli.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/semantic_browser"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

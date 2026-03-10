@@ -1,0 +1,707 @@
+{
+  "session_id": "3813f4c6-2fa0-4e99-80d6-809094bc846c",
+  "events": [
+    {
+      "ts": "2026-03-10T21:21:39.728952+00:00",
+      "kind": "observe",
+      "payload": {
+        "mode": "summary",
+        "actions": 1
+      }
+    },
+    {
+      "ts": "2026-03-10T21:21:40.268434+00:00",
+      "kind": "observe",
+      "payload": {
+        "mode": "summary",
+        "actions": 1
+      }
+    },
+    {
+      "ts": "2026-03-10T21:21:40.268488+00:00",
+      "kind": "action_request",
+      "payload": {
+        "action_id": "act-0-84520b",
+        "op": null,
+        "target_id": null,
+        "value": null,
+        "options": {},
+        "expectation": null
+      }
+    },
+    {
+      "ts": "2026-03-10T21:21:42.271597+00:00",
+      "kind": "observe",
+      "payload": {
+        "mode": "delta",
+        "actions": 28
+      }
+    },
+    {
+      "ts": "2026-03-10T21:21:42.271617+00:00",
+      "kind": "action_result",
+      "payload": {
+        "status": "success",
+        "message": "clicked"
+      }
+    },
+    {
+      "ts": "2026-03-10T21:21:42.271703+00:00",
+      "kind": "trace_export",
+      "payload": {
+        "path": "dogfood-trace.json",
+        "bytes": 13590
+      }
+    }
+  ],
+  "observation": {
+    "session_id": "3813f4c6-2fa0-4e99-80d6-809094bc846c",
+    "timestamp": "2026-03-10 21:21:42.271447+00:00",
+    "mode": "delta",
+    "page": {
+      "url": "https://www.iana.org/help/example-domains",
+      "title": "Example Domains",
+      "domain": "www.iana.org",
+      "page_type": "table",
+      "page_identity": "www.iana.org:example domains",
+      "ready_state": "interactive",
+      "modal_active": false,
+      "frame_count": 1,
+      "profile_name": null
+    },
+    "summary": {
+      "headline": "Delta observation",
+      "key_points": []
+    },
+    "blockers": [],
+    "warnings": [],
+    "regions": [
+      {
+        "id": "rgn-0",
+        "kind": "header",
+        "name": "Domains\nProtocols\nNumbers\nAbout",
+        "frame_id": "main",
+        "order": 0,
+        "visible": true,
+        "in_viewport": true,
+        "interactable_count": 0,
+        "content_item_count": 0,
+        "primary_action_ids": [],
+        "preview_text": "Domains\nProtocols\nNumbers\nAbout"
+      },
+      {
+        "id": "rgn-1",
+        "kind": "article",
+        "name": "Example Domains\n\nAs described in RFC 2606 and RFC 6761, a number of domains such as example.com and example.org are main",
+        "frame_id": "main",
+        "order": 1,
+        "visible": true,
+        "in_viewport": true,
+        "interactable_count": 0,
+        "content_item_count": 0,
+        "primary_action_ids": [],
+        "preview_text": "Example Domains\n\nAs described in RFC 2606 and RFC 6761, a number of domains such as example.com and example.org are maintained for documentation purposes. These domains may be used as illustrative examples in documents without prior coordination with us. They are not available for registration or tr"
+      },
+      {
+        "id": "rgn-2",
+        "kind": "main",
+        "name": "Example Domains\n\nAs described in RFC 2606 and RFC 6761, a number of domains such as example.com and example.org are main",
+        "frame_id": "main",
+        "order": 2,
+        "visible": true,
+        "in_viewport": true,
+        "interactable_count": 0,
+        "content_item_count": 0,
+        "primary_action_ids": [],
+        "preview_text": "Example Domains\n\nAs described in RFC 2606 and RFC 6761, a number of domains such as example.com and example.org are maintained for documentation purposes. These domains may be used as illustrative examples in documents without prior coordination with us. They are not available for registration or tr"
+      },
+      {
+        "id": "rgn-3",
+        "kind": "footer",
+        "name": "Domain\u00a0Names\t\nRoot Zone Registry\n.INT Registry\n.ARPA Registry\nIDN Repository\n\nNumber\u00a0Resources\t\nAbuse Information\n\nProto",
+        "frame_id": "main",
+        "order": 3,
+        "visible": true,
+        "in_viewport": true,
+        "interactable_count": 0,
+        "content_item_count": 0,
+        "primary_action_ids": [],
+        "preview_text": "Domain\u00a0Names\t\nRoot Zone Registry\n.INT Registry\n.ARPA Registry\nIDN Repository\n\nNumber\u00a0Resources\t\nAbuse Information\n\nProtocols\t\nProtocol Registries\nTime Zone Database\n\nAbout\u00a0Us\t\nNews\nPerformance\nExcellence\nArchive\nContact Us\n\nThe IANA functions coordinate the Internet\u2019s globally unique identifiers, an"
+      }
+    ],
+    "forms": [],
+    "content_groups": [
+      {
+        "id": "grp-0",
+        "kind": "article",
+        "name": "article items",
+        "item_count": 1,
+        "visible_item_count": 1,
+        "preview_items": [
+          {
+            "id": "itm-0-0",
+            "title": "Example Domains\n\nAs described in RFC 2606 and RFC 6761, a number of domains such as example.com and example.org are main",
+            "subtitle": "Example Domains\n\nAs described in RFC 2606 and RFC 6761, a number of domains such as example.com and example.org are main",
+            "badges": [],
+            "key_values": {},
+            "open_action_id": null,
+            "secondary_action_ids": []
+          }
+        ],
+        "inspect_action_id": null
+      }
+    ],
+    "available_actions": [
+      {
+        "id": "act-1-5284fb",
+        "op": "open",
+        "label": "a-1",
+        "target_id": "elm-1-5284fb",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "a-1",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-2-5b9d61",
+        "op": "open",
+        "label": "Domains",
+        "target_id": "elm-2-5b9d61",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Domains",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-3-5e90d4",
+        "op": "open",
+        "label": "Protocols",
+        "target_id": "elm-21-5e90d4",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Protocols",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-4-db1448",
+        "op": "open",
+        "label": "Numbers",
+        "target_id": "elm-4-db1448",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Numbers",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-5-91f290",
+        "op": "open",
+        "label": "About",
+        "target_id": "elm-5-91f290",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "About",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-8-a76c70",
+        "op": "open",
+        "label": "RFC 2606",
+        "target_id": "elm-8-a76c70",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "RFC 2606",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-9-891b4b",
+        "op": "open",
+        "label": "RFC 6761",
+        "target_id": "elm-9-891b4b",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "RFC 6761",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-11-8cbb4e",
+        "op": "open",
+        "label": "IANA-managed Reserved Domains",
+        "target_id": "elm-11-8cbb4e",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "IANA-managed Reserved Domains",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-14-5d3dc3",
+        "op": "open",
+        "label": "Domain\u00a0Names",
+        "target_id": "elm-14-5d3dc3",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Domain\u00a0Names",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-15-33ad7b",
+        "op": "open",
+        "label": "Root Zone Registry",
+        "target_id": "elm-15-33ad7b",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Root Zone Registry",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-16-bbb322",
+        "op": "open",
+        "label": ".INT Registry",
+        "target_id": "elm-16-bbb322",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": ".INT Registry",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-17-157d9d",
+        "op": "open",
+        "label": ".ARPA Registry",
+        "target_id": "elm-17-157d9d",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": ".ARPA Registry",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-18-ff64ee",
+        "op": "open",
+        "label": "IDN Repository",
+        "target_id": "elm-18-ff64ee",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "IDN Repository",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-19-846fb9",
+        "op": "open",
+        "label": "Number\u00a0Resources",
+        "target_id": "elm-19-846fb9",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Number\u00a0Resources",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-20-a3149b",
+        "op": "open",
+        "label": "Abuse Information",
+        "target_id": "elm-20-a3149b",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Abuse Information",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-21-5e90d4",
+        "op": "open",
+        "label": "Protocols",
+        "target_id": "elm-21-5e90d4",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Protocols",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-22-1191cf",
+        "op": "open",
+        "label": "Protocol Registries",
+        "target_id": "elm-22-1191cf",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Protocol Registries",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-23-29bc63",
+        "op": "open",
+        "label": "Time Zone Database",
+        "target_id": "elm-23-29bc63",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Time Zone Database",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-24-8612e4",
+        "op": "open",
+        "label": "About\u00a0Us",
+        "target_id": "elm-24-8612e4",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "About\u00a0Us",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-25-4d5886",
+        "op": "open",
+        "label": "News",
+        "target_id": "elm-25-4d5886",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "News",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-26-ee19f7",
+        "op": "open",
+        "label": "Performance",
+        "target_id": "elm-26-ee19f7",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Performance",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-27-cd958c",
+        "op": "open",
+        "label": "Excellence",
+        "target_id": "elm-27-cd958c",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Excellence",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-28-aabea6",
+        "op": "open",
+        "label": "Archive",
+        "target_id": "elm-28-aabea6",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Archive",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-29-14d93b",
+        "op": "open",
+        "label": "Contact Us",
+        "target_id": "elm-29-14d93b",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Contact Us",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-30-2d79fe",
+        "op": "open",
+        "label": "Public Technical Identifiers",
+        "target_id": "elm-30-2d79fe",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Public Technical Identifiers",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-31-b2fcfd",
+        "op": "open",
+        "label": "ICANN",
+        "target_id": "elm-31-b2fcfd",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "ICANN",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-32-e0eca2",
+        "op": "open",
+        "label": "Privacy Policy",
+        "target_id": "elm-32-e0eca2",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Privacy Policy",
+          "role": "a",
+          "tag": "a"
+        }
+      },
+      {
+        "id": "act-33-8a6849",
+        "op": "open",
+        "label": "Terms of Service",
+        "target_id": "elm-33-8a6849",
+        "region_id": null,
+        "enabled": true,
+        "requires_value": false,
+        "value_schema": null,
+        "destructive": false,
+        "navigational": true,
+        "primary": false,
+        "confidence": 0.85,
+        "locator_recipe": {
+          "name": "Terms of Service",
+          "role": "a",
+          "tag": "a"
+        }
+      }
+    ],
+    "metrics": {
+      "extraction_ms": 15,
+      "action_count": 28,
+      "interactable_count": 34,
+      "region_count": 4,
+      "form_count": 0,
+      "content_group_count": 1,
+      "delta_bytes": 302,
+      "full_bytes": 12919
+    },
+    "confidence": {
+      "overall": 0.956,
+      "extraction": 0.985,
+      "grouping": 0.75,
+      "actionability": 0.894,
+      "stability": 0.8,
+      "reasons": []
+    }
+  }
+}

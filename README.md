@@ -156,6 +156,9 @@ runtime = await SemanticBrowserRuntime.from_cdp_endpoint(
 If you do not provide a hint, the runtime now prefers non-blank pages over
 `about:blank`.
 
+If you use `page_index`, it must be zero-based and valid for the target context.
+Invalid indices now raise `AttachmentError` instead of silently falling back.
+
 ---
 
 ## CLI Commands

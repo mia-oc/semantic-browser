@@ -96,6 +96,8 @@ class SemanticBrowserRuntime:
                 "CDP attach expects a browser websocket endpoint (/devtools/browser/...), "
                 "not a page websocket endpoint (/devtools/page/...)."
             )
+        if page_index is not None and page_index < 0:
+            raise AttachmentError(f"CDP attach page_index must be >= 0 (got {page_index}).")
         try:
             from playwright.async_api import async_playwright
         except Exception as exc:
@@ -105,6 +107,16 @@ class SemanticBrowserRuntime:
             browser = await pw.chromium.connect_over_cdp(endpoint)
             contexts = list(browser.contexts)
             context = contexts[0] if contexts else await browser.new_context()
+            if page_index is not None:
+                page_count = len(context.pages)
+                if page_count == 0:
+                    raise AttachmentError(
+                        "CDP attach cannot select page_index when no pages are open in the target context."
+                    )
+                if page_index >= page_count:
+                    raise AttachmentError(
+                        f"CDP attach page_index {page_index} is out of range for {page_count} page(s)."
+                    )
             page = cls._select_page(
                 context.pages,
                 target_url_contains=target_url_contains,

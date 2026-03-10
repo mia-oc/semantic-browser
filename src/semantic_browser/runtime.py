@@ -48,14 +48,47 @@ class SemanticBrowserRuntime:
             raise AttachmentError("Cannot attach to null page.")
         return cls(page=page, config=config, managed=False, attached_kind="page")
 
+    @staticmethod
+    def _select_page(
+        pages: list[Any],
+        *,
+        target_url_contains: str | None = None,
+        page_index: int | None = None,
+        prefer_non_blank: bool = True,
+    ) -> Any | None:
+        if not pages:
+            return None
+        if page_index is not None and 0 <= page_index < len(pages):
+            return pages[page_index]
+        if target_url_contains:
+            needle = target_url_contains.lower()
+            by_url = next((p for p in pages if needle in (getattr(p, "url", "") or "").lower()), None)
+            if by_url:
+                return by_url
+        if prefer_non_blank:
+            non_blank = next((p for p in pages if (getattr(p, "url", "") or "") not in {"", "about:blank"}), None)
+            if non_blank:
+                return non_blank
+        return pages[0]
+
     @classmethod
     def from_context(cls, context: Any, config: RuntimeConfig | None = None, profile_registry=None):
         del profile_registry
-        return cls(page=context.pages[0], config=config, managed=False, attached_kind="context")
+        page = cls._select_page(context.pages, prefer_non_blank=True)
+        if page is None:
+            raise AttachmentError("Cannot attach: context has no pages.")
+        return cls(page=page, config=config, managed=False, attached_kind="context")
 
     @classmethod
     async def from_cdp_endpoint(
-        cls, endpoint: str, config: RuntimeConfig | None = None, profile_registry=None
+        cls,
+        endpoint: str,
+        config: RuntimeConfig | None = None,
+        profile_registry=None,
+        *,
+        target_url_contains: str | None = None,
+        page_index: int | None = None,
+        prefer_non_blank: bool = True,
     ):
         del profile_registry
         try:
@@ -65,7 +98,14 @@ class SemanticBrowserRuntime:
         pw = await async_playwright().start()
         browser = await pw.chromium.connect_over_cdp(endpoint)
         context = browser.contexts[0] if browser.contexts else await browser.new_context()
-        page = context.pages[0] if context.pages else await context.new_page()
+        page = cls._select_page(
+            context.pages,
+            target_url_contains=target_url_contains,
+            page_index=page_index,
+            prefer_non_blank=prefer_non_blank,
+        )
+        if page is None:
+            page = await context.new_page()
         return cls(page=page, config=config, managed=True, manager={"pw": pw, "browser": browser})
 
     @property

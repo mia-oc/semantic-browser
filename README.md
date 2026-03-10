@@ -133,6 +133,26 @@ async def demo():
 asyncio.run(demo())
 ```
 
+### CDP attach tips (important)
+
+When attaching to an already-running Chrome, use the **browser-level** websocket:
+
+- ✅ `ws://.../devtools/browser/<id>`
+- ❌ `ws://.../devtools/page/<id>`
+
+You can also hint which tab to bind:
+
+```python
+runtime = await SemanticBrowserRuntime.from_cdp_endpoint(
+    endpoint,
+    target_url_contains="x.com",
+    prefer_non_blank=True,
+)
+```
+
+If you do not provide a hint, the runtime now prefers non-blank pages over
+`about:blank`.
+
 ---
 
 ## CLI Commands

@@ -1,0 +1,35 @@
+# Python caches and artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Runtime traces and local outputs
+*.trace.json
+dogfood-trace.json
+porthole-validation-trace.json
+trace-*.json
+*.log

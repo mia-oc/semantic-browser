@@ -1,18 +1,58 @@
 # Semantic Browser Runtime
 
-Turn a real browser page into a clean, LLM-friendly action surface.
+Make browser automation feel less like parsing soup and more like a text adventure.
 
-If you are tired of giving your model raw DOM noise and brittle selectors, this
-project gives you:
+This project turns a live Chromium page into a compact control panel for an LLM:
 
-- structured observations (`summary`, `full`, `delta`, `debug`)
-- stable action IDs
-- executable actions (`act`)
-- blocker and confidence signals
-- optional local service + CLI
+- **where am I?** (`location`)
+- **what can I see?** (`what_you_see`)
+- **what can I do?** (`available_actions`)
+- **what is in the way?** (`blockers`)
 
-In plain English: this is a semantic control layer on top of Chromium, not a
-new browser.
+Then the model replies with one action ID and keeps moving.
+
+In plain English: this is not "yet another browser". It is the semantic layer that lets an LLM behave more like a focused human operator, and less like a confused DOM archaeologist.
+
+## Why this is actually great
+
+Most browser loops waste tokens on page noise. Semantic Browser is designed to stop that.
+
+- **Auto routing**: ARIA-quality-aware mode selection (`observe(mode="auto")`)
+- **Top-first extraction**: starts at the part humans read first
+- **Planner payload**: tiny, capped control-panel view for LLM turns
+- **Stable actions**: deterministic IDs instead of fragile selectors
+- **Escalation path**: go from compact to full only when needed
+
+If your bot has ever clicked the wrong thing because a cookie banner sneezed, this is for you.
+
+---
+
+## Comparative results (5 complex end-to-end tasks, median)
+
+Benchmark files:
+- `docs/benchmarks/2026-03-11-actionset-compare.md`
+- `docs/benchmarks/2026-03-11-actionset-compare.json`
+- `docs/benchmarks/journals/2026-03-11/` (step-by-step journals, 15 files)
+
+Task set (same request run across all three methods): Amazon, Reddit, YouTube, BBC, Wikipedia.
+
+Planner route for this run: `codex:gpt-5.3-codex` for all methods.
+Direct `openai` benchmark route is disabled in `scripts/actionset_benchmark.py`.
+Cost normalisation: Sonnet 4.6 pricing constants ($3.00/M input, $15.00/M output).
+
+| Method | Success rate | Failures | Median speed (ms) | Median token-in | Median token-out | Est. cost / request (USD) |
+|---|---:|---:|---:|---:|---:|---:|
+| Standard browser tooling | 0.40 | 3 | 18,471.5 | 24,885.0 | 408.0 | 0.138962 |
+| OpenClaw browser tooling | 0.40 | 3 | 60,000.0 | 22,858.0 | 289.0 | 0.119324 |
+| Semantic Browser | 0.40 | 3 | 52,384.3 | 20,892.0 | 320.0 | 0.123281 |
+
+### What this means (honest version)
+
+- This is a true AI-driven multi-step run (observe -> plan with LLM -> act), not a homepage open/close smoke check.
+- Each task+method now has a persisted action journal showing what the planner chose and what happened.
+- This specific run still shows reliability issues for OpenClaw and Semantic methods on this task mix.
+- Provider telemetry (`usage`) is used directly for token-in/token-out where returned by the model route.
+- Cost is estimated with Sonnet 4.6 constants for like-for-like economic comparison across routes.
 
 ---
 
@@ -20,14 +60,14 @@ new browser.
 
 You open a real webpage.
 
-Instead of handing your LLM giant HTML blobs, you ask this runtime:
+Instead of dumping giant blobs into the model, you run a clean loop:
 
 1. "What can I see?"
 2. "What can I do?"
 3. "Do this action."
 4. "What changed?"
 
-That is the whole idea.
+Rinse and repeat.
 
 ---
 
@@ -170,6 +210,20 @@ Top-first token behaviour (summary mode):
 - `observe(mode="summary")` now focuses on a top-of-page slice (viewport + buffer)
 - `observe(mode="full")` returns broader full-page context
 - summary key points include a `top-scope summary: X/Y interactables included` hint
+
+Auto routing mode:
+- `observe(mode="auto")` computes a lightweight ARIA quality score and chooses route automatically:
+  - good ARIA => compact top-scope route (`aria_compact`)
+  - weak/noisy ARIA => broader route (`semantic_full`)
+- route and quality are exposed in `observation.metrics` and summary key points.
+
+Planner control-panel view (BBC Micro loop style):
+- each observation now includes `observation.planner`:
+  - `location`: concise room/location line
+  - `what_you_see`: short capped bullet list
+  - `available_actions`: capped action list (`id`, `label`, `op`)
+  - `blockers`: active blocker hints
+- use this as the LLM-facing payload for low token-in turns; keep full observation internal for diagnostics/recovery.
 
 This keeps default observations leaner while allowing deterministic escalation to full context.
 

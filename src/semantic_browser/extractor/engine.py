@@ -12,6 +12,8 @@ from semantic_browser.models import (
     Observation,
     ObservationMetrics,
     PageSummary,
+    PlannerAction,
+    PlannerView,
 )
 
 from .blockers import confidence_from_nodes, detect_blockers
@@ -49,15 +51,53 @@ def _node_in_top_scope(node: dict[str, Any], cutoff_y: float) -> bool:
     return (y_f + max(h_f, 1.0)) <= cutoff_y
 
 
-async def _nodes_for_mode(nodes: list[dict[str, Any]], page: Any, mode: str, config: RuntimeConfig) -> tuple[list[dict[str, Any]], bool]:
-    if mode != "summary" or not config.extraction.summary_top_scope_enabled:
-        return nodes, False
+def _aria_quality_score(nodes: list[dict[str, Any]]) -> float:
+    if not nodes:
+        return 0.0
+    names = [(n.get("name") or "").strip() for n in nodes]
+    labelled = sum(1 for n in names if len(n) >= 2)
+    label_cov = labelled / len(nodes)
+    interactive = [n for n in nodes if n.get("tag") in {"a", "button", "input", "select", "textarea"} or n.get("role") in {"link", "button", "textbox", "checkbox"}]
+    interactive_ratio = len(interactive) / len(nodes)
+    unique_labels = len(set(n.lower() for n in names if n))
+    duplicate_penalty = 1.0 - (unique_labels / max(labelled, 1))
+    score = (0.65 * label_cov) + (0.25 * min(interactive_ratio * 2.0, 1.0)) + (0.10 * (1.0 - duplicate_penalty))
+    return round(max(0.0, min(1.0, score)), 3)
+
+
+async def _nodes_for_mode(nodes: list[dict[str, Any]], page: Any, mode: str, config: RuntimeConfig) -> tuple[list[dict[str, Any]], bool, str, float]:
+    quality = _aria_quality_score(nodes)
+    resolved_mode = mode
+    if mode == "auto":
+        resolved_mode = "summary" if quality >= 0.55 else "full"
+
+    if resolved_mode != "summary" or not config.extraction.summary_top_scope_enabled:
+        route = "semantic_full" if resolved_mode == "full" else "semantic_raw"
+        return nodes, False, route, quality
     viewport_h = await _viewport_height(page)
     cutoff_y = viewport_h * max(config.extraction.summary_top_scope_multiplier, 1.0)
     scoped = [n for n in nodes if _node_in_top_scope(n, cutoff_y)]
     if not scoped:
-        return nodes, False
-    return scoped, len(scoped) < len(nodes)
+        return nodes, False, "semantic_top", quality
+    route = "aria_compact" if mode == "auto" and quality >= 0.75 else "semantic_top"
+    return scoped, len(scoped) < len(nodes), route, quality
+
+
+def _build_planner_view(page_info: Any, summary: PageSummary, blockers: list[Any], actions: list[ActionDescriptor]) -> PlannerView:
+    room = f"You are on {page_info.title or page_info.domain} ({page_info.domain})"
+    what_you_see = [summary.headline] + list(summary.key_points[:7])
+    action_items = [
+        PlannerAction(id=a.id, label=a.label, op=a.op)
+        for a in actions
+        if a.enabled
+    ][:30]
+    blocker_text = [b.description for b in blockers[:5]]
+    return PlannerView(
+        location=room,
+        what_you_see=what_you_see,
+        available_actions=action_items,
+        blockers=blocker_text,
+    )
 
 
 def _action_for_node(node: dict[str, Any], node_id: str, idx: int) -> ActionDescriptor | None:
@@ -107,7 +147,7 @@ async def observe_page(
     start = time.perf_counter()
     sem = await extract_semantics(page)
     all_nodes = redact_nodes(sem.get("nodes", []), config.redaction)
-    nodes, top_scoped = await _nodes_for_mode(all_nodes, page, mode, config)
+    nodes, top_scoped, extraction_route, aria_quality = await _nodes_for_mode(all_nodes, page, mode, config)
     id_map = assign_node_ids(nodes, previous=previous_ids)
     page_info = await capture_page_info(page)
     page_info.page_type = classify_page(nodes)
@@ -176,6 +216,7 @@ async def observe_page(
         f"{len(groups)} content groups",
         f"{dom_stats.get('links', 0)} links",
     ]
+    key_points.append(f"route: {extraction_route} (aria_quality={aria_quality})")
     if top_scoped:
         key_points.append(f"top-scope summary: {len(nodes)}/{len(all_nodes)} interactables included")
         key_points.append("request full mode when more page context is needed")
@@ -184,6 +225,7 @@ async def observe_page(
         key_points=key_points,
     )
     extraction_ms = int((time.perf_counter() - start) * 1000)
+    planner = _build_planner_view(page_info, summary, blockers, actions)
     obs = Observation(
         session_id=session_id,
         mode=mode,  # type: ignore[arg-type]
@@ -195,6 +237,7 @@ async def observe_page(
         forms=forms,
         content_groups=groups,
         available_actions=actions,
+        planner=planner,
         metrics=ObservationMetrics(
             extraction_ms=extraction_ms,
             action_count=len(actions),
@@ -202,6 +245,10 @@ async def observe_page(
             region_count=len(regions),
             form_count=len(forms),
             content_group_count=len(groups),
+            extraction_route=extraction_route,
+            aria_quality=aria_quality,
+            scoped_interactable_count=len(nodes),
+            total_interactable_count=len(all_nodes),
         ),
         confidence=confidence,
     )

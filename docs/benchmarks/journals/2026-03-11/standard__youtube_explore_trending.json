@@ -1,0 +1,156 @@
+{
+  "task": "youtube_explore_trending",
+  "site": "youtube",
+  "url": "https://www.youtube.com/",
+  "request": "Open Explore, then open Trending.",
+  "method": "standard_browser_tooling",
+  "result": {
+    "ok": false,
+    "stuck": true,
+    "speed_ms": 108705.1,
+    "tok_in": 64466,
+    "tok_out": 3136
+  },
+  "entries": [
+    {
+      "ts": "2026-03-11T12:40:08.521987+00:00",
+      "step": 1,
+      "phase": "plan_act",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "candidate_count": 44,
+      "plan": {
+        "action": "click",
+        "target": "Home",
+        "text": "",
+        "reason": "Open the left navigation context from the main feed first so Explore can become available, then proceed to Trending."
+      },
+      "acted": true,
+      "act_detail": "click",
+      "usage": {
+        "tok_in": 9076,
+        "tok_out": 334
+      }
+    },
+    {
+      "ts": "2026-03-11T12:40:18.106684+00:00",
+      "step": 2,
+      "phase": "plan_act",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "candidate_count": 44,
+      "plan": {
+        "action": "click",
+        "target": "Home",
+        "text": "",
+        "reason": "Explore/Trending are not visible yet; clicking Home keeps the main navigation context active so Explore can appear next."
+      },
+      "acted": true,
+      "act_detail": "click",
+      "usage": {
+        "tok_in": 9123,
+        "tok_out": 269
+      }
+    },
+    {
+      "ts": "2026-03-11T12:40:32.183441+00:00",
+      "step": 3,
+      "phase": "plan_act",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "candidate_count": 44,
+      "plan": {
+        "action": "click",
+        "target": "Collapse",
+        "text": "",
+        "reason": "Explore is not currently visible; toggling the left navigation with Collapse is the most likely way to reveal Explore so Trending can be opened next."
+      },
+      "acted": true,
+      "act_detail": "click",
+      "usage": {
+        "tok_in": 9172,
+        "tok_out": 386
+      }
+    },
+    {
+      "ts": "2026-03-11T12:40:52.777373+00:00",
+      "step": 4,
+      "phase": "plan_act",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "candidate_count": 44,
+      "plan": {
+        "action": "click",
+        "target": "Collapse",
+        "text": "",
+        "reason": "Explore is still not listed among clickable candidates; toggling the left navigation is the most likely way to surface Explore so Trending can be opened next."
+      },
+      "acted": true,
+      "act_detail": "click",
+      "usage": {
+        "tok_in": 9227,
+        "tok_out": 686
+      }
+    },
+    {
+      "ts": "2026-03-11T12:41:14.977433+00:00",
+      "step": 5,
+      "phase": "plan_act",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "candidate_count": 44,
+      "plan": {
+        "action": "click",
+        "target": "Collapse",
+        "text": "",
+        "reason": "Explore is still not listed; toggling the sidebar is the most likely way to reveal the Explore entry so Trending can be opened next."
+      },
+      "acted": true,
+      "act_detail": "click",
+      "usage": {
+        "tok_in": 9283,
+        "tok_out": 633
+      }
+    },
+    {
+      "ts": "2026-03-11T12:41:27.727445+00:00",
+      "step": 6,
+      "phase": "plan_act",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "candidate_count": 44,
+      "plan": {
+        "action": "click",
+        "target": "Collapse",
+        "text": "",
+        "reason": "Explore is still not visible in the available candidates; toggling the sidebar is the most likely way to expose Explore so Trending can be opened next."
+      },
+      "acted": true,
+      "act_detail": "click",
+      "usage": {
+        "tok_in": 9289,
+        "tok_out": 375
+      }
+    },
+    {
+      "ts": "2026-03-11T12:41:44.437266+00:00",
+      "step": 7,
+      "phase": "plan_act",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "candidate_count": 44,
+      "plan": {
+        "action": "click",
+        "target": "Home",
+        "text": "",
+        "reason": "Explore is not currently available in the visible candidates after repeated sidebar toggles; clicking Home can reset focus/navigation state so Explore and then Trending can be selected next."
+      },
+      "acted": true,
+      "act_detail": "click",
+      "usage": {
+        "tok_in": 9296,
+        "tok_out": 453
+      }
+    }
+  ]
+}

@@ -32,14 +32,19 @@ Other browser tools give the LLM the same data in a different wrapper. We give i
 
 ## Benchmark Results
 
-### Baseline (before text-adventure evolution)
+### Baseline (validated rerun, 11 Mar 2026)
 
-_Note: Browser-direct and OpenClaw rows are indicative - ongoing live testing in progress (11 Mar 2026)_
+_Route: OpenAI API (`gpt-5.3-codex`). Full 25-task run against non-semantic routes._
 
-| Method | Success rate | Median token-in | Median token-out | Est. cost |
-|---|---:|---:|---:|---:|
-| Standard browser tooling (indicative) | 40% | 24,885 | 408 | $0.139 |
-| OpenClaw browser tooling (indicative) | 40% | 22,858 | 289 | $0.119 |
+| Method | Success rate | Median token-in | Median token-out | Median speed | Est. cost/request |
+|---|---:|---:|---:|---:|---:|
+| Standard browser tooling | 8% (2/25) | 4,660 | 32 | 3,110ms | $0.0110 |
+| OpenClaw browser tooling | 20% (5/25) | 3,363 | 32 | 3,178ms | $0.0076 |
+
+Source artefacts:
+- `docs/benchmarks/2026-03-11-other-routes-25.json`
+- `docs/benchmarks/2026-03-11-other-routes-25.md`
+- `docs/benchmarks/journals/2026-03-11/compare-other-routes-25/`
 
 ### Semantic Browser
 

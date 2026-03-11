@@ -9,8 +9,10 @@ from typing import Any
 from semantic_browser.config import RuntimeConfig
 from semantic_browser.models import (
     ActionDescriptor,
+    Blocker,
     Observation,
     ObservationMetrics,
+    PageInfo,
     PageSummary,
     PlannerAction,
     PlannerView,
@@ -25,6 +27,9 @@ from .ids import assign_node_ids, fingerprint_for
 from .page_state import capture_page_info
 from .redaction import redact_nodes
 from .semantics import extract_semantics
+
+_MAX_CURATED_ACTIONS = 15
+_SEE_MORE_ID = "act-see-more"
 
 
 async def _viewport_height(page: Any) -> float:
@@ -83,20 +88,259 @@ async def _nodes_for_mode(nodes: list[dict[str, Any]], page: Any, mode: str, con
     return scoped, len(scoped) < len(nodes), route, quality
 
 
-def _build_planner_view(page_info: Any, summary: PageSummary, blockers: list[Any], actions: list[ActionDescriptor]) -> PlannerView:
-    room = f"You are on {page_info.title or page_info.domain} ({page_info.domain})"
-    what_you_see = [summary.headline] + list(summary.key_points[:7])
+# ---------------------------------------------------------------------------
+# Content narration helpers
+# ---------------------------------------------------------------------------
+
+def _extract_headings(nodes: list[dict[str, Any]]) -> list[str]:
+    """Pull visible h1-h3 text from nodes for narration."""
+    headings: list[str] = []
+    for n in nodes:
+        tag = n.get("tag", "")
+        if tag in {"h1", "h2", "h3"} or n.get("role") in {"heading"}:
+            text = (n.get("name") or n.get("text") or "").strip()
+            if text and len(text) > 2:
+                headings.append(text[:80])
+    return headings[:5]
+
+
+def _extract_nav_labels(nodes: list[dict[str, Any]]) -> list[str]:
+    """Pull short navigation link labels from nav regions."""
+    labels: list[str] = []
+    in_nav = False
+    for n in nodes:
+        if n.get("tag") == "nav" or n.get("role") == "navigation":
+            in_nav = True
+            continue
+        if in_nav and n.get("tag") in {"a", "button"} or n.get("role") in {"link", "button"}:
+            name = (n.get("name") or "").strip()
+            if name and len(name) < 30 and name not in labels:
+                labels.append(name)
+        if in_nav and n.get("tag") in {"main", "footer", "aside", "section", "article"}:
+            in_nav = False
+    return labels[:10]
+
+
+def _build_narration(
+    page_info: PageInfo,
+    nodes: list[dict[str, Any]],
+    regions: list[Any],
+    content_groups: list[Any],
+    forms: list[Any],
+) -> str:
+    """Build a short prose description of what's visible on the page."""
+    parts: list[str] = []
+
+    headings = _extract_headings(nodes)
+    nav_labels = _extract_nav_labels(nodes)
+
+    region_kinds = [r.kind for r in regions if r.kind not in {"root", "form"}]
+    has_nav = any(k in {"navigation", "nav"} for k in region_kinds)
+    has_main = any(k in {"main", "article"} for k in region_kinds)
+
+    page_desc = page_info.title or page_info.domain
+    if headings:
+        parts.append(f"{page_desc}. Main content: \"{headings[0]}\".")
+        for h in headings[1:3]:
+            parts.append(f'Also: "{h}".')
+    else:
+        parts.append(f"{page_desc}.")
+
+    if has_nav and nav_labels:
+        parts.append(f"Navigation: {', '.join(nav_labels[:8])}.")
+    elif nav_labels:
+        parts.append(f"Links: {', '.join(nav_labels[:6])}.")
+
+    for fg in forms[:2]:
+        parts.append(f"Form: {fg.name}.")
+
+    for cg in content_groups[:2]:
+        count = cg.item_count or 0
+        if count > 1:
+            preview = ""
+            if cg.preview_items:
+                first_title = (cg.preview_items[0].title or "")[:50]
+                if first_title:
+                    preview = f' (e.g. "{first_title}")'
+            parts.append(f"{count} {cg.kind} items{preview}.")
+
+    input_nodes = [n for n in nodes if n.get("tag") in {"input", "textarea", "select"} and not n.get("disabled")]
+    if input_nodes:
+        input_names = [(n.get("name") or n.get("type") or "input").strip()[:30] for n in input_nodes[:3]]
+        if len(input_nodes) == 1:
+            parts.append(f"Input field: {input_names[0]}.")
+        else:
+            parts.append(f"Input fields: {', '.join(input_names)}.")
+
+    return " ".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Action curation — rank and prune for the planner
+# ---------------------------------------------------------------------------
+
+def _curate_actions(
+    actions: list[ActionDescriptor],
+    blockers: list[Blocker],
+    limit: int = _MAX_CURATED_ACTIONS,
+) -> tuple[list[ActionDescriptor], bool]:
+    """Rank and prune actions for the planner room description.
+
+    Priority order:
+    1. Blocker-dismissal actions (cookie banners, modal close)
+    2. Form inputs (fill, select, toggle) — task-critical
+    3. Primary/CTA actions
+    4. In-viewport navigation and buttons
+    5. Remaining enabled actions
+
+    Returns (curated_list, has_more) where has_more indicates
+    there are additional actions beyond the curated set.
+    """
+    blocker_action_ids = set()
+    for b in blockers:
+        blocker_action_ids.update(b.related_action_ids)
+
+    enabled = [a for a in actions if a.enabled]
+
+    tier_blocker: list[ActionDescriptor] = []
+    tier_input: list[ActionDescriptor] = []
+    tier_primary: list[ActionDescriptor] = []
+    tier_normal: list[ActionDescriptor] = []
+    tier_global: list[ActionDescriptor] = []
+
+    for a in enabled:
+        if a.id in blocker_action_ids:
+            tier_blocker.append(a)
+        elif a.op in {"fill", "select_option", "toggle"}:
+            tier_input.append(a)
+        elif a.primary or a.op in {"submit", "click"}:
+            tier_primary.append(a)
+        elif a.id.startswith("act-global-"):
+            tier_global.append(a)
+        else:
+            tier_normal.append(a)
+
+    ranked = tier_blocker + tier_input + tier_primary + tier_normal
+    curated = ranked[:limit]
+
+    global_keepers = [g for g in tier_global if g.op in {"back", "navigate"}]
+    curated.extend(global_keepers)
+
+    has_more = len(ranked) > limit
+    return curated, has_more
+
+
+# ---------------------------------------------------------------------------
+# Room description — the text-adventure output
+# ---------------------------------------------------------------------------
+
+def _format_action_line(idx: int, action: ActionDescriptor) -> str:
+    """Format one action as a terse room description line."""
+    label = action.label[:60]
+    if action.requires_value:
+        return f"  {idx}. {action.op} {label} [{action.id}] (needs value)"
+    return f"  {idx}. {action.op} \"{label}\" [{action.id}]"
+
+
+def _build_room_text(
+    page_info: PageInfo,
+    narration: str,
+    curated_actions: list[ActionDescriptor],
+    blockers: list[Blocker],
+    has_more: bool,
+    total_action_count: int,
+) -> str:
+    """Render the full text-adventure room description."""
+    lines: list[str] = []
+
+    lines.append(f"LOCATION: {page_info.title or page_info.domain} ({page_info.domain})")
+    lines.append("")
+    lines.append(f"YOU SEE: {narration}")
+    lines.append("")
+
+    if blockers:
+        lines.append("BLOCKERS:")
+        for b in blockers[:3]:
+            dismiss_hint = ""
+            if b.related_action_ids:
+                dismiss_hint = f" -> dismiss with [{b.related_action_ids[0]}]"
+            lines.append(f"  ! {b.description}{dismiss_hint}")
+        lines.append("")
+
+    lines.append("ACTIONS:")
+    for i, action in enumerate(curated_actions, 1):
+        lines.append(_format_action_line(i, action))
+
+    if has_more:
+        hidden = total_action_count - len(curated_actions)
+        lines.append(f"  ... {hidden} more actions available. Use [{_SEE_MORE_ID}] to see full list.")
+
+    return "\n".join(lines)
+
+
+def _build_expanded_room_text(
+    page_info: PageInfo,
+    narration: str,
+    actions: list[ActionDescriptor],
+    blockers: list[Blocker],
+) -> str:
+    """Render expanded room description showing ALL actions."""
+    lines: list[str] = []
+
+    lines.append(f"LOCATION: {page_info.title or page_info.domain} ({page_info.domain})")
+    lines.append("")
+    lines.append(f"YOU SEE: {narration}")
+    lines.append("")
+
+    if blockers:
+        lines.append("BLOCKERS:")
+        for b in blockers[:3]:
+            dismiss_hint = ""
+            if b.related_action_ids:
+                dismiss_hint = f" -> dismiss with [{b.related_action_ids[0]}]"
+            lines.append(f"  ! {b.description}{dismiss_hint}")
+        lines.append("")
+
+    lines.append(f"ALL ACTIONS ({len(actions)}):")
+    enabled = [a for a in actions if a.enabled]
+    for i, action in enumerate(enabled, 1):
+        lines.append(_format_action_line(i, action))
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# PlannerView builder (replaces old _build_planner_view)
+# ---------------------------------------------------------------------------
+
+def _build_planner_view(
+    page_info: PageInfo,
+    narration: str,
+    blockers: list[Blocker],
+    actions: list[ActionDescriptor],
+    expanded: bool = False,
+) -> PlannerView:
+    total = sum(1 for a in actions if a.enabled)
+    curated, has_more = _curate_actions(actions, blockers)
+
+    if expanded:
+        room_text = _build_expanded_room_text(page_info, narration, actions, blockers)
+    else:
+        room_text = _build_room_text(page_info, narration, curated, blockers, has_more, total)
+
     action_items = [
         PlannerAction(id=a.id, label=a.label, op=a.op)
-        for a in actions
-        if a.enabled
-    ][:30]
-    blocker_text = [b.description for b in blockers[:5]]
+        for a in curated
+    ]
+
     return PlannerView(
-        location=room,
-        what_you_see=what_you_see,
+        location=f"{page_info.title or page_info.domain} ({page_info.domain})",
+        what_you_see=[narration],
         available_actions=action_items,
-        blockers=blocker_text,
+        blockers=[b.description for b in blockers[:5]],
+        room_text=room_text,
+        has_more_actions=has_more,
+        total_action_count=total,
     )
 
 
@@ -143,14 +387,22 @@ async def observe_page(
     config: RuntimeConfig,
     previous_observation: Observation | None,
     previous_ids: dict[str, str] | None,
+    expanded: bool = False,
 ) -> tuple[Observation, dict[str, str]]:
     start = time.perf_counter()
+
+    fast_path = mode in {"auto", "summary"} and not expanded
     sem = await extract_semantics(page)
     all_nodes = redact_nodes(sem.get("nodes", []), config.redaction)
     nodes, top_scoped, extraction_route, aria_quality = await _nodes_for_mode(all_nodes, page, mode, config)
     id_map = assign_node_ids(nodes, previous=previous_ids)
     page_info = await capture_page_info(page)
-    page_info.page_type = classify_page(nodes)
+
+    use_fast_path = fast_path and aria_quality >= 0.7
+    if not use_fast_path:
+        page_info.page_type = classify_page(nodes)
+    else:
+        page_info.page_type = "page"
 
     actions: list[ActionDescriptor] = [
         ActionDescriptor(
@@ -204,28 +456,34 @@ async def observe_page(
             actions.append(action)
 
     regions = build_regions(nodes)
-    forms = build_forms(nodes, actions)
-    groups = build_content_groups(nodes)
     blockers = detect_blockers(nodes)
+
+    if use_fast_path:
+        forms = build_forms(nodes, actions)
+        groups = []
+        dom_stats: dict[str, Any] = {}
+    else:
+        forms = build_forms(nodes, actions)
+        groups = build_content_groups(nodes)
+        dom_stats = await capture_dom_stats(page)
+
     confidence, warnings = confidence_from_nodes(nodes, len(actions), config.extraction)
 
-    dom_stats = await capture_dom_stats(page)
-    key_points = [
-        f"{len(regions)} regions",
-        f"{len(forms)} forms",
-        f"{len(groups)} content groups",
-        f"{dom_stats.get('links', 0)} links",
-    ]
-    key_points.append(f"route: {extraction_route} (aria_quality={aria_quality})")
+    narration = _build_narration(page_info, nodes, regions, groups, forms)
+
+    key_points = [narration]
     if top_scoped:
-        key_points.append(f"top-scope summary: {len(nodes)}/{len(all_nodes)} interactables included")
-        key_points.append("request full mode when more page context is needed")
+        key_points.append(f"showing {len(nodes)}/{len(all_nodes)} elements (top-scope view)")
     summary = PageSummary(
-        headline=f"{page_info.page_type} page with {len(actions)} actions",
+        headline=f"{page_info.title or page_info.domain}",
         key_points=key_points,
     )
+
     extraction_ms = int((time.perf_counter() - start) * 1000)
-    planner = _build_planner_view(page_info, summary, blockers, actions)
+    if use_fast_path:
+        extraction_route = "fast_aria"
+
+    planner = _build_planner_view(page_info, narration, blockers, actions, expanded=expanded)
     obs = Observation(
         session_id=session_id,
         mode=mode,  # type: ignore[arg-type]

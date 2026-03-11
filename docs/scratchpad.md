@@ -141,6 +141,52 @@
   persistent interactive loop (`semantic-browser portal`) is required for
   realistic local porthole testing.
 
+### 2026-03-11 — Text Adventure Evolution
+
+Baseline benchmark showed 0.40 success rate — identical to standard and OpenClaw
+browser tooling.  Root cause: planner received the same `{url, title, text, candidates}`
+JSON shape regardless of method, erasing our semantic extraction advantage.
+
+Changes implemented (Phases A-I):
+
+1. **Text-first room description** — `PlannerView.room_text` now holds a plain-text
+   room description (LOCATION / YOU SEE / ACTIONS / BLOCKERS) instead of JSON.
+   Planner input drops from ~20k tokens of JSON to ~500-2000 tokens of narrated text.
+
+2. **Action curation** — Actions ranked by blocker-dismissal > input fields > primary >
+   viewport-visible, hard capped at 15 in the room description. No more 100-candidate
+   phone book.
+
+3. **Progressive disclosure** — `act-see-more` escape hatch always available.  LLM
+   can request expanded view when the curated set doesn't contain what it needs (e.g.
+   deep content pages, filter controls, pagination).
+
+4. **Content narration** — `what_you_see` now derived from visible headings (h1-h3),
+   nav labels, content group previews, form names — not meta-stats like "4 regions".
+
+5. **Fast-path extraction** — When ARIA quality >= 0.7, skip DOM stats, heavy grouping,
+   and page classifier.  Target 200-500ms extraction vs prior 1-3s.
+
+6. **One-token action responses** — Benchmark planner prompt expects a bare action ID
+   (e.g. `act-3-ab12cd`), not JSON.  Eliminates fuzzy matching failure mode.
+
+7. **Narrative history** — Step history as prose ("Step 1: Clicked 'News'. Navigated
+   to BBC News.") not stringified JSON dicts.
+
+8. **Task harness** — 25 tasks across 5 categories (navigation, search, multi-step,
+   content, interaction, resilience, speed) on real public sites.
+   `scripts/task_harness.py` runnable via OpenClaw.
+
+## Lessons
+
+- Sending the same data shape as competitors means the planner makes the same
+  decisions.  Format differentiation IS competitive differentiation.
+- LLMs parse prose faster and cheaper than JSON.  Every `{` and `"` is wasted tokens.
+- Action curation with an escape hatch (see_more) is strictly better than dumping
+  everything — it guides the common case while preserving autonomy.
+- Narration beats statistics: "BBC News homepage with headlines" >> "article page with
+  45 actions, 4 regions".
+
 ## Notes
 
 - The spec explicitly prioritises **honest failure** over fake confidence.

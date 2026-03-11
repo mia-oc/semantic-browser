@@ -472,28 +472,117 @@ def openclaw_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         subprocess.run(f"openclaw browser close --browser-profile mia {tid} --json >/dev/null", shell=True, check=False)
 
 
-def _semantic_obs_to_view(obs: Any) -> dict[str, Any]:
-    candidates = []
-    for a in obs.available_actions[:150]:
-        if not a.enabled:
-            continue
-        if a.op not in {"open", "click", "type", "fill", "press", "toggle", "select_option"}:
-            continue
-        candidates.append({"id": a.id, "op": a.op, "label": a.label or ""})
-    planner = obs.planner.model_dump() if obs.planner else {}
-    return {
-        "url": obs.page.url,
-        "title": obs.page.title,
-        "text": json.dumps(planner)[:5000],
-        "candidates": candidates[:100],
+_SEMANTIC_SYSTEM_PROMPT = (
+    "You are navigating a website to complete a task. "
+    "You receive a room description showing your location, what you see, and available actions.\n\n"
+    "Reply with ONLY ONE of:\n"
+    "- An action ID from the list (e.g. act-3-ab12cd)\n"
+    "- An action ID followed by a quoted value for fill/type actions (e.g. act-5-ef34gh \"search text\")\n"
+    "- act-see-more (to see all available actions if the one you need is not listed)\n"
+    "- done (if the task goal is clearly achieved)\n\n"
+    "Nothing else. No explanation. No JSON. Just the action ID."
+)
+
+
+def _semantic_build_prompt(task_request: str, room_text: str, history: list[str]) -> str:
+    parts = [f"TASK: {task_request}"]
+    if history:
+        parts.append("\nHISTORY:\n" + "\n".join(history[-5:]))
+    parts.append(f"\n{room_text}")
+    return "\n".join(parts)
+
+
+def _semantic_planner_via_openrouter(prompt: str) -> tuple[str, Usage]:
+    model = os.getenv("BENCHMARK_MODEL", "google/gemma-3-27b-it:free")
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": _SEMANTIC_SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        "max_tokens": 60,
+        "temperature": 0,
     }
+    api_key = _require_env("OPENROUTER_API_KEY")
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            raw = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"Planner API HTTP {e.code}: {detail[:400]}") from e
+    usage = _extract_usage(raw)
+    content = ""
+    choices = raw.get("choices") or []
+    if choices:
+        content = str((choices[0].get("message") or {}).get("content", "")).strip()
+    return content, Usage(tok_in=usage.tok_in, tok_out=usage.tok_out)
 
 
-def _semantic_pick_action_id(candidates: list[dict[str, Any]], target: str) -> str | None:
-    idx = _match_index(candidates, target)
-    if idx is None:
-        return None
-    return str(candidates[idx].get("id") or "") or None
+def _semantic_planner_via_codex(prompt: str) -> tuple[str, Usage]:
+    model = os.getenv("BENCHMARK_MODEL", "gpt-5.3-codex")
+    full_prompt = _SEMANTIC_SYSTEM_PROMPT + "\n\n" + prompt
+    cmd = ["codex", "exec", "--json", "--model", model, "-"]
+    proc = subprocess.run(cmd, input=full_prompt, text=True, capture_output=True, check=False)
+    if proc.returncode != 0:
+        msg = (proc.stderr or proc.stdout or "codex planner failed")[:600]
+        raise RuntimeError(f"Codex planner failed (exit {proc.returncode}): {msg}")
+    content = ""
+    usage = Usage(tok_in=0, tok_out=0)
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            evt = json.loads(line)
+        except Exception:
+            continue
+        et = evt.get("type")
+        if et == "item.completed":
+            item = evt.get("item") or {}
+            text = str(item.get("text") or "").strip()
+            if text:
+                content = text
+        elif et == "turn.completed":
+            u = evt.get("usage") or {}
+            usage = Usage(tok_in=int(u.get("input_tokens") or 0), tok_out=int(u.get("output_tokens") or 0))
+    return content, usage
+
+
+def _semantic_planner_next(task_request: str, room_text: str, history: list[str]) -> tuple[str, Usage]:
+    api = os.getenv("BENCHMARK_API", "codex").strip().lower()
+    prompt = _semantic_build_prompt(task_request, room_text, history)
+    if api == "codex":
+        return _semantic_planner_via_codex(prompt)
+    elif api == "openrouter":
+        return _semantic_planner_via_openrouter(prompt)
+    raise RuntimeError(f"Unsupported BENCHMARK_API={api!r}")
+
+
+def _parse_semantic_response(response: str) -> tuple[str | None, str | None]:
+    """Parse planner response into (action_id, optional_value).
+
+    Expected formats: 'act-3-ab12cd', 'act-5-ef34gh "text"', 'done', 'act-see-more'.
+    """
+    text = response.strip().strip("`").strip()
+    if not text:
+        return None, None
+    if text.lower() == "done":
+        return "done", None
+
+    first_quote = text.find('"')
+    if first_quote > 0:
+        action_id = text[:first_quote].strip()
+        value = text[first_quote:].strip().strip('"')
+        return action_id, value
+
+    tokens = text.split()
+    return tokens[0], None
 
 
 async def semantic_method(task: Task, ws: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -507,47 +596,67 @@ async def semantic_method(task: Task, ws: str) -> tuple[dict[str, Any], list[dic
         ok = False
         for step in range(1, task.max_steps + 1):
             obs = await rt.observe("auto")
-            view = _semantic_obs_to_view(obs)
-            done = _is_complete(view.get("url", ""), view.get("title", ""), view.get("text", ""), task.checks)
+            room_text = obs.planner.room_text if obs.planner else ""
+            url = obs.page.url
+            title = obs.page.title
+
+            done = _is_complete(url, title, room_text, task.checks)
             if done:
                 ok = True
-                journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": view.get("url", "")})
+                journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": url})
                 break
-            plan, usage = planner_next_action(task.request, view, history)
+
+            response, usage = _semantic_planner_next(task.request, room_text, history)
             tok_in += usage.tok_in
             tok_out += usage.tok_out
-            history.append(f"plan={plan}")
+
+            action_id, value = _parse_semantic_response(response)
             acted = False
-            detail = "target_not_found"
-            if plan.get("action") == "done":
+            detail = "no_action"
+
+            if action_id == "done":
                 acted = True
                 detail = "planner_done"
+                history.append(f"Step {step}: Declared task complete on {title}.")
+            elif action_id:
+                detail = f"act:{action_id}"
+                try:
+                    req = ActionRequest(action_id=action_id, value=value)
+                    step_result = await rt.act(req)
+                    acted = step_result.status == "success"
+                    action_label = action_id
+                    matched = next((a for a in obs.available_actions if a.id == action_id), None)
+                    if matched:
+                        action_label = matched.label
+                    if acted:
+                        outcome = f"Navigated to {step_result.observation.page.title}." if step_result.execution.caused_navigation else "Success."
+                        history.append(f"Step {step}: {matched.op if matched else 'acted'} \"{action_label}\". {outcome}")
+                    else:
+                        history.append(f"Step {step}: Tried {action_label} but got {step_result.status}.")
+                except Exception as e:
+                    acted = False
+                    detail = f"act_error:{type(e).__name__}"
+                    history.append(f"Step {step}: Error executing {action_id}: {type(e).__name__}.")
             else:
-                action_id = _semantic_pick_action_id(view.get("candidates", []), plan.get("target", ""))
-                if action_id:
-                    detail = f"act:{action_id}"
-                    try:
-                        step_result = await rt.act(ActionRequest(action_id=action_id))
-                        acted = step_result.status == "success"
-                    except Exception as e:
-                        acted = False
-                        detail = f"act_error:{type(e).__name__}"
+                history.append(f"Step {step}: Planner returned unparseable response.")
 
             journal.append(
                 {
                     "ts": _now_iso(),
                     "step": step,
                     "phase": "plan_act",
-                    "url": view.get("url", ""),
-                    "title": view.get("title", ""),
-                    "candidate_count": len(view.get("candidates", [])),
-                    "plan": plan,
+                    "url": url,
+                    "title": title,
+                    "room_text_len": len(room_text),
+                    "planner_response": response,
+                    "action_id": action_id,
+                    "value": value,
                     "acted": acted,
                     "act_detail": detail,
                     "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
                 }
             )
-            if plan.get("action") == "done":
+            if action_id == "done":
                 break
             await asyncio.sleep(0.8)
         ms = (time.perf_counter() - t0) * 1000

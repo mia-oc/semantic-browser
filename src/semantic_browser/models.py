@@ -153,6 +153,9 @@ class PlannerView(BaseModel):
     what_you_see: list[str] = Field(default_factory=list)
     available_actions: list[PlannerAction] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
+    room_text: str = ""
+    has_more_actions: bool = False
+    total_action_count: int = 0
 
 
 class Observation(BaseModel):

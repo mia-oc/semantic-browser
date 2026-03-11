@@ -32,7 +32,7 @@ EXTRACT_JS = """
     return txt.trim().slice(0, 120);
   };
 
-  const all = Array.from(document.querySelectorAll('a[href],button,input,select,textarea,[role=\"button\"],[role=\"link\"],[role=\"checkbox\"],[role=\"textbox\"],main,nav,header,footer,aside,section,article,form,dialog,table,ul,ol'));
+  const all = Array.from(document.querySelectorAll('a[href],button,input,select,textarea,[role=\"button\"],[role=\"link\"],[role=\"checkbox\"],[role=\"textbox\"],main,nav,header,footer,aside,section,article,form,dialog,table,ul,ol,h1,h2,h3,[role=\"heading\"]'));
   const visible = all.filter(isVisible);
   const nodes = visible.slice(0, 2000).map((el, idx) => {
     const tag = el.tagName.toLowerCase();

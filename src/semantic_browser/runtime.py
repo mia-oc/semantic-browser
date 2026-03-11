@@ -12,7 +12,7 @@ from semantic_browser.executor.actions import execute_action
 from semantic_browser.executor.results import build_execution, classify_status
 from semantic_browser.executor.validation import resolve_action
 from semantic_browser.extractor.diff import build_delta
-from semantic_browser.extractor.engine import observe_page
+from semantic_browser.extractor.engine import _SEE_MORE_ID, observe_page
 from semantic_browser.extractor.settle import wait_for_settle
 from semantic_browser.models import ActionRequest, DiagnosticsReport, Observation, StepResult
 from semantic_browser.telemetry.debug_dump import export_json_bundle
@@ -144,7 +144,7 @@ class SemanticBrowserRuntime:
             len(observation.available_actions) == 0 and observation.confidence.overall <= 0.2
         )
 
-    async def observe(self, mode: str = "summary") -> Observation:
+    async def observe(self, mode: str = "summary", *, expanded: bool = False) -> Observation:
         max_attempts = 3 if mode == "summary" else 1
         observation: Observation | None = None
         id_map: dict[str, str] = {}
@@ -157,6 +157,7 @@ class SemanticBrowserRuntime:
                 config=self._config,
                 previous_observation=self._current_observation,
                 previous_ids=self._id_map,
+                expanded=expanded,
             )
             if attempt < max_attempts and self._is_no_visible_nodes_state(observation):
                 if attempt == 1:
@@ -176,6 +177,7 @@ class SemanticBrowserRuntime:
             "observe",
             {
                 "mode": mode,
+                "expanded": expanded,
                 "actions": len(observation.available_actions),
                 "recovery_attempts": max(0, attempt - 1),
             },
@@ -200,6 +202,9 @@ class SemanticBrowserRuntime:
         return {"kind": "unknown", "target_id": target_id}
 
     async def act(self, request: ActionRequest) -> StepResult:
+        if request.action_id == _SEE_MORE_ID:
+            return await self._handle_see_more(request)
+
         obs_before = self._current_observation or await self.observe(mode="summary")
         try:
             action = resolve_action(request, obs_before)
@@ -251,6 +256,20 @@ class SemanticBrowserRuntime:
         )
         self._trace.add("action_result", {"status": status, "message": message})
         return result
+
+    async def _handle_see_more(self, request: ActionRequest) -> StepResult:
+        """Re-observe with expanded=True showing all available actions."""
+        obs_before = self._current_observation
+        observation = await self.observe(mode="auto", expanded=True)
+        execution = build_execution("see_more", True, "expanded action list", observation)
+        return StepResult(
+            request=request,
+            status="success",
+            message="Expanded view: showing all available actions.",
+            execution=execution,
+            observation=observation,
+            delta=build_delta(obs_before, observation),
+        )
 
     async def navigate(self, url: str) -> StepResult:
         if not self._page:

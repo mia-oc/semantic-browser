@@ -156,7 +156,7 @@ async def test_summary_mode_uses_top_scope_and_full_mode_includes_more_actions()
     summary_obs = await runtime.observe("summary")
     full_obs = await runtime.observe("full")
     assert len(full_obs.available_actions) > len(summary_obs.available_actions)
-    assert any("top-scope summary" in point for point in summary_obs.summary.key_points)
+    assert any("top-scope" in point or "elements" in point for point in summary_obs.summary.key_points)
 
 
 @pytest.mark.asyncio
@@ -175,8 +175,11 @@ async def test_planner_view_is_present_and_compact():
     obs = await runtime.observe("auto")
     assert obs.planner is not None
     assert obs.planner.location
-    assert len(obs.planner.available_actions) <= 30
-    planner_tokens = len(json.dumps(obs.planner.model_dump(), default=str))
+    assert len(obs.planner.available_actions) <= 20
+    assert obs.planner.room_text
+    assert "LOCATION:" in obs.planner.room_text
+    assert "ACTIONS:" in obs.planner.room_text
+    planner_tokens = len(obs.planner.room_text)
     full_tokens = len(json.dumps(obs.model_dump(), default=str))
     assert planner_tokens < full_tokens
 

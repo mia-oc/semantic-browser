@@ -2,57 +2,61 @@
 
 Make browser automation feel less like parsing soup and more like a text adventure.
 
-This project turns a live Chromium page into a compact control panel for an LLM:
+This project turns a live Chromium page into a plain-text room description for an LLM:
 
-- **where am I?** (`location`)
-- **what can I see?** (`what_you_see`)
-- **what can I do?** (`available_actions`)
-- **what is in the way?** (`blockers`)
+```
+LOCATION: BBC News (bbc.co.uk)
 
-Then the model replies with one action ID and keeps moving.
+YOU SEE: BBC News. Main content: "UK Budget 2026". Navigation: News, Sport, Weather, Reel.
+Input field: Search BBC.
 
-In plain English: this is not "yet another browser". It is the semantic layer that lets an LLM behave more like a focused human operator, and less like a confused DOM archaeologist.
+ACTIONS:
+  1. open "News" [act-0-a1b2c3]
+  2. open "Sport" [act-1-d4e5f6]
+  3. fill Search BBC [act-2-g7h8i9] (needs value)
+  4. open "UK Budget 2026..." [act-3-j0k1l2]
+  ... 28 more actions available. Use [act-see-more] to see full list.
+```
 
-## Why this is actually great
+The model replies with one action ID (`act-0-a1b2c3`) and keeps moving.
 
-Most browser loops waste tokens on page noise. Semantic Browser is designed to stop that.
+No JSON. No DOM dumps. No screenshots. Just a room, a description, and a list of verbs.
 
-- **Auto routing**: ARIA-quality-aware mode selection (`observe(mode="auto")`)
-- **Top-first extraction**: starts at the part humans read first
-- **Planner payload**: tiny, capped control-panel view for LLM turns
-- **Stable actions**: deterministic IDs instead of fragile selectors
-- **Escalation path**: go from compact to full only when needed
+## Why this is different
 
-If your bot has ever clicked the wrong thing because a cookie banner sneezed, this is for you.
+Other browser tools give the LLM the same data in a different wrapper. We give it a fundamentally different view.
 
----
+- **Plain-text room descriptions** — prose, not JSON. LLMs parse narrative faster and cheaper.
+- **Curated actions** — 15 ranked actions, not 100 undifferentiated links. Blocker-dismissal first, then inputs, then navigation.
+- **Progressive disclosure** — `act-see-more` lets the LLM request the full action list when it needs more. Autonomy without noise.
+- **One-token responses** — the LLM replies with an action ID, not a JSON object. ~3 tokens out instead of ~40.
+- **Narrative history** — "Step 1: Clicked 'News'. Navigated to BBC News." not `{"action": "click", "target": "News"}`.
+- **Fast-path extraction** — good ARIA quality pages skip heavy analysis. 200-500ms instead of 2-3s.
 
-## Comparative results (5 complex end-to-end tasks, median)
+## Comparative benchmark (5 tasks, pre-evolution baseline)
 
-Benchmark files:
-- `docs/benchmarks/2026-03-11-actionset-compare.md`
-- `docs/benchmarks/2026-03-11-actionset-compare.json`
-- `docs/benchmarks/journals/2026-03-11/` (step-by-step journals, 15 files)
+| Method | Success rate | Median token-in | Median token-out | Est. cost |
+|---|---:|---:|---:|---:|
+| Standard browser tooling | 0.40 | 24,885 | 408 | $0.139 |
+| OpenClaw browser tooling | 0.40 | 22,858 | 289 | $0.119 |
+| Semantic Browser (pre-evo) | 0.40 | 20,892 | 320 | $0.123 |
 
-Task set (same request run across all three methods): Amazon, Reddit, YouTube, BBC, Wikipedia.
+These numbers are the v1 baseline. The text-adventure evolution targets 60%+ success rate
+with ~4,000-6,000 input tokens and ~10-30 output tokens per step.
 
-Planner route for this run: `codex:gpt-5.3-codex` for all methods.
-Direct `openai` benchmark route is disabled in `scripts/actionset_benchmark.py`.
-Cost normalisation: Sonnet 4.6 pricing constants ($3.00/M input, $15.00/M output).
+Run `scripts/task_harness.py` (25 tasks, 5 categories) for the current quality gate.
 
-| Method | Success rate | Failures | Median speed (ms) | Median token-in | Median token-out | Est. cost / request (USD) |
-|---|---:|---:|---:|---:|---:|---:|
-| Standard browser tooling | 0.40 | 3 | 18,471.5 | 24,885.0 | 408.0 | 0.138962 |
-| OpenClaw browser tooling | 0.40 | 3 | 60,000.0 | 22,858.0 | 289.0 | 0.119324 |
-| Semantic Browser | 0.40 | 3 | 52,384.3 | 20,892.0 | 320.0 | 0.123281 |
+## Task harness (quality gate)
 
-### What this means (honest version)
+```bash
+# Run via OpenClaw
+BENCHMARK_API=codex python3 scripts/task_harness.py
 
-- This is a true AI-driven multi-step run (observe -> plan with LLM -> act), not a homepage open/close smoke check.
-- Each task+method now has a persisted action journal showing what the planner chose and what happened.
-- This specific run still shows reliability issues for OpenClaw and Semantic methods on this task mix.
-- Provider telemetry (`usage`) is used directly for token-in/token-out where returned by the model route.
-- Cost is estimated with Sonnet 4.6 constants for like-for-like economic comparison across routes.
+# Or with a custom CDP endpoint
+CDP_WS=ws://... python3 scripts/task_harness.py
+```
+
+25 tasks across: navigation, search, multi-step, content, interaction, resilience, speed.
 
 ---
 

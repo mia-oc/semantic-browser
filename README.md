@@ -1,18 +1,53 @@
 # Semantic Browser Runtime
 
-Turn a real browser page into a clean, LLM-friendly action surface.
+Make browser automation feel less like parsing soup and more like a text adventure.
 
-If you are tired of giving your model raw DOM noise and brittle selectors, this
-project gives you:
+This project turns a live Chromium page into a compact control panel for an LLM:
 
-- structured observations (`summary`, `full`, `delta`, `debug`)
-- stable action IDs
-- executable actions (`act`)
-- blocker and confidence signals
-- optional local service + CLI
+- **where am I?** (`location`)
+- **what can I see?** (`what_you_see`)
+- **what can I do?** (`available_actions`)
+- **what is in the way?** (`blockers`)
 
-In plain English: this is a semantic control layer on top of Chromium, not a
-new browser.
+Then the model replies with one action ID and keeps moving.
+
+In plain English: this is not "yet another browser". It is the semantic layer that lets an LLM behave more like a focused human operator, and less like a confused DOM archaeologist.
+
+## Why this is actually great
+
+Most browser loops waste tokens on page noise. Semantic Browser is designed to stop that.
+
+- **Auto routing**: ARIA-quality-aware mode selection (`observe(mode="auto")`)
+- **Top-first extraction**: starts at the part humans read first
+- **Planner payload**: tiny, capped control-panel view for LLM turns
+- **Stable actions**: deterministic IDs instead of fragile selectors
+- **Escalation path**: go from compact to full only when needed
+
+If your bot has ever clicked the wrong thing because a cookie banner sneezed, this is for you.
+
+---
+
+## Comparative results (10 major sites, median)
+
+Benchmark file: `work-output/comparative-analysis-10-sites-median.md`
+
+Tested sites: Amazon, YouTube, Reddit, LinkedIn, Instagram, X, Google Maps, Notion, Wikipedia, BBC.
+
+| Method | Median speed (ms) | Median token-in | Median token-out | Median accuracy* |
+|---|---:|---:|---:|---:|
+| Standard browser use | 1208.3 | 2437.5 | 8.0 | 0.83 |
+| OpenClaw ARIA snapshot | 914.5 | 20651.5 | 8.0 | 1.0 |
+| **Semantic Browser (auto + planner)** | 2146.5 | **586.0** | **6.0** | **1.0** |
+
+\*Accuracy here is a task-term hit-rate proxy, not a full end-to-end task success suite.
+
+### What this means
+
+- **Token-in win is the headline**: planner payload is dramatically smaller.
+- **Accuracy stays high** on this proxy while using much less context.
+- **Speed is currently slower** than raw snapshots because we do semantic extraction and routing work.
+
+So yes: you spend a bit more compute time to save a lot of prompt budget and reduce model confusion. For agent loops, that trade often pays for itself fast.
 
 ---
 
@@ -20,14 +55,14 @@ new browser.
 
 You open a real webpage.
 
-Instead of handing your LLM giant HTML blobs, you ask this runtime:
+Instead of dumping giant blobs into the model, you run a clean loop:
 
 1. "What can I see?"
 2. "What can I do?"
 3. "Do this action."
 4. "What changed?"
 
-That is the whole idea.
+Rinse and repeat.
 
 ---
 

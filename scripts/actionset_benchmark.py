@@ -84,11 +84,10 @@ def _extract_usage(payload: dict[str, Any]) -> Usage:
 
 
 def planner_pick_keyword(planner_in: str, keyword: str) -> tuple[str, Usage]:
-    api_key = _require_env("OPENROUTER_API_KEY")
+    api = os.getenv("BENCHMARK_API", "openrouter").strip().lower()
     model = os.getenv("BENCHMARK_MODEL", "anthropic/claude-sonnet-4.5")
     body = {
         "model": model,
-        "max_tokens": 64,
         "messages": [
             {
                 "role": "system",
@@ -105,11 +104,22 @@ def planner_pick_keyword(planner_in: str, keyword: str) -> tuple[str, Usage]:
                 ),
             },
         ],
-        "temperature": 0,
         "response_format": {"type": "json_object"},
     }
+
+    if api == "openai":
+        api_key = _require_env("OPENAI_API_KEY")
+        url = "https://api.openai.com/v1/chat/completions"
+        body["max_completion_tokens"] = 64
+        body["reasoning_effort"] = "minimal"
+    else:
+        api_key = _require_env("OPENROUTER_API_KEY")
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        body["max_tokens"] = 64
+        body["temperature"] = 0
+
     req = urllib.request.Request(
-        "https://openrouter.ai/api/v1/chat/completions",
+        url,
         data=json.dumps(body).encode("utf-8"),
         headers={
             "Content-Type": "application/json",

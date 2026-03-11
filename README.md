@@ -32,24 +32,26 @@ If your bot has ever clicked the wrong thing because a cookie banner sneezed, th
 Benchmark files:
 - `docs/benchmarks/2026-03-11-actionset-compare.md`
 - `docs/benchmarks/2026-03-11-actionset-compare.json`
+- `docs/benchmarks/journals/2026-03-11/` (step-by-step journals, 15 files)
 
 Task set (same request run across all three methods): Amazon, Reddit, YouTube, BBC, Wikipedia.
 
-Planner route for this run: `openai:gpt-4.1-mini` for all methods.
+Planner route for this run: `codex:gpt-5.3-codex` for all methods.
+Direct `openai` benchmark route is disabled in `scripts/actionset_benchmark.py`.
 Cost normalisation: Sonnet 4.6 pricing constants ($3.00/M input, $15.00/M output).
 
 | Method | Success rate | Failures | Median speed (ms) | Median token-in | Median token-out | Est. cost / request (USD) |
 |---|---:|---:|---:|---:|---:|---:|
-| Standard browser tooling | 0.20 | 4 | 13,528.8 | 21,592.0 | 99.0 | 0.046537 |
-| OpenClaw browser tooling | 0.00 | 5 | 14,805.3 | 14,278.0 | 125.0 | 0.043909 |
-| **Semantic Browser** | **0.40** | **3** | 16,497.1 | 9,958.0 | 113.0 | **0.033961** |
+| Standard browser tooling | 0.40 | 3 | 18,471.5 | 24,885.0 | 408.0 | 0.138962 |
+| OpenClaw browser tooling | 0.40 | 3 | 60,000.0 | 22,858.0 | 289.0 | 0.119324 |
+| Semantic Browser | 0.40 | 3 | 52,384.3 | 20,892.0 | 320.0 | 0.123281 |
 
 ### What this means (honest version)
 
-- This benchmark is now end-to-end (multi-step goals), not single click-label matching.
-- Semantic Browser delivered the highest completion rate in this run.
-- Semantic remains slower than the other two methods on median task time.
-- Provider telemetry (`usage`) is used directly for token-in/token-out; no local proxy counting.
+- This is a true AI-driven multi-step run (observe -> plan with LLM -> act), not a homepage open/close smoke check.
+- Each task+method now has a persisted action journal showing what the planner chose and what happened.
+- This specific run still shows reliability issues for OpenClaw and Semantic methods on this task mix.
+- Provider telemetry (`usage`) is used directly for token-in/token-out where returned by the model route.
 - Cost is estimated with Sonnet 4.6 constants for like-for-like economic comparison across routes.
 
 ---

@@ -10,6 +10,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +29,7 @@ class Task:
     url: str
     request: str
     checks: list[str]
-    max_steps: int = 5
+    max_steps: int = 7
 
 
 @dataclass
@@ -76,6 +77,10 @@ TASKS: list[Task] = [
 ]
 
 
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 def _require_env(name: str) -> str:
     value = os.getenv(name, "").strip()
     if not value:
@@ -90,17 +95,23 @@ def _extract_usage(payload: dict[str, Any]) -> Usage:
     return Usage(tok_in=int(tok_in or 0), tok_out=int(tok_out or 0))
 
 
-def planner_next_action(request_text: str, page_view: dict[str, Any], history: list[str]) -> tuple[dict[str, Any], Usage]:
-    api = os.getenv("BENCHMARK_API", "openrouter").strip().lower()
-    model = os.getenv("BENCHMARK_MODEL", "openai/gpt-4.1-mini")
-
+def _planner_payload(request_text: str, page_view: dict[str, Any], history: list[str]) -> dict[str, Any]:
     schema_prompt = {
         "action": "click|type|press|done",
         "target": "candidate label snippet to match",
         "text": "text to type when action=type, otherwise empty",
         "reason": "short reason",
     }
+    return {
+        "task_request": request_text,
+        "history": history[-8:],
+        "page": page_view,
+        "output_schema_example": schema_prompt,
+    }
 
+
+def _planner_via_openrouter(payload: dict[str, Any]) -> tuple[dict[str, Any], Usage]:
+    model = os.getenv("BENCHMARK_MODEL", "google/gemma-3-27b-it:free")
     body = {
         "model": model,
         "messages": [
@@ -112,54 +123,32 @@ def planner_next_action(request_text: str, page_view: dict[str, Any], history: l
                     "Prefer click actions. Use done only when goal appears complete."
                 ),
             },
-            {
-                "role": "user",
-                "content": json.dumps(
-                    {
-                        "task_request": request_text,
-                        "history": history[-8:],
-                        "page": page_view,
-                        "output_schema_example": schema_prompt,
-                    }
-                ),
-            },
+            {"role": "user", "content": json.dumps(payload)},
         ],
         "response_format": {"type": "json_object"},
+        "max_tokens": 140,
+        "temperature": 0,
     }
 
-    if api == "openai":
-        api_key = _require_env("OPENAI_API_KEY")
-        url = "https://api.openai.com/v1/chat/completions"
-        body["max_completion_tokens"] = 120
-    else:
-        api_key = _require_env("OPENROUTER_API_KEY")
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        body["max_tokens"] = 120
-        body["temperature"] = 0
-
+    api_key = _require_env("OPENROUTER_API_KEY")
     req = urllib.request.Request(
-        url,
+        "https://openrouter.ai/api/v1/chat/completions",
         data=json.dumps(body).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
-        },
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
         method="POST",
     )
-
     try:
         with urllib.request.urlopen(req, timeout=45) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
+            raw = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", errors="ignore")
         raise RuntimeError(f"Planner API HTTP {e.code}: {detail[:400]}") from e
 
-    usage = _extract_usage(payload)
+    usage = _extract_usage(raw)
     content = ""
-    choices = payload.get("choices") or []
+    choices = raw.get("choices") or []
     if choices:
         content = str((choices[0].get("message") or {}).get("content", "")).strip()
-
     parsed = {"action": "done", "target": "", "text": "", "reason": "no-content"}
     if content:
         try:
@@ -168,6 +157,61 @@ def planner_next_action(request_text: str, page_view: dict[str, Any], history: l
                 parsed.update(maybe)
         except Exception:
             pass
+    return parsed, usage
+
+
+def _planner_via_codex(payload: dict[str, Any]) -> tuple[dict[str, Any], Usage]:
+    model = os.getenv("BENCHMARK_MODEL", "gpt-5.3-codex")
+    prompt = (
+        "You are a browser task planner. Return JSON only with keys action,target,text,reason. "
+        "Use only listed candidates. Prefer click actions. Use done only when goal appears complete.\n\n"
+        + json.dumps(payload)
+    )
+    cmd = ["codex", "exec", "--json", "--model", model, "-"]
+    proc = subprocess.run(cmd, input=prompt, text=True, capture_output=True, check=False)
+    if proc.returncode != 0:
+        msg = (proc.stderr or proc.stdout or "codex planner failed")[:600]
+        raise RuntimeError(f"Codex planner failed (exit {proc.returncode}): {msg}")
+
+    parsed = {"action": "done", "target": "", "text": "", "reason": "no-content"}
+    usage = Usage(tok_in=0, tok_out=0)
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            evt = json.loads(line)
+        except Exception:
+            continue
+        et = evt.get("type")
+        if et == "item.completed":
+            item = evt.get("item") or {}
+            text = str(item.get("text") or "").strip()
+            if text:
+                try:
+                    maybe = json.loads(text)
+                    if isinstance(maybe, dict):
+                        parsed.update(maybe)
+                except Exception:
+                    pass
+        elif et == "turn.completed":
+            u = evt.get("usage") or {}
+            usage = Usage(tok_in=int(u.get("input_tokens") or 0), tok_out=int(u.get("output_tokens") or 0))
+    return parsed, usage
+
+
+def planner_next_action(request_text: str, page_view: dict[str, Any], history: list[str]) -> tuple[dict[str, Any], Usage]:
+    api = os.getenv("BENCHMARK_API", "codex").strip().lower()
+    if api == "openai":
+        raise RuntimeError("BENCHMARK_API=openai is disabled for benchmark runs. Use codex or openrouter instead.")
+
+    payload = _planner_payload(request_text, page_view, history)
+    if api == "codex":
+        parsed, usage = _planner_via_codex(payload)
+    elif api == "openrouter":
+        parsed, usage = _planner_via_openrouter(payload)
+    else:
+        raise RuntimeError(f"Unsupported BENCHMARK_API={api!r}. Expected 'codex' or 'openrouter'.")
 
     parsed["action"] = str(parsed.get("action", "done")).strip().lower()
     parsed["target"] = str(parsed.get("target", "")).strip()
@@ -225,7 +269,7 @@ def _match_index(candidates: list[dict[str, Any]], target: str) -> int | None:
 
 def _standard_observe(tid: str) -> dict[str, Any]:
     fn = """() => {
-      const nodes = Array.from(document.querySelectorAll('a,button,input,[role=button],[role=link],[role=menuitem],textarea,select')).slice(0, 200);
+      const nodes = Array.from(document.querySelectorAll('a,button,input,[role=button],[role=link],[role=menuitem],textarea,select')).slice(0, 250);
       const candidates = [];
       for (let i = 0; i < nodes.length; i++) {
         const el = nodes[i];
@@ -243,33 +287,33 @@ def _standard_observe(tid: str) -> dict[str, Any]:
       return {
         url: location.href,
         title: document.title,
-        text: ((document.body && document.body.innerText) || '').substring(0, 4000),
-        candidates: candidates.slice(0, 60)
+        text: ((document.body && document.body.innerText) || '').substring(0, 5000),
+        candidates: candidates.slice(0, 80)
       };
     }"""
     payload = run_json(f"openclaw browser evaluate --browser-profile mia --target-id {tid} --fn {shq(fn)} --json")
     return payload.get("result", {})
 
 
-def _standard_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, Any]]) -> bool:
+def _standard_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, Any]]) -> tuple[bool, str]:
     idx = _match_index(candidates, action.get("target", ""))
     op = action.get("action", "")
     if op == "done":
-        return True
+        return True, "planner_done"
     if idx is None:
-        return False
+        return False, "target_not_found"
 
     if op == "click":
         js = (
             "() => {"
             f" const i = {idx};"
-            " const nodes = Array.from(document.querySelectorAll('a,button,input,[role=button],[role=link],[role=menuitem],textarea,select')).slice(0, 200);"
+            " const nodes = Array.from(document.querySelectorAll('a,button,input,[role=button],[role=link],[role=menuitem],textarea,select')).slice(0, 250);"
             " const el = nodes[i]; if (!el) return false;"
             " try { el.click(); return true; } catch (e) { return false; }"
             "}"
         )
         res = run_json(f"openclaw browser evaluate --browser-profile mia --target-id {tid} --fn {shq(js)} --json")
-        return bool(res.get("result", False))
+        return bool(res.get("result", False)), "click"
 
     if op == "type":
         txt = json.dumps(action.get("text", ""))
@@ -277,7 +321,7 @@ def _standard_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, 
             "() => {"
             f" const i = {idx};"
             f" const txt = {txt};"
-            " const nodes = Array.from(document.querySelectorAll('a,button,input,[role=button],[role=link],[role=menuitem],textarea,select')).slice(0, 200);"
+            " const nodes = Array.from(document.querySelectorAll('a,button,input,[role=button],[role=link],[role=menuitem],textarea,select')).slice(0, 250);"
             " const el = nodes[i]; if (!el) return false;"
             " try {"
             "   el.focus();"
@@ -289,39 +333,56 @@ def _standard_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, 
             "}"
         )
         res = run_json(f"openclaw browser evaluate --browser-profile mia --target-id {tid} --fn {shq(js)} --json")
-        return bool(res.get("result", False))
+        return bool(res.get("result", False)), "type"
 
     if op == "press":
         key = action.get("text", "Enter") or "Enter"
         _ = run_json(f"openclaw browser press --browser-profile mia --target-id {tid} '{key}' --json")
-        return True
+        return True, f"press:{key}"
 
-    return False
+    return False, f"unsupported_op:{op}"
 
 
-def standard_method(task: Task) -> dict[str, Any]:
+def standard_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     t0 = time.perf_counter()
     tok_in = tok_out = 0
     history: list[str] = []
+    journal: list[dict[str, Any]] = []
     tid = open_tab(task.url)
     try:
         ok = False
-        for _ in range(task.max_steps):
+        for step in range(1, task.max_steps + 1):
             obs = _standard_observe(tid)
-            if _is_complete(obs.get("url", ""), obs.get("title", ""), obs.get("text", ""), task.checks):
+            done = _is_complete(obs.get("url", ""), obs.get("title", ""), obs.get("text", ""), task.checks)
+            if done:
                 ok = True
+                journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": obs.get("url", "")})
                 break
             plan, usage = planner_next_action(task.request, obs, history)
             tok_in += usage.tok_in
             tok_out += usage.tok_out
             history.append(f"plan={plan}")
-            acted = _standard_exec(tid, plan, obs.get("candidates", []))
+            acted, detail = _standard_exec(tid, plan, obs.get("candidates", []))
             history.append(f"acted={acted}")
+            journal.append(
+                {
+                    "ts": _now_iso(),
+                    "step": step,
+                    "phase": "plan_act",
+                    "url": obs.get("url", ""),
+                    "title": obs.get("title", ""),
+                    "candidate_count": len(obs.get("candidates", [])),
+                    "plan": plan,
+                    "acted": acted,
+                    "act_detail": detail,
+                    "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
+                }
+            )
             if plan.get("action") == "done":
                 break
-            time.sleep(0.6)
+            time.sleep(0.8)
         ms = (time.perf_counter() - t0) * 1000
-        return {"ok": ok, "stuck": not ok, "speed_ms": round(ms, 1), "tok_in": tok_in, "tok_out": tok_out}
+        return {"ok": ok, "stuck": not ok, "speed_ms": round(ms, 1), "tok_in": tok_in, "tok_out": tok_out}, journal
     finally:
         subprocess.run(f"openclaw browser close --browser-profile mia {tid} --json >/dev/null", shell=True, check=False)
 
@@ -331,82 +392,89 @@ def _openclaw_observe(tid: str) -> dict[str, Any]:
     refs = snap.get("refs", {})
     candidates = []
     for ref, meta in refs.items():
-        candidates.append(
-            {
-                "ref": ref,
-                "label": str(meta.get("name", "")),
-                "role": str(meta.get("role", "")),
-            }
-        )
+        candidates.append({"ref": ref, "label": str(meta.get("name", "")), "role": str(meta.get("role", ""))})
     return {
         "url": snap.get("url", ""),
         "title": snap.get("title", ""),
-        "text": str(snap.get("snapshot", ""))[:4000],
-        "candidates": candidates[:80],
+        "text": str(snap.get("snapshot", ""))[:5000],
+        "candidates": candidates[:100],
     }
 
 
-def _openclaw_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, Any]]) -> bool:
+def _openclaw_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, Any]]) -> tuple[bool, str]:
     op = action.get("action", "")
     if op == "done":
-        return True
+        return True, "planner_done"
 
     idx = _match_index(candidates, action.get("target", ""))
     if idx is None:
-        return False
+        return False, "target_not_found"
     chosen = candidates[idx]
     ref = chosen.get("ref")
     if not ref:
-        return False
+        return False, "missing_ref"
 
     if op == "click":
         _ = run_json(f"openclaw browser click --browser-profile mia --target-id {tid} {ref} --json")
-        return True
+        return True, f"click:{ref}"
     if op == "type":
         text = action.get("text", "")
         _ = run_json(f"openclaw browser type --browser-profile mia --target-id {tid} {ref} {json.dumps(text)} --json")
-        return True
+        return True, f"type:{ref}"
     if op == "press":
         key = action.get("text", "Enter") or "Enter"
         _ = run_json(f"openclaw browser press --browser-profile mia --target-id {tid} '{key}' --json")
-        return True
-    return False
+        return True, f"press:{key}"
+    return False, f"unsupported_op:{op}"
 
 
-def openclaw_method(task: Task) -> dict[str, Any]:
+def openclaw_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     t0 = time.perf_counter()
     tok_in = tok_out = 0
     history: list[str] = []
+    journal: list[dict[str, Any]] = []
     tid = open_tab(task.url)
     try:
         ok = False
-        for _ in range(task.max_steps):
+        for step in range(1, task.max_steps + 1):
             obs = _openclaw_observe(tid)
-            if _is_complete(obs.get("url", ""), obs.get("title", ""), obs.get("text", ""), task.checks):
+            done = _is_complete(obs.get("url", ""), obs.get("title", ""), obs.get("text", ""), task.checks)
+            if done:
                 ok = True
+                journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": obs.get("url", "")})
                 break
             plan, usage = planner_next_action(task.request, obs, history)
             tok_in += usage.tok_in
             tok_out += usage.tok_out
             history.append(f"plan={plan}")
-            acted = False
-            try:
-                acted = _openclaw_exec(tid, plan, obs.get("candidates", []))
-            except Exception:
-                acted = False
+            acted, detail = _openclaw_exec(tid, plan, obs.get("candidates", []))
             history.append(f"acted={acted}")
+            journal.append(
+                {
+                    "ts": _now_iso(),
+                    "step": step,
+                    "phase": "plan_act",
+                    "url": obs.get("url", ""),
+                    "title": obs.get("title", ""),
+                    "candidate_count": len(obs.get("candidates", [])),
+                    "plan": plan,
+                    "acted": acted,
+                    "act_detail": detail,
+                    "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
+                }
+            )
             if plan.get("action") == "done":
                 break
-            time.sleep(0.6)
+            time.sleep(0.8)
         ms = (time.perf_counter() - t0) * 1000
-        return {"ok": ok, "stuck": not ok, "speed_ms": round(ms, 1), "tok_in": tok_in, "tok_out": tok_out}
+        return {"ok": ok, "stuck": not ok, "speed_ms": round(ms, 1), "tok_in": tok_in, "tok_out": tok_out}, journal
     finally:
         subprocess.run(f"openclaw browser close --browser-profile mia {tid} --json >/dev/null", shell=True, check=False)
 
 
 def _semantic_obs_to_view(obs: Any) -> dict[str, Any]:
     candidates = []
-    for a in obs.available_actions[:120]:
+    for a in obs.available_actions[:150]:
         if not a.enabled:
             continue
         if a.op not in {"open", "click", "type", "fill", "press", "toggle", "select_option"}:
@@ -416,8 +484,8 @@ def _semantic_obs_to_view(obs: Any) -> dict[str, Any]:
     return {
         "url": obs.page.url,
         "title": obs.page.title,
-        "text": json.dumps(planner)[:4000],
-        "candidates": candidates[:80],
+        "text": json.dumps(planner)[:5000],
+        "candidates": candidates[:100],
     }
 
 
@@ -428,38 +496,62 @@ def _semantic_pick_action_id(candidates: list[dict[str, Any]], target: str) -> s
     return str(candidates[idx].get("id") or "") or None
 
 
-async def semantic_method(task: Task, ws: str) -> dict[str, Any]:
+async def semantic_method(task: Task, ws: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     t0 = time.perf_counter()
     tok_in = tok_out = 0
     history: list[str] = []
+    journal: list[dict[str, Any]] = []
     rt = await SemanticBrowserRuntime.from_cdp_endpoint(ws, prefer_non_blank=True)
     try:
         await rt.navigate(task.url)
         ok = False
-        for _ in range(task.max_steps):
+        for step in range(1, task.max_steps + 1):
             obs = await rt.observe("auto")
             view = _semantic_obs_to_view(obs)
-            if _is_complete(view.get("url", ""), view.get("title", ""), view.get("text", ""), task.checks):
+            done = _is_complete(view.get("url", ""), view.get("title", ""), view.get("text", ""), task.checks)
+            if done:
                 ok = True
+                journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": view.get("url", "")})
                 break
             plan, usage = planner_next_action(task.request, view, history)
             tok_in += usage.tok_in
             tok_out += usage.tok_out
             history.append(f"plan={plan}")
+            acted = False
+            detail = "target_not_found"
+            if plan.get("action") == "done":
+                acted = True
+                detail = "planner_done"
+            else:
+                action_id = _semantic_pick_action_id(view.get("candidates", []), plan.get("target", ""))
+                if action_id:
+                    detail = f"act:{action_id}"
+                    try:
+                        step_result = await rt.act(ActionRequest(action_id=action_id))
+                        acted = step_result.status == "success"
+                    except Exception as e:
+                        acted = False
+                        detail = f"act_error:{type(e).__name__}"
+
+            journal.append(
+                {
+                    "ts": _now_iso(),
+                    "step": step,
+                    "phase": "plan_act",
+                    "url": view.get("url", ""),
+                    "title": view.get("title", ""),
+                    "candidate_count": len(view.get("candidates", [])),
+                    "plan": plan,
+                    "acted": acted,
+                    "act_detail": detail,
+                    "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
+                }
+            )
             if plan.get("action") == "done":
                 break
-            action_id = _semantic_pick_action_id(view.get("candidates", []), plan.get("target", ""))
-            acted = False
-            if action_id:
-                try:
-                    step = await rt.act(ActionRequest(action_id=action_id))
-                    acted = step.status == "success"
-                except Exception:
-                    acted = False
-            history.append(f"acted={acted}")
-            await asyncio.sleep(0.6)
+            await asyncio.sleep(0.8)
         ms = (time.perf_counter() - t0) * 1000
-        return {"ok": ok, "stuck": not ok, "speed_ms": round(ms, 1), "tok_in": tok_in, "tok_out": tok_out}
+        return {"ok": ok, "stuck": not ok, "speed_ms": round(ms, 1), "tok_in": tok_in, "tok_out": tok_out}, journal
     finally:
         await rt.close()
 
@@ -468,11 +560,7 @@ def summarise(rows: list[dict[str, Any]], key: str) -> dict[str, Any]:
     vals = [float(r.get(key, 0) or 0) for r in rows]
     if not vals:
         return {"median": 0.0, "mean": 0.0, "n": 0}
-    return {
-        "median": round(statistics.median(vals), 1),
-        "mean": round(statistics.mean(vals), 1),
-        "n": len(vals),
-    }
+    return {"median": round(statistics.median(vals), 1), "mean": round(statistics.mean(vals), 1), "n": len(vals)}
 
 
 def cost_per_request_usd(rows: list[dict[str, Any]]) -> float:
@@ -491,12 +579,22 @@ def success_rate(rows: list[dict[str, Any]]) -> float:
     return round(sum(1 for r in rows if r.get("ok")) / max(len(rows), 1), 2)
 
 
+def _write_journal(path: Path, task: Task, method: str, result: dict[str, Any], entries: list[dict[str, Any]]) -> None:
+    payload = {
+        "task": task.name,
+        "site": task.site,
+        "url": task.url,
+        "request": task.request,
+        "method": method,
+        "result": result,
+        "entries": entries,
+    }
+    path.write_text(json.dumps(payload, indent=2))
+
+
 async def main() -> None:
-    # Require at least one provider key; planner route must be consistent for all methods.
-    api = os.getenv("BENCHMARK_API", "openrouter").strip().lower()
-    if api == "openai":
-        _require_env("OPENAI_API_KEY")
-    else:
+    planner_api = os.getenv("BENCHMARK_API", "codex").strip().lower()
+    if planner_api == "openrouter":
         _require_env("OPENROUTER_API_KEY")
 
     subprocess.run("openclaw browser start --browser-profile mia --json >/dev/null", shell=True, check=False)
@@ -507,25 +605,39 @@ async def main() -> None:
     openclaw_rows: list[dict[str, Any]] = []
     semantic_rows: list[dict[str, Any]] = []
 
+    out_dir = Path("docs/benchmarks")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y-%m-%d")
+    journal_dir = out_dir / "journals" / stamp
+    journal_dir.mkdir(parents=True, exist_ok=True)
+
     for task in TASKS:
         try:
-            std = standard_method(task)
-        except Exception:
-            std = {"ok": False, "stuck": True, "speed_ms": 60000.0, "tok_in": 0, "tok_out": 0}
+            std, std_j = standard_method(task)
+        except Exception as e:
+            std, std_j = ({"ok": False, "stuck": True, "speed_ms": 60000.0, "tok_in": 0, "tok_out": 0}, [{"error": repr(e)}])
 
         try:
-            oc = openclaw_method(task)
-        except Exception:
-            oc = {"ok": False, "stuck": True, "speed_ms": 60000.0, "tok_in": 0, "tok_out": 0}
+            oc, oc_j = openclaw_method(task)
+        except Exception as e:
+            oc, oc_j = ({"ok": False, "stuck": True, "speed_ms": 60000.0, "tok_in": 0, "tok_out": 0}, [{"error": repr(e)}])
 
         try:
-            sem = await semantic_method(task, ws)
-        except Exception:
-            sem = {"ok": False, "stuck": True, "speed_ms": 60000.0, "tok_in": 0, "tok_out": 0}
+            sem, sem_j = await semantic_method(task, ws)
+        except Exception as e:
+            sem, sem_j = ({"ok": False, "stuck": True, "speed_ms": 60000.0, "tok_in": 0, "tok_out": 0}, [{"error": repr(e)}])
 
         standard_rows.append(std)
         openclaw_rows.append(oc)
         semantic_rows.append(sem)
+
+        std_path = journal_dir / f"standard__{task.name}.json"
+        oc_path = journal_dir / f"openclaw__{task.name}.json"
+        sem_path = journal_dir / f"semantic__{task.name}.json"
+        _write_journal(std_path, task, "standard_browser_tooling", std, std_j)
+        _write_journal(oc_path, task, "openclaw_browser_tooling", oc, oc_j)
+        _write_journal(sem_path, task, "semantic_browser_runtime", sem, sem_j)
+
         per_task.append(
             {
                 "task": task.name,
@@ -536,6 +648,11 @@ async def main() -> None:
                 "standard": std,
                 "openclaw": oc,
                 "semantic": sem,
+                "journals": {
+                    "standard": str(std_path),
+                    "openclaw": str(oc_path),
+                    "semantic": str(sem_path),
+                },
             }
         )
 
@@ -546,10 +663,7 @@ async def main() -> None:
             "output_usd_per_1m": SONNET46_OUTPUT_USD_PER_1M,
             "note": "Planner route can be non-Sonnet; cost is normalised using Sonnet 4.6 constants.",
         },
-        "planner_route": {
-            "api": api,
-            "model": os.getenv("BENCHMARK_MODEL", "openai/gpt-4.1-mini"),
-        },
+        "planner_route": {"api": planner_api, "model": os.getenv("BENCHMARK_MODEL", "gpt-5.3-codex" if planner_api == "codex" else "google/gemma-3-27b-it:free")},
         "standard_browser_use": {
             "success_rate": success_rate(standard_rows),
             "failure_count": failure_count(standard_rows),
@@ -575,24 +689,24 @@ async def main() -> None:
             "estimated_cost_per_request_usd": cost_per_request_usd(semantic_rows),
         },
         "task_count": len(TASKS),
+        "journal_dir": str(journal_dir),
     }
 
     out = {"summary": summary, "tasks": per_task}
-    out_dir = Path("docs/benchmarks")
-    out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / "2026-03-11-actionset-compare.json"
     md_path = out_dir / "2026-03-11-actionset-compare.md"
     json_path.write_text(json.dumps(out, indent=2))
 
     md = [
-        "# End-to-end benchmark (5 complex public-site tasks)",
+        "# End-to-end benchmark (5 AI-driven multi-step public-site tasks)",
         "",
         "Methods compared per task request:",
         "- Standard browser tooling (raw DOM extraction + JS actions)",
         "- OpenClaw browser tooling (snapshot refs + browser actions)",
         "- Semantic Browser (observe/act with semantic action IDs)",
         "",
-        f"Planner route: `{summary['planner_route']['api']}:{summary['planner_route']['model']}` (same for all methods)",
+        "Each method ran the exact same 5 prompts and used the same planner model route.",
+        f"Planner route: `{summary['planner_route']['api']}:{summary['planner_route']['model']}`",
         "",
         "Cost model: Sonnet 4.6 estimated pricing constants (input $3.00 / 1M, output $15.00 / 1M).",
         "",
@@ -610,16 +724,19 @@ async def main() -> None:
             f"| {label} | {s['success_rate']} | {s['failure_count']} | {s['speed_ms']['median']} | {s['tok_in']['median']} | {s['tok_out']['median']} | {s['estimated_cost_per_request_usd']:.6f} |"
         )
 
-    md.extend(
-        [
-            "",
-            "## Tasks",
-            "",
-            *[f"- **{t.name}** ({t.site}): {t.request}" for t in TASKS],
-            "",
-            f"Artifacts: `{md_path}` and `{json_path}`",
-        ]
-    )
+    md.extend([
+        "",
+        "## Per-run journals",
+        "",
+        f"- JSON journals directory: `{journal_dir}`",
+        "- One journal file is written for every method x task run (15 files total).",
+        "",
+        "## Tasks",
+        "",
+        *[f"- **{t.name}** ({t.site}): {t.request}" for t in TASKS],
+        "",
+        f"Artifacts: `{md_path}` and `{json_path}`",
+    ])
 
     md_path.write_text("\n".join(md))
     print(json.dumps(summary, indent=2))

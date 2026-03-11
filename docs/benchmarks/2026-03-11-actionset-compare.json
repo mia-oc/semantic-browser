@@ -7,70 +7,71 @@
       "note": "Planner route can be non-Sonnet; cost is normalised using Sonnet 4.6 constants."
     },
     "planner_route": {
-      "api": "openai",
-      "model": "gpt-4.1-mini"
+      "api": "codex",
+      "model": "gpt-5.3-codex"
     },
     "standard_browser_use": {
-      "success_rate": 0.2,
-      "failure_count": 4,
+      "success_rate": 0.4,
+      "failure_count": 3,
       "speed_ms": {
-        "median": 13528.8,
-        "mean": 11252.8,
+        "median": 18471.5,
+        "mean": 40701.8,
         "n": 5
       },
       "tok_in": {
-        "median": 21592.0,
-        "mean": 15043.4,
+        "median": 24885.0,
+        "mean": 41171.6,
         "n": 5
       },
       "tok_out": {
-        "median": 99.0,
-        "mean": 93.8,
+        "median": 408.0,
+        "mean": 1029.8,
         "n": 5
       },
-      "estimated_cost_per_request_usd": 0.046537
+      "estimated_cost_per_request_usd": 0.138962
     },
     "openclaw_browser": {
-      "success_rate": 0.0,
-      "failure_count": 5,
+      "success_rate": 0.4,
+      "failure_count": 3,
       "speed_ms": {
-        "median": 14805.3,
-        "mean": 15018.9,
+        "median": 60000.0,
+        "mean": 46260.7,
         "n": 5
       },
       "tok_in": {
-        "median": 14278.0,
-        "mean": 13973.4,
+        "median": 22858.0,
+        "mean": 35014.6,
         "n": 5
       },
       "tok_out": {
-        "median": 125.0,
-        "mean": 132.6,
+        "median": 289.0,
+        "mean": 952.0,
         "n": 5
       },
-      "estimated_cost_per_request_usd": 0.043909
+      "estimated_cost_per_request_usd": 0.119324
     },
     "semantic_browser": {
       "success_rate": 0.4,
       "failure_count": 3,
       "speed_ms": {
-        "median": 16497.1,
-        "mean": 21655.1,
+        "median": 52384.3,
+        "mean": 59839.7,
         "n": 5
       },
       "tok_in": {
-        "median": 9958.0,
-        "mean": 10815.2,
+        "median": 20892.0,
+        "mean": 35837.6,
         "n": 5
       },
       "tok_out": {
-        "median": 113.0,
-        "mean": 101.0,
+        "median": 320.0,
+        "mean": 1051.2,
         "n": 5
       },
-      "estimated_cost_per_request_usd": 0.033961
+      "estimated_cost_per_request_usd": 0.123281
     },
-    "task_count": 5
+    "task_count": 5,
+    "journal_dir": "docs/benchmarks/journals/2026-03-11"
   },
   "tasks": [
     {
@@ -84,23 +85,28 @@
       "standard": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 14103.6,
-        "tok_in": 22578,
-        "tok_out": 99
+        "speed_ms": 18471.5,
+        "tok_in": 22053,
+        "tok_out": 408
       },
       "openclaw": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 14326.9,
-        "tok_in": 14278,
-        "tok_out": 110
+        "speed_ms": 73063.5,
+        "tok_in": 76940,
+        "tok_out": 1899
       },
       "semantic": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 35786.8,
-        "tok_in": 18818,
-        "tok_out": 127
+        "speed_ms": 60000.0,
+        "tok_in": 0,
+        "tok_out": 0
+      },
+      "journals": {
+        "standard": "docs/benchmarks/journals/2026-03-11/standard__amazon_deals_electronics.json",
+        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__amazon_deals_electronics.json",
+        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__amazon_deals_electronics.json"
       }
     },
     {
@@ -114,23 +120,28 @@
       "standard": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 13528.8,
-        "tok_in": 21592,
-        "tok_out": 131
+        "speed_ms": 49771.5,
+        "tok_in": 70434,
+        "tok_out": 1233
       },
       "openclaw": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 18354.1,
-        "tok_in": 16153,
-        "tok_out": 145
+        "speed_ms": 60000.0,
+        "tok_in": 0,
+        "tok_out": 0
       },
       "semantic": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 16497.1,
-        "tok_in": 9958,
-        "tok_out": 113
+        "speed_ms": 52384.3,
+        "tok_in": 67668,
+        "tok_out": 870
+      },
+      "journals": {
+        "standard": "docs/benchmarks/journals/2026-03-11/standard__reddit_popular_askreddit.json",
+        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__reddit_popular_askreddit.json",
+        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__reddit_popular_askreddit.json"
       }
     },
     {
@@ -144,23 +155,28 @@
       "standard": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 2367.7,
-        "tok_in": 449,
-        "tok_out": 22
+        "speed_ms": 108705.1,
+        "tok_in": 64466,
+        "tok_out": 3136
       },
       "openclaw": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 12284.1,
-        "tok_in": 10031,
-        "tok_out": 103
+        "speed_ms": 73276.6,
+        "tok_in": 64352,
+        "tok_out": 2478
       },
       "semantic": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 33532.0,
-        "tok_in": 12485,
-        "tok_out": 131
+        "speed_ms": 147490.5,
+        "tok_in": 71003,
+        "tok_out": 3866
+      },
+      "journals": {
+        "standard": "docs/benchmarks/journals/2026-03-11/standard__youtube_explore_trending.json",
+        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__youtube_explore_trending.json",
+        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__youtube_explore_trending.json"
       }
     },
     {
@@ -174,23 +190,28 @@
       "standard": {
         "ok": true,
         "stuck": false,
-        "speed_ms": 7998.3,
-        "tok_in": 7523,
-        "tok_out": 52
+        "speed_ms": 13376.7,
+        "tok_in": 24885,
+        "tok_out": 192
       },
       "openclaw": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 15323.9,
-        "tok_in": 14223,
-        "tok_out": 125
+        "ok": true,
+        "stuck": false,
+        "speed_ms": 7657.9,
+        "tok_in": 10923,
+        "tok_out": 94
       },
       "semantic": {
         "ok": true,
         "stuck": false,
-        "speed_ms": 13006.9,
-        "tok_in": 7073,
-        "tok_out": 76
+        "speed_ms": 20870.5,
+        "tok_in": 19625,
+        "tok_out": 200
+      },
+      "journals": {
+        "standard": "docs/benchmarks/journals/2026-03-11/standard__bbc_news_technology.json",
+        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__bbc_news_technology.json",
+        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__bbc_news_technology.json"
       }
     },
     {
@@ -202,25 +223,30 @@
         "Portal:Current_events"
       ],
       "standard": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 18265.5,
-        "tok_in": 23075,
-        "tok_out": 165
+        "ok": true,
+        "stuck": false,
+        "speed_ms": 13184.2,
+        "tok_in": 24020,
+        "tok_out": 180
       },
       "openclaw": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 14805.3,
-        "tok_in": 15182,
-        "tok_out": 180
+        "ok": true,
+        "stuck": false,
+        "speed_ms": 17305.4,
+        "tok_in": 22858,
+        "tok_out": 289
       },
       "semantic": {
         "ok": true,
         "stuck": false,
-        "speed_ms": 9452.7,
-        "tok_in": 5742,
-        "tok_out": 58
+        "speed_ms": 18453.4,
+        "tok_in": 20892,
+        "tok_out": 320
+      },
+      "journals": {
+        "standard": "docs/benchmarks/journals/2026-03-11/standard__wikipedia_english_current_events.json",
+        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__wikipedia_english_current_events.json",
+        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__wikipedia_english_current_events.json"
       }
     }
   ]

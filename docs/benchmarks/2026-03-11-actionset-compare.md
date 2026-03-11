@@ -13,4 +13,4 @@ Methods:
 
 Cost basis: Claude Sonnet 4.6 pricing = $3 / 1M input tokens and $15 / 1M output tokens (Anthropic public pricing page).
 
-Important: current `tok-out` is a policy action-payload proxy, not provider-reported completion usage. Next harness revision will capture true model usage telemetry.
+`tok-in`/`tok-out` are sourced from provider usage telemetry (`usage` in chat/completions responses), not local payload-size proxies.

@@ -51,7 +51,7 @@ Tested sites: Amazon, YouTube, Reddit, LinkedIn, Instagram, X, Google Maps, Noti
 
 Short version: reliability win achieved; speed optimisation is next.
 
-`token-out` note: current benchmark counts policy action payload tokens. Next revision will switch this to provider-reported completion usage telemetry.
+`token-in`/`token-out` now come from provider-reported usage telemetry (OpenRouter chat/completions `usage` fields), not local payload-size proxies.
 
 ---
 

@@ -3,14 +3,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import statistics
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import tiktoken
 from semantic_browser.models import ActionRequest
 from semantic_browser.runtime import SemanticBrowserRuntime
 
@@ -61,11 +63,82 @@ TASKS: list[Task] = [
     Task("bbc", "https://www.bbc.co.uk/", "sport"),
 ]
 
-enc = tiktoken.get_encoding("cl100k_base")
+@dataclass
+class Usage:
+    tok_in: int
+    tok_out: int
 
 
-def toks(s: str) -> int:
-    return len(enc.encode(s))
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise RuntimeError(f"Missing required env var: {name}")
+    return value
+
+
+def _extract_usage(payload: dict[str, Any]) -> Usage:
+    usage = payload.get("usage") or {}
+    tok_in = usage.get("prompt_tokens") or usage.get("input_tokens") or usage.get("total_input_tokens") or 0
+    tok_out = usage.get("completion_tokens") or usage.get("output_tokens") or usage.get("total_output_tokens") or 0
+    return Usage(tok_in=int(tok_in or 0), tok_out=int(tok_out or 0))
+
+
+def planner_pick_keyword(planner_in: str, keyword: str) -> tuple[str, Usage]:
+    api_key = _require_env("OPENROUTER_API_KEY")
+    model = os.getenv("BENCHMARK_MODEL", "anthropic/claude-sonnet-4.5")
+    body = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "Pick one actionable keyword for browser interaction. Return compact JSON only: {\"keyword\":\"...\"}.",
+            },
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "goal_keyword": keyword,
+                        "allowed_terms": _terms(keyword),
+                        "planner_view": planner_in[:12000],
+                    }
+                ),
+            },
+        ],
+        "temperature": 0,
+        "response_format": {"type": "json_object"},
+    }
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"Planner API HTTP {e.code}: {detail[:400]}") from e
+
+    usage = _extract_usage(payload)
+    choices = payload.get("choices") or []
+    content = ""
+    if choices:
+        msg = choices[0].get("message") or {}
+        content = str(msg.get("content", "")).strip()
+    picked = keyword
+    if content:
+        try:
+            parsed = json.loads(content)
+            maybe = str(parsed.get("keyword", "")).strip().lower()
+            if maybe:
+                picked = maybe
+        except Exception:
+            pass
+    return picked, usage
 
 
 def sh(cmd: str) -> str:
@@ -103,8 +176,9 @@ def standard_method(task: Task) -> dict[str, Any]:
         payload = run_json(f"openclaw browser evaluate --browser-profile mia --target-id {tid} --fn '{fn_payload}' --json")
         result = payload.get("result", {})
         planner_in = json.dumps({"location": result.get("url", ""), "title": result.get("title", ""), "content": result.get("text", "")})
-        action = {"op": "click_text", "keyword": task.keyword}
-        kw = json.dumps(task.keyword.lower())
+        picked, usage = planner_pick_keyword(planner_in, task.keyword)
+        action = {"op": "click_text", "keyword": picked}
+        kw = json.dumps(picked.lower())
         js = (
             "() => {"
             f" const q = {kw};"
@@ -126,8 +200,8 @@ def standard_method(task: Task) -> dict[str, Any]:
             "ok": ok,
             "stuck": not ok,
             "speed_ms": round(ms, 1),
-            "tok_in": toks(planner_in),
-            "tok_out": toks(json.dumps(action)),
+            "tok_in": usage.tok_in,
+            "tok_out": usage.tok_out,
         }
     finally:
         subprocess.run(f"openclaw browser close --browser-profile mia {tid} --json >/dev/null", shell=True, check=False)
@@ -140,8 +214,9 @@ def openclaw_method(task: Task) -> dict[str, Any]:
         snap = run_json(f"openclaw browser snapshot --browser-profile mia --target-id {tid} --json")
         refs = snap.get("refs", {})
         planner_in = json.dumps({"url": snap.get("url"), "snapshot": snap.get("snapshot", ""), "refs": refs})
+        picked, usage = planner_pick_keyword(planner_in, task.keyword)
         chosen_ref = None
-        q = task.keyword.lower()
+        q = picked.lower()
         for ref, meta in refs.items():
             name = str(meta.get("name", "")).lower()
             role = str(meta.get("role", "")).lower()
@@ -150,8 +225,7 @@ def openclaw_method(task: Task) -> dict[str, Any]:
                 break
         if chosen_ref is None:
             ms = (time.perf_counter() - t0) * 1000
-            return {"ok": False, "stuck": True, "speed_ms": round(ms, 1), "tok_in": toks(planner_in), "tok_out": toks(json.dumps({"kind": "click", "ref": ""}))}
-        action = {"kind": "click", "ref": chosen_ref}
+            return {"ok": False, "stuck": True, "speed_ms": round(ms, 1), "tok_in": usage.tok_in, "tok_out": usage.tok_out}
         ok = True
         try:
             _ = run_json(f"openclaw browser click --browser-profile mia --target-id {tid} {chosen_ref} --json")
@@ -175,8 +249,8 @@ def openclaw_method(task: Task) -> dict[str, Any]:
             "ok": ok,
             "stuck": not ok,
             "speed_ms": round(ms, 1),
-            "tok_in": toks(planner_in),
-            "tok_out": toks(json.dumps(action)),
+            "tok_in": usage.tok_in,
+            "tok_out": usage.tok_out,
         }
     finally:
         subprocess.run(f"openclaw browser close --browser-profile mia {tid} --json >/dev/null", shell=True, check=False)
@@ -217,15 +291,18 @@ async def semantic_method(task: Task, ws: str) -> dict[str, Any]:
     try:
         await rt.navigate(task.url)
         tok_in_total = 0
+        tok_out_total = 0
         route = "unknown"
 
         for mode in ["auto", "full"]:
             obs = await rt.observe(mode)
             route = obs.metrics.extraction_route or route
             planner = obs.planner.model_dump() if obs.planner else {}
-            tok_in_total += toks(json.dumps(planner))
+            picked, usage = planner_pick_keyword(json.dumps(planner), task.keyword)
+            tok_in_total += usage.tok_in
+            tok_out_total += usage.tok_out
 
-            candidates = _semantic_choose_actions(obs, task.keyword)
+            candidates = _semantic_choose_actions(obs, picked)
             for cand in candidates:
                 try:
                     step = await rt.act(ActionRequest(action_id=cand.id))
@@ -236,7 +313,7 @@ async def semantic_method(task: Task, ws: str) -> dict[str, Any]:
                             "stuck": False,
                             "speed_ms": round(ms, 1),
                             "tok_in": tok_in_total,
-                            "tok_out": toks(json.dumps({"action_id": cand.id})),
+                            "tok_out": tok_out_total,
                             "route": route,
                         }
                 except Exception:
@@ -266,12 +343,12 @@ async def semantic_method(task: Task, ws: str) -> dict[str, Any]:
             ok_dom = bool(await rt._page.evaluate(js))
             if ok_dom:
                 ms = (time.perf_counter() - t0) * 1000
-                return {"ok": True, "stuck": False, "speed_ms": round(ms, 1), "tok_in": tok_in_total, "tok_out": toks(json.dumps({"action_id": "dom-fallback"})), "route": route}
+                return {"ok": True, "stuck": False, "speed_ms": round(ms, 1), "tok_in": tok_in_total, "tok_out": tok_out_total, "route": route}
         except Exception:
             pass
 
         ms = (time.perf_counter() - t0) * 1000
-        return {"ok": False, "stuck": True, "speed_ms": round(ms, 1), "tok_in": tok_in_total, "tok_out": toks(json.dumps({"action_id": ""})), "route": route}
+        return {"ok": False, "stuck": True, "speed_ms": round(ms, 1), "tok_in": tok_in_total, "tok_out": tok_out_total, "route": route}
     finally:
         await rt.close()
 
@@ -282,6 +359,7 @@ def summarise(rows: list[dict[str, Any]], key: str) -> dict[str, Any]:
 
 
 async def main() -> None:
+    _require_env("OPENROUTER_API_KEY")
     subprocess.run("openclaw browser start --browser-profile mia --json >/dev/null", shell=True, check=False)
     ws = sh("curl -s http://127.0.0.1:18800/json/version | /opt/homebrew/bin/jq -r '.webSocketDebuggerUrl'").strip()
 

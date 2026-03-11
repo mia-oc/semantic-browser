@@ -129,6 +129,15 @@ semantic-browser/
 
 ## 3. Data Flow
 
+The practical planner loop is intentionally tiny:
+
+1. `observe()` -> get compact room text + action IDs
+2. planner selects one action ID (`a10`, `nav`, `more`, `back`)
+3. `act()` executes deterministically
+4. `observe(delta)` reports what changed
+
+This keeps the system fast, cheap, and debuggable.
+
 ### 3.1 Observe Flow
 
 ```
@@ -205,6 +214,10 @@ runtime.act(ActionRequest)
   │
   └─► return StepResult
 ```
+
+Design note:
+- The runtime is allowed to fail loudly.
+- It is not allowed to "invent success" when anti-bot gating or blockers are present.
 
 ### 3.3 Inspect Flow
 

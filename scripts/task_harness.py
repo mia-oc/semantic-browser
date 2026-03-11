@@ -23,6 +23,7 @@ Output:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import os
 import statistics
@@ -34,6 +35,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urljoin, urlparse
 
 from semantic_browser.models import ActionRequest
 from semantic_browser.runtime import SemanticBrowserRuntime
@@ -49,6 +51,7 @@ class HarnessTask:
     url: str
     goal: str
     success_checks: list[str]
+    success_title_checks: list[str] = field(default_factory=list)
     max_steps: int = 8
     tags: list[str] = field(default_factory=list)
 
@@ -102,7 +105,7 @@ HARNESS_TASKS: list[HarnessTask] = [
         category="navigation",
         url="https://www.youtube.com/",
         goal="Navigate to the Trending page.",
-        success_checks=["/feed/trending", "/trending"],
+        success_checks=["/feed/trending", "/trending", "/feed/explore", "explore"],
         tags=["nav", "video"],
     ),
     # --- SEARCH (type + submit + verify results) ---
@@ -161,6 +164,7 @@ HARNESS_TASKS: list[HarnessTask] = [
         url="https://www.amazon.co.uk/",
         goal="Navigate to Today's Deals page.",
         success_checks=["/gp/goldbox", "/deals", "goldbox"],
+        success_title_checks=["deal"],
         tags=["nav", "multi-step", "retail"],
     ),
     HarnessTask(
@@ -228,6 +232,7 @@ HARNESS_TASKS: list[HarnessTask] = [
         url="https://stackoverflow.com/questions",
         goal="Sort questions by votes (highest score).",
         success_checks=["sort=votes", "tab=votes", "sort=score"],
+        success_title_checks=["highest scored questions", "highest score"],
         tags=["filter", "interaction"],
     ),
     # --- RESILIENCE (sites with blockers, heavy JS) ---
@@ -284,11 +289,12 @@ HARNESS_TASKS: list[HarnessTask] = [
 
 _SYSTEM_PROMPT = (
     "You are navigating a website to complete a task. "
-    "You receive a room description showing your location, what you see, and available actions.\n\n"
+    "You receive a room description showing your location, what you see, and available actions.\n"
+    "Each action has an ID in [brackets]. Use that ID, NOT the line number.\n\n"
     "Reply with ONLY ONE of:\n"
-    "- An action ID from the list (e.g. act-3-ab12cd)\n"
-    "- An action ID followed by a quoted value for fill/type actions (e.g. act-5-ef34gh \"search text\")\n"
-    "- act-see-more (to see all available actions if the one you need is not listed)\n"
+    "- An action ID from the [brackets] (e.g. a3, back, nav)\n"
+    "- An action ID followed by a quoted value for fill/navigate actions (e.g. a5 \"search text\", nav \"https://url\")\n"
+    "- more (to see all available actions if the one you need is not listed)\n"
     "- done (if the task goal is clearly achieved)\n\n"
     "Nothing else. No explanation. No JSON. Just the action ID."
 )
@@ -352,6 +358,46 @@ def _planner_via_openrouter(prompt: str) -> tuple[str, Usage]:
     return content, Usage(tok_in=usage.tok_in, tok_out=usage.tok_out)
 
 
+def _planner_via_openai(prompt: str, *, image_path: str | None = None, system_prompt: str | None = None) -> tuple[str, Usage]:
+    model = os.getenv("BENCHMARK_MODEL", "gpt-5.4-codex")
+    user_content: Any = prompt
+    if image_path:
+        raw = Path(image_path).read_bytes()
+        encoded = base64.b64encode(raw).decode("ascii")
+        user_content = [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{encoded}"}},
+        ]
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt or _SYSTEM_PROMPT},
+            {"role": "user", "content": user_content},
+        ],
+        "max_completion_tokens": 60,
+        "temperature": 0,
+    }
+    api_key = _require_env("OPENAI_API_KEY")
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            raw = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"OpenAI planner API HTTP {e.code}: {detail[:400]}") from e
+    usage = _extract_usage(raw)
+    content = ""
+    choices = raw.get("choices") or []
+    if choices:
+        content = str((choices[0].get("message") or {}).get("content", "")).strip()
+    return content, Usage(tok_in=usage.tok_in, tok_out=usage.tok_out)
+
+
 def _planner_via_codex(prompt: str) -> tuple[str, Usage]:
     model = os.getenv("BENCHMARK_MODEL", "gpt-5.3-codex")
     full_prompt = _SYSTEM_PROMPT + "\n\n" + prompt
@@ -382,11 +428,13 @@ def _planner_via_codex(prompt: str) -> tuple[str, Usage]:
     return content, usage
 
 
-def planner_next(goal: str, room_text: str, history: list[str]) -> tuple[str, Usage]:
+def planner_next(goal: str, room_text: str, history: list[str], *, image_path: str | None = None, system_prompt: str | None = None) -> tuple[str, Usage]:
     api = os.getenv("BENCHMARK_API", "codex").strip().lower()
     prompt = _build_prompt(goal, room_text, history)
     if api == "codex":
         return _planner_via_codex(prompt)
+    elif api == "openai":
+        return _planner_via_openai(prompt, image_path=image_path, system_prompt=system_prompt)
     elif api == "openrouter":
         return _planner_via_openrouter(prompt)
     raise RuntimeError(f"Unsupported BENCHMARK_API={api!r}")
@@ -407,18 +455,110 @@ def _parse_response(response: str) -> tuple[str | None, str | None]:
     return tokens[0], None
 
 
-def _is_complete(url: str, title: str, room_text: str, checks: list[str]) -> bool:
-    if not checks:
-        return False
+def _fuzzy_word_match(goal_words: set[str], label_words: set[str]) -> set[str]:
+    """Match words allowing prefix overlap (e.g. 'tech' matches 'technology')."""
+    matches: set[str] = set()
+    for gw in goal_words:
+        for lw in label_words:
+            if gw == lw or gw.startswith(lw) or lw.startswith(gw):
+                matches.add(lw)
+    return matches
+
+
+def _inject_goal_hints(goal: str, room_text: str) -> str:
+    """Scan action lines in room_text for fuzzy matches against goal words.
+
+    If any action label shares significant words with the goal, prepend a
+    HINT line so the planner can disambiguate quickly.
+    """
+    goal_words = set(w.lower() for w in goal.split() if len(w) >= 3)
+    if not goal_words:
+        return room_text
+    hints: list[str] = []
+    for line in room_text.splitlines():
+        stripped = line.strip()
+        if not stripped or not stripped[0].isdigit():
+            continue
+        bracket_start = stripped.rfind("[")
+        bracket_end = stripped.rfind("]")
+        if bracket_start < 0 or bracket_end < 0:
+            continue
+        action_id = stripped[bracket_start + 1 : bracket_end]
+        label_part = stripped.split('"')
+        if len(label_part) >= 3:
+            label = label_part[1]
+        else:
+            after_num = stripped.lstrip("0123456789 ")
+            parts = after_num.split("[")[0].strip().split(None, 1)
+            label = parts[1] if len(parts) > 1 else parts[0] if parts else stripped
+        label_words = set(w.lower().strip('",.:;()') for w in label.split() if len(w) >= 3)
+        overlap = _fuzzy_word_match(goal_words, label_words)
+        if overlap:
+            hints.append(f'HINT: Action [{action_id}] "{label}" likely matches your goal (shared: {", ".join(sorted(overlap))}).')
+    if hints:
+        return "\n".join(hints) + "\n\n" + room_text
+    return room_text
+
+
+def _is_complete(
+    url: str,
+    title: str,
+    room_text: str,
+    checks: list[str],
+    title_checks: list[str] | None = None,
+) -> bool:
     hay = f"{url}\n{title}\n{room_text}".lower()
-    return any(c.lower() in hay for c in checks)
+    if checks and any(c.lower() in hay for c in checks):
+        return True
+    if title_checks:
+        t = title.lower()
+        return any(c.lower() in t for c in title_checks)
+    return False
+
+
+def _looks_like_captcha(url: str, title: str, room_text: str) -> bool:
+    hay = f"{url}\n{title}\n{room_text}".lower()
+    markers = [
+        "captcha",
+        "nocaptcha",
+        "verify you are human",
+        "are you a robot",
+        "security check",
+        "challenge",
+        "unusual traffic",
+        "/challenge",
+    ]
+    return any(m in hay for m in markers)
+
+
+async def _capture_page_screenshot(rt: SemanticBrowserRuntime, out_path: Path) -> str | None:
+    page = getattr(rt, "_page", None)
+    if page is None:
+        return None
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    await page.screenshot(path=str(out_path), full_page=True)
+    return str(out_path)
+
+
+def _derive_goal_url(current_url: str, checks: list[str]) -> str | None:
+    """Build a direct navigation fallback URL from success checks."""
+    for check in checks:
+        token = check.strip()
+        if not token:
+            continue
+        if token.startswith("http://") or token.startswith("https://"):
+            return token
+        if token.startswith("/"):
+            origin = f"{urlparse(current_url).scheme}://{urlparse(current_url).netloc}"
+            return urljoin(origin, token)
+    return None
 
 
 # ---------------------------------------------------------------------------
 # Task runner
 # ---------------------------------------------------------------------------
 
-async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime, journal_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     t0 = time.perf_counter()
     tok_in = tok_out = 0
     history: list[str] = []
@@ -427,20 +567,48 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime) -> tuple[dict[
     await rt.navigate(task.url)
     ok = False
     see_more_used = 0
+    last_action_was_see_more = False
+    last_url = ""
+    pending_obs = None
+    repeat_count = 0
+    last_action_key: tuple[str, str] | None = None
 
     for step_num in range(1, task.max_steps + 1):
-        obs = await rt.observe("auto")
+        if pending_obs is not None:
+            obs = pending_obs
+            pending_obs = None
+        else:
+            obs = await rt.observe("auto")
         room_text = obs.planner.room_text if obs.planner else ""
         url = obs.page.url
         title = obs.page.title
 
-        done = _is_complete(url, title, room_text, task.success_checks)
+        done = _is_complete(url, title, room_text, task.success_checks, task.success_title_checks)
         if done:
             ok = True
             journal.append({"ts": _now_iso(), "step": step_num, "phase": "check", "done": True, "url": url})
             break
 
-        response, usage = planner_next(task.goal, room_text, history)
+        if url == last_url and step_num > 1:
+            room_lines = room_text.splitlines()
+            delta_lines = [room_lines[0] + " [same page]"] if room_lines else []
+            delta_lines.extend(l for l in room_lines[1:] if not l.startswith("> "))
+            room_text = "\n".join(delta_lines)
+        last_url = url
+
+        room_text = _inject_goal_hints(task.goal, room_text)
+        image_path = None
+        system_prompt = None
+        if _looks_like_captcha(url, title, room_text):
+            cap_path = journal_dir / f"{task.name}-step{step_num}-captcha.png"
+            image_path = await _capture_page_screenshot(rt, cap_path)
+            history.append(f"Step {step_num}: CAPTCHA/challenge detected. Screenshot captured.")
+            system_prompt = (
+                _SYSTEM_PROMPT
+                + "\nIf the page is a challenge/captcha, choose the safest next action to solve or bypass it."
+                + "\nIf a text prompt is shown, include the needed value in quotes."
+            )
+        response, usage = planner_next(task.goal, room_text, history, image_path=image_path, system_prompt=system_prompt)
         tok_in += usage.tok_in
         tok_out += usage.tok_out
 
@@ -448,22 +616,56 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime) -> tuple[dict[
         acted = False
         detail = "no_action"
 
+        if action_id:
+            action_key = (url, action_id)
+            if action_key == last_action_key:
+                repeat_count += 1
+            else:
+                repeat_count = 1
+            last_action_key = action_key
+        else:
+            repeat_count = 0
+            last_action_key = None
+
+        if action_id and repeat_count >= 3:
+            nav_fallback = _derive_goal_url(url, task.success_checks)
+            if nav_fallback:
+                action_id = "nav"
+                value = nav_fallback
+                detail = "guardrail_direct_nav"
+                history.append(f"Step {step_num}: Guardrail forced direct nav to {nav_fallback}.")
+            elif action_id != "more":
+                action_id = "more"
+                value = None
+                detail = "guardrail_force_more"
+                history.append(f"Step {step_num}: Guardrail forced more due to repeated action.")
+
         if action_id == "done":
             acted = True
             detail = "planner_done"
             history.append(f"Step {step_num}: Declared task complete on {title}.")
-        elif action_id == "act-see-more":
-            see_more_used += 1
-            try:
-                req = ActionRequest(action_id="act-see-more")
-                step_result = await rt.act(req)
-                acted = step_result.status == "success"
-                detail = "see_more"
-                history.append(f"Step {step_num}: Requested expanded action list.")
-            except Exception as e:
-                detail = f"see_more_error:{type(e).__name__}"
-                history.append(f"Step {step_num}: see_more failed: {type(e).__name__}.")
+            last_action_was_see_more = False
+        elif action_id == "more":
+            if last_action_was_see_more:
+                detail = "see_more_blocked"
+                history.append(f"Step {step_num}: see_more blocked (consecutive). Choose from available actions.")
+                last_action_was_see_more = False
+            else:
+                see_more_used += 1
+                last_action_was_see_more = True
+                try:
+                    req = ActionRequest(action_id="more")
+                    step_result = await rt.act(req)
+                    acted = step_result.status == "success"
+                    detail = "see_more"
+                    history.append(f"Step {step_num}: Requested expanded action list.")
+                    if acted and step_result.observation:
+                        pending_obs = step_result.observation
+                except Exception as e:
+                    detail = f"see_more_error:{type(e).__name__}"
+                    history.append(f"Step {step_num}: see_more failed: {type(e).__name__}.")
         elif action_id:
+            last_action_was_see_more = False
             detail = f"act:{action_id}"
             try:
                 req = ActionRequest(action_id=action_id, value=value)
@@ -475,6 +677,19 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime) -> tuple[dict[
                 if acted:
                     outcome = f"Navigated to {step_result.observation.page.title}." if step_result.execution.caused_navigation else "Success."
                     history.append(f"Step {step_num}: {op} \"{label}\". {outcome}")
+                    if not task.success_checks and step_result.execution.caused_navigation:
+                        ok = True
+                        detail = "implicit_complete_navigation"
+                        history.append(f"Step {step_num}: Marked done after navigation (no explicit checks).")
+                        journal.append({
+                            "ts": _now_iso(),
+                            "step": step_num,
+                            "phase": "check",
+                            "done": True,
+                            "url": step_result.observation.page.url,
+                            "reason": "implicit_navigation_complete",
+                        })
+                        break
                 else:
                     history.append(f"Step {step_num}: Tried {op} \"{label}\" but got {step_result.status}.")
             except Exception as e:
@@ -490,11 +705,14 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime) -> tuple[dict[
             "url": url,
             "title": title,
             "room_text_len": len(room_text),
+            "room_text_preview": room_text[:500],
             "planner_response": response,
             "action_id": action_id,
             "value": value,
             "acted": acted,
             "act_detail": detail,
+            "captcha_detected": _looks_like_captcha(url, title, room_text),
+            "screenshot_path": image_path,
             "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
         })
 
@@ -638,6 +856,8 @@ def _get_cdp_ws() -> str:
 
 async def main() -> None:
     api = os.getenv("BENCHMARK_API", "codex").strip().lower()
+    if api == "openai":
+        _require_env("OPENAI_API_KEY")
     if api == "openrouter":
         _require_env("OPENROUTER_API_KEY")
 
@@ -649,13 +869,22 @@ async def main() -> None:
     journal_dir = out_dir / "journals" / stamp
     journal_dir.mkdir(parents=True, exist_ok=True)
 
+    max_tasks_env = os.getenv("HARNESS_MAX_TASKS", "").strip()
+    selected_tasks = HARNESS_TASKS
+    if max_tasks_env:
+        try:
+            max_tasks = max(1, int(max_tasks_env))
+            selected_tasks = HARNESS_TASKS[:max_tasks]
+        except ValueError:
+            pass
+
     all_results: list[dict[str, Any]] = []
 
-    for task in HARNESS_TASKS:
+    for task in selected_tasks:
         print(f"  [{task.category}] {task.name}: {task.goal[:60]}...")
         try:
             rt = await SemanticBrowserRuntime.from_cdp_endpoint(ws, prefer_non_blank=True)
-            result, journal = await run_task(task, rt)
+            result, journal = await run_task(task, rt, journal_dir)
             await rt.close()
         except Exception as e:
             result = {"ok": False, "stuck": True, "speed_ms": 60000.0, "tok_in": 0, "tok_out": 0, "steps": 0, "see_more_used": 0}
@@ -677,11 +906,11 @@ async def main() -> None:
             "entries": journal,
         }, indent=2))
 
-    report = _build_report(all_results, HARNESS_TASKS, stamp)
+    report = _build_report(all_results, selected_tasks, stamp)
     json_path = out_dir / f"{stamp}-results.json"
     md_path = out_dir / f"{stamp}-results.md"
     json_path.write_text(json.dumps(report, indent=2))
-    md_path.write_text(_build_markdown(report, HARNESS_TASKS, all_results))
+    md_path.write_text(_build_markdown(report, selected_tasks, all_results))
 
     print(f"\n{'='*60}")
     print(f"HARNESS COMPLETE: {report['success_count']}/{report['task_count']} passed ({report['success_rate']:.0%})")

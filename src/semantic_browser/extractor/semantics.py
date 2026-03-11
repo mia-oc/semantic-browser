@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 
@@ -32,7 +33,7 @@ EXTRACT_JS = """
     return txt.trim().slice(0, 120);
   };
 
-  const all = Array.from(document.querySelectorAll('a[href],button,input,select,textarea,[role=\"button\"],[role=\"link\"],[role=\"checkbox\"],[role=\"textbox\"],main,nav,header,footer,aside,section,article,form,dialog,table,ul,ol,h1,h2,h3,[role=\"heading\"]'));
+  const all = Array.from(document.querySelectorAll('a[href],button,input,select,textarea,[role=\"button\"],[role=\"link\"],[role=\"checkbox\"],[role=\"textbox\"],[role=\"tab\"],[role=\"menuitem\"],[role=\"option\"],[role=\"treeitem\"],[tabindex=\"0\"],[onclick],[data-action],main,nav,header,footer,aside,section,article,form,dialog,table,ul,ol,h1,h2,h3,[role=\"heading\"]'));
   const visible = all.filter(isVisible);
   const nodes = visible.slice(0, 2000).map((el, idx) => {
     const tag = el.tagName.toLowerCase();
@@ -41,6 +42,8 @@ EXTRACT_JS = """
     const type = el.getAttribute('type') || '';
     const id = el.id || '';
     const href = el.getAttribute('href') || '';
+    const tabindex = el.getAttribute('tabindex') || '';
+    const hasClickHandler = el.hasAttribute('onclick') || el.hasAttribute('data-action');
     const disabled = el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true';
     const checked = el.getAttribute('aria-checked') === 'true' || (tag === 'input' && el.checked === true);
     const expanded = el.getAttribute('aria-expanded');
@@ -59,6 +62,8 @@ EXTRACT_JS = """
       expanded,
       in_viewport: inViewport,
       rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
+      tabindex,
+      has_click_handler: hasClickHandler,
       text: (el.innerText || '').trim().slice(0, 300),
     };
   });
@@ -73,4 +78,15 @@ EXTRACT_JS = """
 
 
 async def extract_semantics(page: Any) -> dict[str, Any]:
+    for attempt in range(1, 4):
+        try:
+            return await page.evaluate(EXTRACT_JS)
+        except Exception as exc:
+            msg = str(exc)
+            # Navigation races can invalidate execution context mid-evaluate.
+            if "Execution context was destroyed" not in msg:
+                raise
+            if attempt == 3:
+                raise
+            await asyncio.sleep(0.2 * attempt)
     return await page.evaluate(EXTRACT_JS)

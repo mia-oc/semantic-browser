@@ -13,6 +13,18 @@ grounding.
 Think BBC Micro text-adventure mode for the modern web: pure actions,
 relevant context, zero bloat.
 
+In practice, that means the model should feel like it is typing:
+
+```
+LOOK
+OPEN "News"
+FILL Search "python async await"
+MORE
+BACK
+```
+
+...not reading 20,000 tokens of soup to decide one click.
+
 ---
 
 ## The Problem
@@ -48,6 +60,9 @@ an external planner can reason over safely and cheaply.
 - Not a visual-only browser tool
 - Not a CAPTCHA solver
 - Not a universal answer to every awful website on earth
+
+Honest translation: if a site is actively trying to stop automation,
+the runtime should surface that fact clearly, not pretend it succeeded.
 
 ---
 
@@ -118,6 +133,10 @@ what changed — not the entire page again.
 
 The whole round-trip is token-cheap, deterministic, and reliable.
 
+Also: funny but true success criterion -
+an engineer should be able to glance at a room description and think
+"yeah, I know exactly what I'd do next."
+
 ---
 
 ## Failure Looks Like
@@ -130,3 +149,7 @@ The whole round-trip is token-cheap, deterministic, and reliable.
 - The runtime requires a local model to work
 - There is no proper delta mode
 - It cannot distinguish a good page from a semantically poor one
+
+And a subtle failure mode we now explicitly avoid:
+- "Passing tests by cheating check strings" instead of actually navigating
+  and acting like a real user would.

@@ -4,6 +4,15 @@ This guide is for people pulling down the repo for the first time.
 
 If you want the shortest path to success, follow this file exactly.
 
+The mental model:
+- Page becomes a "room"
+- Room has actions with IDs
+- Model picks one action
+- Runtime executes it
+- Repeat until done
+
+BBC Micro mode, but for modern websites.
+
 ---
 
 ## 1) What You Need
@@ -68,6 +77,21 @@ What success looks like:
 - `act ...` returns a `StepResult` with `status`
 - `observe delta` is smaller than full output
 - `trace ...` writes a trace file
+
+What the loop feels like:
+
+```text
+LOOK
+@ BBC News (bbc.co.uk)
+> Top stories...
+1 open "News" [a10]
+2 fill Search BBC [a17] *value
+
+DO a10
+LOOK
+@ BBC News (news.bbc.co.uk)
+...
+```
 
 ---
 
@@ -136,6 +160,10 @@ curl -X POST http://127.0.0.1:8765/sessions/<session_id>/observe \
 - Empty/low-confidence observations:
   - page may be highly dynamic or low semantic quality
   - use `observe debug` and inspect blockers/warnings
+- CAPTCHA/challenge pages:
+  - runtime/harness should report challenge markers explicitly
+  - task harness captures screenshots for LLM-assisted challenge handling
+  - if still blocked, treat as anti-bot gating, not silent success
 
 ---
 

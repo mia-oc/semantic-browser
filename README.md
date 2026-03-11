@@ -1,62 +1,71 @@
 # Semantic Browser Runtime
 
-Make browser automation feel less like parsing soup and more like a text adventure.
+Make browser automation feel less like parsing soup and more like an old BBC Micro text adventure.
 
-This project turns a live Chromium page into a plain-text room description for an LLM:
+This runtime turns a live Chromium page into a compact "room" for an LLM:
 
 ```
-LOCATION: BBC News (bbc.co.uk)
-
-YOU SEE: BBC News. Main content: "UK Budget 2026". Navigation: News, Sport, Weather, Reel.
-Input field: Search BBC.
-
-ACTIONS:
-  1. open "News" [act-0-a1b2c3]
-  2. open "Sport" [act-1-d4e5f6]
-  3. fill Search BBC [act-2-g7h8i9] (needs value)
-  4. open "UK Budget 2026..." [act-3-j0k1l2]
-  ... 28 more actions available. Use [act-see-more] to see full list.
+@ BBC News (bbc.co.uk)
+> Home page. Main content: "Top stories". Navigation: News, Sport, Weather.
+1 open "News" [a10]
+2 open "Sport" [a11]
+3 fill Search BBC [a17] *value
++ 28 more [more]
 ```
 
-The model replies with one action ID (`act-0-a1b2c3`) and keeps moving.
+The model replies with one action ID (`a10`) and we go again.
 
-No JSON. No DOM dumps. No screenshots. Just a room, a description, and a list of verbs.
+No giant JSON blobs. No DOM dumps. No pretending every page is stable.  
+Just: what you see, what you can do, what changed.
 
-## Why this is different
+## Why this is different (and why it now works)
 
 Other browser tools give the LLM the same data in a different wrapper. We give it a fundamentally different view.
 
-- **Plain-text room descriptions** — prose, not JSON. LLMs parse narrative faster and cheaper.
-- **Curated actions** — 15 ranked actions, not 100 undifferentiated links. Blocker-dismissal first, then inputs, then navigation.
-- **Progressive disclosure** — `act-see-more` lets the LLM request the full action list when it needs more. Autonomy without noise.
-- **One-token responses** — the LLM replies with an action ID, not a JSON object. ~3 tokens out instead of ~40.
-- **Narrative history** — "Step 1: Clicked 'News'. Navigated to BBC News." not `{"action": "click", "target": "News"}`.
-- **Fast-path extraction** — good ARIA quality pages skip heavy analysis. 200-500ms instead of 2-3s.
+- **Plain-text room descriptions** - prose, not JSON.
+- **Curated actions first** - top 15 useful actions, then `more` if needed.
+- **Progressive disclosure** - `more` gives full action list without flooding every step.
+- **Tiny action replies** - `a10`, `nav "https://..."`, `back`, `done`.
+- **Narrative history** - readable previous steps, not noisy machine dump.
+- **Guardrails for reality** - anti-repeat fallback, nav hardening, transient extract retry.
+- **Honest failure mode** - if a site throws anti-bot gates, we say so and show evidence.
 
-## Comparative benchmark (5 tasks, pre-evolution baseline)
+## Benchmark Results
+
+### Baseline (before text-adventure evolution)
+
+_Note: Browser-direct and OpenClaw rows are indicative - ongoing live testing in progress (11 Mar 2026)_
 
 | Method | Success rate | Median token-in | Median token-out | Est. cost |
 |---|---:|---:|---:|---:|
-| Standard browser tooling | 0.40 | 24,885 | 408 | $0.139 |
-| OpenClaw browser tooling | 0.40 | 22,858 | 289 | $0.119 |
-| Semantic Browser (pre-evo) | 0.40 | 20,892 | 320 | $0.123 |
+| Standard browser tooling (indicative) | 40% | 24,885 | 408 | $0.139 |
+| OpenClaw browser tooling (indicative) | 40% | 22,858 | 289 | $0.119 |
 
-These numbers are the v1 baseline. The text-adventure evolution targets 60%+ success rate
-with ~4,000-6,000 input tokens and ~10-30 output tokens per step.
+### Semantic Browser
 
-Run `scripts/task_harness.py` (25 tasks, 5 categories) for the current quality gate.
+| Eval | Success rate | Median token-in | Median token-out | Est. cost/task |
+|---|---:|---:|---:|---:|
+| 5-task smoke reroll | 80% | 2,037 | 17 | $0.0065 |
+| 25-task full eval | 96% (24/25) | 1,004 | 17 | $0.0067 |
+
+Yes, this is a dramatic jump.
+
+The one remaining miss in the 25-task run is a StackOverflow anti-bot challenge loop.
+When that happens, harness now captures screenshots and sends them to the planner.
 
 ## Task harness (quality gate)
 
 ```bash
-# Run via OpenClaw
-BENCHMARK_API=codex python3 scripts/task_harness.py
+# Full 25-task eval
+BENCHMARK_API=openai BENCHMARK_MODEL=gpt-5.4 python3 scripts/task_harness.py
 
-# Or with a custom CDP endpoint
-CDP_WS=ws://... python3 scripts/task_harness.py
+# Quick smoke run (first 5 tasks)
+HARNESS_MAX_TASKS=5 BENCHMARK_API=openai BENCHMARK_MODEL=gpt-5.4 python3 scripts/task_harness.py
 ```
 
 25 tasks across: navigation, search, multi-step, content, interaction, resilience, speed.
+
+If challenge/captcha is detected, harness captures a screenshot and includes it in the LLM call.
 
 ---
 

@@ -476,9 +476,9 @@ _SEMANTIC_SYSTEM_PROMPT = (
     "You are navigating a website to complete a task. "
     "You receive a room description showing your location, what you see, and available actions.\n\n"
     "Reply with ONLY ONE of:\n"
-    "- An action ID from the list (e.g. act-3-ab12cd)\n"
-    "- An action ID followed by a quoted value for fill/type actions (e.g. act-5-ef34gh \"search text\")\n"
-    "- act-see-more (to see all available actions if the one you need is not listed)\n"
+    "- An action ID from the list (e.g. a3)\n"
+    "- An action ID followed by a quoted value for fill/type actions (e.g. a5 \"search text\")\n"
+    "- more (to see all available actions if the one you need is not listed)\n"
     "- done (if the task goal is clearly achieved)\n\n"
     "Nothing else. No explanation. No JSON. Just the action ID."
 )
@@ -567,7 +567,7 @@ def _semantic_planner_next(task_request: str, room_text: str, history: list[str]
 def _parse_semantic_response(response: str) -> tuple[str | None, str | None]:
     """Parse planner response into (action_id, optional_value).
 
-    Expected formats: 'act-3-ab12cd', 'act-5-ef34gh "text"', 'done', 'act-see-more'.
+    Expected formats: 'a3', 'a5 "text"', 'done', 'more'.
     """
     text = response.strip().strip("`").strip()
     if not text:

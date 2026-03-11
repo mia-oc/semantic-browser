@@ -39,6 +39,7 @@ class SemanticBrowserRuntime:
         self._session_id = str(uuid.uuid4())
         self._current_observation: Observation | None = None
         self._id_map: dict[str, str] = {}
+        self._last_expanded: bool = False
         self._trace = TraceStore(max_events=self._config.telemetry.max_events)
 
     @classmethod
@@ -205,6 +206,7 @@ class SemanticBrowserRuntime:
         if request.action_id == _SEE_MORE_ID:
             return await self._handle_see_more(request)
 
+        self._last_expanded = False
         obs_before = self._current_observation or await self.observe(mode="summary")
         try:
             action = resolve_action(request, obs_before)
@@ -258,9 +260,26 @@ class SemanticBrowserRuntime:
         return result
 
     async def _handle_see_more(self, request: ActionRequest) -> StepResult:
-        """Re-observe with expanded=True showing all available actions."""
+        """Re-observe with expanded=True showing all available actions.
+
+        If the previous observation was already expanded, return the same
+        observation with a hint to choose from the existing list instead.
+        """
         obs_before = self._current_observation
+
+        if self._last_expanded:
+            execution = build_execution("see_more", True, "already expanded", obs_before)
+            return StepResult(
+                request=request,
+                status="success",
+                message="Already showing all actions. Choose from the list or try a different approach.",
+                execution=execution,
+                observation=obs_before,
+                delta=build_delta(obs_before, obs_before),
+            )
+
         observation = await self.observe(mode="auto", expanded=True)
+        self._last_expanded = True
         execution = build_execution("see_more", True, "expanded action list", observation)
         return StepResult(
             request=request,
@@ -276,7 +295,13 @@ class SemanticBrowserRuntime:
             raise BrowserNotReadyError("No page bound to runtime.")
         before = self._current_observation
         req = ActionRequest(op="navigate", value=url)
-        await self._page.goto(url)
+        try:
+            await self._page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        except TypeError:
+            await self._page.goto(url)
+        except Exception:
+            # Some sites never reach full load due long-polling/ads. Retry with looser wait.
+            await self._page.goto(url, wait_until="commit", timeout=20000)
         observation = await self.observe(mode="summary")
         execution = build_execution("navigate", True, f"navigated to {url}", observation)
         return StepResult(

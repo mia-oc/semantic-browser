@@ -16,6 +16,16 @@ htmlcov/
 venv/
 env/
 
+# Local secrets / credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+secrets*.json
+*password*
+
 # Build outputs
 build/
 dist/
@@ -33,6 +43,8 @@ pip-wheel-metadata/
 dogfood-trace.json
 porthole-validation-trace.json
 trace-*.json
+*dump*.json
+*debug*.json
 *.log
 corpus-report.json
 
@@ -46,6 +58,9 @@ benchmark-runs/
 docs/benchmarks/journals/
 docs/benchmarks/tmp/
 docs/benchmarks/scratch/
+docs/harness/journals/
+docs/harness/*.json
+docs/harness/*.md
 
 # Browser/test harness leftovers
 playwright-report/

@@ -29,7 +29,7 @@ from .redaction import redact_nodes
 from .semantics import extract_semantics
 
 _MAX_CURATED_ACTIONS = 15
-_SEE_MORE_ID = "act-see-more"
+_SEE_MORE_ID = "more"
 
 
 async def _viewport_height(page: Any) -> float:
@@ -172,7 +172,21 @@ def _build_narration(
         else:
             parts.append(f"Input fields: {', '.join(input_names)}.")
 
-    return " ".join(parts)
+    narration = " ".join(parts)
+    if len(narration) > 200:
+        narration = narration[:197] + "..."
+    return narration
+
+
+_CURATED_ROOM_BUDGET = 1000
+_EXPANDED_ROOM_BUDGET = 4000
+
+
+def _cap_room_text(text: str, budget: int) -> str:
+    """Truncate room text to stay within a character budget."""
+    if len(text) <= budget:
+        return text
+    return text[:budget - 3] + "..."
 
 
 # ---------------------------------------------------------------------------
@@ -211,11 +225,11 @@ def _curate_actions(
     for a in enabled:
         if a.id in blocker_action_ids:
             tier_blocker.append(a)
-        elif a.op in {"fill", "select_option", "toggle"}:
+        elif a.op in {"fill", "select_option"}:
             tier_input.append(a)
         elif a.primary or a.op in {"submit", "click"}:
             tier_primary.append(a)
-        elif a.id.startswith("act-global-"):
+        elif a.id in {"back", "fwd", "reload", "wait", "nav"}:
             tier_global.append(a)
         else:
             tier_normal.append(a)
@@ -236,10 +250,10 @@ def _curate_actions(
 
 def _format_action_line(idx: int, action: ActionDescriptor) -> str:
     """Format one action as a terse room description line."""
-    label = action.label[:60]
+    label = action.label[:40]
     if action.requires_value:
-        return f"  {idx}. {action.op} {label} [{action.id}] (needs value)"
-    return f"  {idx}. {action.op} \"{label}\" [{action.id}]"
+        return f'{idx} {action.op} {label} [{action.id}] *value'
+    return f'{idx} {action.op} "{label}" [{action.id}]'
 
 
 def _build_room_text(
@@ -250,32 +264,27 @@ def _build_room_text(
     has_more: bool,
     total_action_count: int,
 ) -> str:
-    """Render the full text-adventure room description."""
+    """Render the full text-adventure room description (terse format)."""
     lines: list[str] = []
 
-    lines.append(f"LOCATION: {page_info.title or page_info.domain} ({page_info.domain})")
-    lines.append("")
-    lines.append(f"YOU SEE: {narration}")
-    lines.append("")
+    lines.append(f"@ {page_info.title or page_info.domain} ({page_info.domain})")
+    lines.append(f"> {narration}")
 
     if blockers:
-        lines.append("BLOCKERS:")
         for b in blockers[:3]:
             dismiss_hint = ""
             if b.related_action_ids:
-                dismiss_hint = f" -> dismiss with [{b.related_action_ids[0]}]"
-            lines.append(f"  ! {b.description}{dismiss_hint}")
-        lines.append("")
+                dismiss_hint = f" -> dismiss [{b.related_action_ids[0]}]"
+            lines.append(f"! {b.description}{dismiss_hint}")
 
-    lines.append("ACTIONS:")
     for i, action in enumerate(curated_actions, 1):
         lines.append(_format_action_line(i, action))
 
     if has_more:
         hidden = total_action_count - len(curated_actions)
-        lines.append(f"  ... {hidden} more actions available. Use [{_SEE_MORE_ID}] to see full list.")
+        lines.append(f"+ {hidden} more [{_SEE_MORE_ID}]")
 
-    return "\n".join(lines)
+    return _cap_room_text("\n".join(lines), _CURATED_ROOM_BUDGET)
 
 
 def _build_expanded_room_text(
@@ -284,29 +293,28 @@ def _build_expanded_room_text(
     actions: list[ActionDescriptor],
     blockers: list[Blocker],
 ) -> str:
-    """Render expanded room description showing ALL actions."""
+    """Render expanded room description showing ALL actions (terse format)."""
     lines: list[str] = []
 
-    lines.append(f"LOCATION: {page_info.title or page_info.domain} ({page_info.domain})")
-    lines.append("")
-    lines.append(f"YOU SEE: {narration}")
-    lines.append("")
+    lines.append(f"@ {page_info.title or page_info.domain} ({page_info.domain})")
+    lines.append(f"> {narration}")
 
     if blockers:
-        lines.append("BLOCKERS:")
         for b in blockers[:3]:
             dismiss_hint = ""
             if b.related_action_ids:
-                dismiss_hint = f" -> dismiss with [{b.related_action_ids[0]}]"
-            lines.append(f"  ! {b.description}{dismiss_hint}")
-        lines.append("")
+                dismiss_hint = f" -> dismiss [{b.related_action_ids[0]}]"
+            lines.append(f"! {b.description}{dismiss_hint}")
 
-    lines.append(f"ALL ACTIONS ({len(actions)}):")
     enabled = [a for a in actions if a.enabled]
+    lines.append(f"== ALL {len(enabled)} ACTIONS ==")
     for i, action in enumerate(enabled, 1):
         lines.append(_format_action_line(i, action))
 
-    return "\n".join(lines)
+    lines.append("COMPLETE list. No hidden actions.")
+    lines.append("If your target is not listed, try nav with a direct URL, or go back.")
+
+    return _cap_room_text("\n".join(lines), _EXPANDED_ROOM_BUDGET)
 
 
 # ---------------------------------------------------------------------------
@@ -352,8 +360,11 @@ def _action_for_node(node: dict[str, Any], node_id: str, idx: int) -> ActionDesc
     op = None
     requires_value = False
     if tag in {"input", "textarea"} or role in {"textbox"}:
-        if node.get("type") in {"checkbox", "radio"} or role == "checkbox":
+        input_type = node.get("type", "")
+        if input_type in {"checkbox", "radio"} or role == "checkbox":
             op = "toggle"
+        elif input_type in {"submit", "button", "reset", "image"}:
+            op = "click"
         else:
             op = "fill"
             requires_value = True
@@ -364,10 +375,14 @@ def _action_for_node(node: dict[str, Any], node_id: str, idx: int) -> ActionDesc
         op = "open"
     elif tag == "button" or role in {"button"}:
         op = "click"
+    elif role in {"tab", "menuitem", "option", "treeitem"}:
+        op = "click"
+    elif not op and (str(node.get("tabindex", "")) == "0" or node.get("has_click_handler")):
+        op = "click"
     if not op:
         return None
     return ActionDescriptor(
-        id=f"act-{idx}-{fingerprint_for(node)[:6]}",
+        id=f"a{idx}",
         op=op,
         label=name,
         target_id=node_id,
@@ -375,7 +390,7 @@ def _action_for_node(node: dict[str, Any], node_id: str, idx: int) -> ActionDesc
         requires_value=requires_value,
         navigational=op in {"open"},
         confidence=0.85,
-        locator_recipe={"name": name, "role": role, "tag": tag},
+        locator_recipe={"name": name, "role": role, "tag": tag, "type": node.get("type", "")},
     )
 
 
@@ -406,7 +421,7 @@ async def observe_page(
 
     actions: list[ActionDescriptor] = [
         ActionDescriptor(
-            id="act-global-back",
+            id="back",
             op="back",
             label="Back",
             enabled=True,
@@ -414,7 +429,7 @@ async def observe_page(
             confidence=0.9,
         ),
         ActionDescriptor(
-            id="act-global-forward",
+            id="fwd",
             op="forward",
             label="Forward",
             enabled=True,
@@ -422,7 +437,7 @@ async def observe_page(
             confidence=0.9,
         ),
         ActionDescriptor(
-            id="act-global-reload",
+            id="reload",
             op="reload",
             label="Reload",
             enabled=True,
@@ -430,7 +445,7 @@ async def observe_page(
             confidence=0.9,
         ),
         ActionDescriptor(
-            id="act-global-wait",
+            id="wait",
             op="wait",
             label="Wait",
             enabled=True,
@@ -439,7 +454,7 @@ async def observe_page(
             confidence=1.0,
         ),
         ActionDescriptor(
-            id="act-global-navigate",
+            id="nav",
             op="navigate",
             label="Navigate to URL",
             enabled=True,

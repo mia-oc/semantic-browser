@@ -177,8 +177,8 @@ async def test_planner_view_is_present_and_compact():
     assert obs.planner.location
     assert len(obs.planner.available_actions) <= 20
     assert obs.planner.room_text
-    assert "LOCATION:" in obs.planner.room_text
-    assert "ACTIONS:" in obs.planner.room_text
+    assert "@ " in obs.planner.room_text
+    assert "> " in obs.planner.room_text
     planner_tokens = len(obs.planner.room_text)
     full_tokens = len(json.dumps(obs.model_dump(), default=str))
     assert planner_tokens < full_tokens

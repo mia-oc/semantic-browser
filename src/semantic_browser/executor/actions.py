@@ -11,7 +11,10 @@ async def execute_action(page, action: ActionDescriptor, request: ActionRequest)
         if action.op == "navigate":
             if request.value is None:
                 raise ActionExecutionError("navigate requires request.value URL")
-            await page.goto(str(request.value))
+            try:
+                await page.goto(str(request.value), wait_until="domcontentloaded", timeout=15000)
+            except Exception:
+                await page.goto(str(request.value), timeout=15000)
             return True, "navigated"
         if action.op == "back":
             await page.go_back()
@@ -28,7 +31,15 @@ async def execute_action(page, action: ActionDescriptor, request: ActionRequest)
             return True, "clicked"
         if action.op == "fill":
             locator = await _locator(page, action)
-            await locator.fill("" if request.value is None else str(request.value), timeout=5000)
+            value = "" if request.value is None else str(request.value)
+            await locator.fill(value, timeout=5000)
+            recipe = action.locator_recipe or {}
+            input_type = recipe.get("type", "")
+            label_lower = (action.label or "").lower()
+            is_search = input_type == "search" or "search" in label_lower
+            if is_search and value:
+                await locator.press("Enter")
+                return True, "filled and submitted"
             return True, "filled"
         if action.op == "clear":
             locator = await _locator(page, action)

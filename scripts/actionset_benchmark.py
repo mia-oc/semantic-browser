@@ -354,9 +354,19 @@ async def semantic_method(task: Task, ws: str) -> dict[str, Any]:
         await rt.close()
 
 
-def summarise(rows: list[dict[str, Any]], key: str) -> dict[str, Any]:
-    vals = [float(r[key]) for r in rows]
-    return {"median": round(statistics.median(vals), 1), "mean": round(statistics.mean(vals), 1)}
+def summarise(rows: list[dict[str, Any]], key: str, *, drop_non_positive: bool = False) -> dict[str, Any]:
+    vals: list[float] = []
+    for row in rows:
+        raw = row.get(key)
+        if raw is None:
+            continue
+        v = float(raw)
+        if drop_non_positive and v <= 0:
+            continue
+        vals.append(v)
+    if not vals:
+        return {"median": 0.0, "mean": 0.0, "n": 0}
+    return {"median": round(statistics.median(vals), 1), "mean": round(statistics.mean(vals), 1), "n": len(vals)}
 
 
 async def main() -> None:
@@ -398,22 +408,22 @@ async def main() -> None:
             "task_success_rate": success_rate(standard_rows),
             "stuck_rate": stuck_rate(standard_rows),
             "speed_ms": summarise(standard_rows, "speed_ms"),
-            "tok_in": summarise(standard_rows, "tok_in"),
-            "tok_out": summarise(standard_rows, "tok_out"),
+            "tok_in": summarise(standard_rows, "tok_in", drop_non_positive=True),
+            "tok_out": summarise(standard_rows, "tok_out", drop_non_positive=True),
         },
         "openclaw_browser": {
             "task_success_rate": success_rate(openclaw_rows),
             "stuck_rate": stuck_rate(openclaw_rows),
             "speed_ms": summarise(openclaw_rows, "speed_ms"),
-            "tok_in": summarise(openclaw_rows, "tok_in"),
-            "tok_out": summarise(openclaw_rows, "tok_out"),
+            "tok_in": summarise(openclaw_rows, "tok_in", drop_non_positive=True),
+            "tok_out": summarise(openclaw_rows, "tok_out", drop_non_positive=True),
         },
         "semantic_browser": {
             "task_success_rate": success_rate(semantic_rows),
             "stuck_rate": stuck_rate(semantic_rows),
             "speed_ms": summarise(semantic_rows, "speed_ms"),
-            "tok_in": summarise(semantic_rows, "tok_in"),
-            "tok_out": summarise(semantic_rows, "tok_out"),
+            "tok_in": summarise(semantic_rows, "tok_in", drop_non_positive=True),
+            "tok_out": summarise(semantic_rows, "tok_out", drop_non_positive=True),
         },
         "task_count": len(TASKS),
     }

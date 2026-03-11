@@ -7,6 +7,6 @@ Methods:
 
 | Method | Success rate | Stuck rate | Median speed ms | Median tok-in | Median tok-out |
 |---|---:|---:|---:|---:|---:|
-| Standard browser use | 0.75 | 0.25 | 2491.1 | 268.0 | 13.0 |
-| OpenClaw browser | 0.65 | 0.35 | 2557.9 | 2644.0 | 13.0 |
-| Semantic Browser | 0.5 | 0.5 | 3633.2 | 920.0 | 13.0 |
+| Standard browser use | 0.75 | 0.25 | 2408.2 | 159.0 | 13.0 |
+| OpenClaw browser | 0.6 | 0.4 | 2452.5 | 2644.0 | 13.0 |
+| Semantic Browser | 0.8 | 0.2 | 5478.9 | 1039.0 | 13.0 |

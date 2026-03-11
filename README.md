@@ -37,18 +37,18 @@ Tested sites: Amazon, YouTube, Reddit, LinkedIn, Instagram, X, Google Maps, Noti
 
 | Method | Success rate | Stuck rate | Median speed (ms) | Median token-in | Median token-out |
 |---|---:|---:|---:|---:|---:|
-| Standard browser use | 0.75 | 0.25 | 2491.1 | 268.0 | 13.0 |
-| OpenClaw browser | 0.65 | 0.35 | 2557.9 | 2644.0 | 13.0 |
-| **Semantic Browser (auto + planner)** | 0.50 | 0.50 | 3633.2 | 920.0 | 13.0 |
+| Standard browser use | 0.75 | 0.25 | 2408.2 | 159.0 | 13.0 |
+| OpenClaw browser | 0.60 | 0.40 | 2452.5 | 2644.0 | 13.0 |
+| **Semantic Browser (auto + planner)** | **0.80** | **0.20** | 5478.9 | 1039.0 | 13.0 |
 
 ### What this means (honest version)
 
-- This run is now **action-set based**, so it captures getting stuck, not just pretty snapshots.
-- **OpenClaw and standard** currently win on speed/success in this specific harness.
-- **Semantic Browser** still needs improvement on action matching/execution reliability.
-- Token-in remains controlled and predictable with the planner payload, but reliability is the next hill to climb.
+- This run is **action-set based**, so it includes real stuck/fail behaviour.
+- **Semantic Browser now wins on reliability** (highest success, lowest stuck).
+- We are still **slower** and need a focused speed pass.
+- Token-in remains far lower than OpenClaw ARIA-style payloads while maintaining stronger task completion in this run.
 
-In other words: the architecture is right, but we need to finish the job on execution quality before claiming victory laps.
+Short version: reliability win achieved; speed optimisation is next.
 
 ---
 

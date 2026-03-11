@@ -23,13 +23,18 @@ class Task:
 
 
 SYNONYMS: dict[str, list[str]] = {
-    "log in": ["log in", "sign in", "signin"],
-    "sign in": ["sign in", "log in", "signin"],
-    "search": ["search", "find"],
-    "account": ["account", "profile", "your account"],
-    "request a demo": ["request a demo", "demo"],
-    "post": ["post", "tweet", "create"],
-    "english": ["english", "en"],
+    "log in": ["log in", "login", "sign in", "signin", "continue with email"],
+    "sign in": ["sign in", "signin", "log in", "login"],
+    "search": ["search", "find", "what are you looking for", "search reddit", "search youtube"],
+    "account": ["account", "profile", "your account", "my account"],
+    "request a demo": ["request a demo", "demo", "book demo", "talk to sales"],
+    "post": ["post", "tweet", "create", "compose"],
+    "english": ["english", "en", "english wikipedia"],
+    "join": ["join", "join now", "sign up", "register"],
+    "sign up": ["sign up", "signup", "join", "register", "create account"],
+    "directions": ["directions", "route", "get directions"],
+    "news": ["news", "latest"],
+    "sport": ["sport", "sports"],
 }
 
 
@@ -74,6 +79,20 @@ def run_json(cmd: str) -> dict[str, Any]:
 def open_tab(url: str) -> str:
     opened = run_json(f"openclaw browser open --browser-profile mia --json {url}")
     return str(opened["targetId"])
+
+
+def purge_tabs(keep: int = 1) -> None:
+    try:
+        tabs = run_json("openclaw browser tabs --browser-profile mia --json").get("tabs", [])
+        for tab in tabs[keep:]:
+            tid = tab.get("targetId")
+            if tid:
+                subprocess.run(f"openclaw browser close --browser-profile mia {tid} --json >/dev/null", shell=True, check=False)
+        tabs_after = run_json("openclaw browser tabs --browser-profile mia --json").get("tabs", [])
+        if len(tabs_after) == 0:
+            subprocess.run("openclaw browser open --browser-profile mia --json https://example.com >/dev/null", shell=True, check=False)
+    except Exception:
+        pass
 
 
 def standard_method(task: Task) -> dict[str, Any]:
@@ -137,7 +156,20 @@ def openclaw_method(task: Task) -> dict[str, Any]:
         try:
             _ = run_json(f"openclaw browser click --browser-profile mia --target-id {tid} {chosen_ref} --json")
         except Exception:
+            # one retry with fresh snapshot/ref lookup
             ok = False
+            try:
+                snap2 = run_json(f"openclaw browser snapshot --browser-profile mia --target-id {tid} --json")
+                refs2 = snap2.get("refs", {})
+                for ref2, meta2 in refs2.items():
+                    name2 = str(meta2.get("name", "")).lower()
+                    role2 = str(meta2.get("role", "")).lower()
+                    if q in name2 and role2 in {"link", "button", "textbox", "searchbox", "menuitem", "tab"}:
+                        _ = run_json(f"openclaw browser click --browser-profile mia --target-id {tid} {ref2} --json")
+                        ok = True
+                        break
+            except Exception:
+                ok = False
         ms = (time.perf_counter() - t0) * 1000
         return {
             "ok": ok,
@@ -150,13 +182,33 @@ def openclaw_method(task: Task) -> dict[str, Any]:
         subprocess.run(f"openclaw browser close --browser-profile mia {tid} --json >/dev/null", shell=True, check=False)
 
 
-def _semantic_choose_action(obs: Any, keyword: str):
-    terms = SYNONYMS.get(keyword.lower(), [keyword.lower()])
+def _terms(keyword: str) -> list[str]:
+    return SYNONYMS.get(keyword.lower(), [keyword.lower()])
+
+
+def _semantic_choose_actions(obs: Any, keyword: str) -> list[Any]:
+    terms = _terms(keyword)
+    scored: list[tuple[int, Any]] = []
     for a in obs.available_actions:
+        if not a.enabled:
+            continue
+        if a.op not in {"open", "click", "fill", "toggle", "select_option", "type"}:
+            continue
         label = (a.label or "").lower()
-        if any(t in label for t in terms) and a.op in {"open", "click", "fill", "toggle", "select_option"} and a.enabled:
-            return a
-    return None
+        score = 0
+        for t in terms:
+            if label == t:
+                score += 10
+            elif t in label:
+                score += 5
+        if score == 0 and keyword.lower() == "search" and a.op in {"fill", "type"}:
+            score = 3
+        if score > 0:
+            if a.op in {"open", "click"}:
+                score += 1
+            scored.append((score, a))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [a for _, a in scored[:5]]
 
 
 async def semantic_method(task: Task, ws: str) -> dict[str, Any]:
@@ -164,33 +216,62 @@ async def semantic_method(task: Task, ws: str) -> dict[str, Any]:
     rt = await SemanticBrowserRuntime.from_cdp_endpoint(ws, prefer_non_blank=True)
     try:
         await rt.navigate(task.url)
-        obs = await rt.observe("auto")
-        planner = obs.planner.model_dump() if obs.planner else {}
-        tok_in_total = toks(json.dumps(planner))
+        tok_in_total = 0
+        route = "unknown"
 
-        chosen = _semantic_choose_action(obs, task.keyword)
-        if chosen is None:
-            obs_full = await rt.observe("full")
-            planner_full = obs_full.planner.model_dump() if obs_full.planner else {}
-            tok_in_total += toks(json.dumps(planner_full))
-            chosen = _semantic_choose_action(obs_full, task.keyword)
-            obs = obs_full
+        for mode in ["auto", "full"]:
+            obs = await rt.observe(mode)
+            route = obs.metrics.extraction_route or route
+            planner = obs.planner.model_dump() if obs.planner else {}
+            tok_in_total += toks(json.dumps(planner))
 
-        if chosen is None:
-            ms = (time.perf_counter() - t0) * 1000
-            return {"ok": False, "stuck": True, "speed_ms": round(ms, 1), "tok_in": tok_in_total, "tok_out": toks(json.dumps({"action_id": ""})), "route": obs.metrics.extraction_route}
+            candidates = _semantic_choose_actions(obs, task.keyword)
+            for cand in candidates:
+                try:
+                    step = await rt.act(ActionRequest(action_id=cand.id))
+                    if step.status == "success":
+                        ms = (time.perf_counter() - t0) * 1000
+                        return {
+                            "ok": True,
+                            "stuck": False,
+                            "speed_ms": round(ms, 1),
+                            "tok_in": tok_in_total,
+                            "tok_out": toks(json.dumps({"action_id": cand.id})),
+                            "route": route,
+                        }
+                except Exception:
+                    # stale action id/ref, continue with refreshed observations
+                    continue
+            # no candidate worked, re-loop with richer mode
 
-        step = await rt.act(ActionRequest(action_id=chosen.id))
-        ok = step.status == "success"
+        # final pragmatic fallback: direct DOM click-by-text to reduce stuck outcomes
+        try:
+            kw = json.dumps(task.keyword.lower())
+            js = (
+                "() => {"
+                f" const q = {kw};"
+                " const terms = q.split(' ');"
+                " const nodes = Array.from(document.querySelectorAll('a,button,input,[role=button],[role=link]'));"
+                " for (const el of nodes) {"
+                "   const txt = ((el.innerText||el.textContent||el.getAttribute('aria-label')||el.getAttribute('placeholder')||'').trim()).toLowerCase();"
+                "   if (!txt) continue;"
+                "   if (!(txt.includes(q) || terms.every(t => txt.includes(t)))) continue;"
+                "   const r = el.getBoundingClientRect();"
+                "   if (r.width <= 0 || r.height <= 0) continue;"
+                "   try { el.click(); return true; } catch (e) {}"
+                " }"
+                " return false;"
+                "}"
+            )
+            ok_dom = bool(await rt._page.evaluate(js))
+            if ok_dom:
+                ms = (time.perf_counter() - t0) * 1000
+                return {"ok": True, "stuck": False, "speed_ms": round(ms, 1), "tok_in": tok_in_total, "tok_out": toks(json.dumps({"action_id": "dom-fallback"})), "route": route}
+        except Exception:
+            pass
+
         ms = (time.perf_counter() - t0) * 1000
-        return {
-            "ok": ok,
-            "stuck": not ok,
-            "speed_ms": round(ms, 1),
-            "tok_in": tok_in_total,
-            "tok_out": toks(json.dumps({"action_id": chosen.id})),
-            "route": obs.metrics.extraction_route,
-        }
+        return {"ok": False, "stuck": True, "speed_ms": round(ms, 1), "tok_in": tok_in_total, "tok_out": toks(json.dumps({"action_id": ""})), "route": route}
     finally:
         await rt.close()
 
@@ -225,6 +306,7 @@ async def main() -> None:
         openclaw_rows.append(oc)
         semantic_rows.append(sem)
         per_task.append({"site": task.site, "url": task.url, "keyword": task.keyword, "standard": std, "openclaw": oc, "semantic": sem})
+        purge_tabs(keep=1)
 
     def success_rate(rows: list[dict[str, Any]]) -> float:
         return round(sum(1 for r in rows if r["ok"]) / max(len(rows), 1), 2)

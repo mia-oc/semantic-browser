@@ -34,14 +34,12 @@ Other browser tools give the LLM the same data in a different wrapper. We give i
 
 ### Baseline (validated rerun, 11 Mar 2026)
 
-_Route: OpenAI API (`gpt-5.3-codex`). Full 25-task run against non-semantic routes._
+_Route: OpenAI API (`gpt-5.3-codex`). Full 25-task run against non-semantic routes, with OpenAI Responses output parsing fixed for telemetry capture._
 
-| Method | Success rate | Median speed |
-|---|---:|---:|
-| Standard browser tooling | 8% (2/25) | 3,110ms |
-| OpenClaw browser tooling | 20% (5/25) | 3,178ms |
-
-Token-out and cost telemetry are temporarily excluded from this table pending parser/telemetry hardening on the OpenAI `responses` route.
+| Method | Success rate | Median speed | Mean token-in | Mean token-out |
+|---|---:|---:|---:|---:|
+| Standard browser tooling | 28% (7/25) | 10,846ms | 11,895.8 | 109.8 |
+| OpenClaw browser tooling | 68% (17/25) | 9,590ms | 4,889.2 | 50.5 |
 
 Source artefacts:
 - `docs/benchmarks/2026-03-11-other-routes-25.json`

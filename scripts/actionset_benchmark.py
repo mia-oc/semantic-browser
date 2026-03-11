@@ -160,6 +160,72 @@ def _planner_via_openrouter(payload: dict[str, Any]) -> tuple[dict[str, Any], Us
     return parsed, usage
 
 
+def _responses_output_text(raw: dict[str, Any]) -> str:
+    direct = raw.get("output_text")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+
+    chunks: list[str] = []
+    for item in raw.get("output") or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") != "message":
+            continue
+        for part in item.get("content") or []:
+            if not isinstance(part, dict):
+                continue
+            if part.get("type") == "output_text":
+                text = str(part.get("text") or "").strip()
+                if text:
+                    chunks.append(text)
+    return "\n".join(chunks).strip()
+
+
+def _planner_via_openai(payload: dict[str, Any]) -> tuple[dict[str, Any], Usage]:
+    model = os.getenv("BENCHMARK_MODEL", "gpt-5.3-codex")
+    body = {
+        "model": model,
+        "input": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a browser task planner. Return compact JSON only with keys: "
+                    "action,target,text,reason. Use only listed candidates. "
+                    "Prefer click actions. Use done only when goal appears complete."
+                ),
+            },
+            {"role": "user", "content": json.dumps(payload)},
+        ],
+        "max_output_tokens": 140,
+        "temperature": 0,
+    }
+    api_key = _require_env("OPENAI_API_KEY")
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            raw = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"OpenAI planner API HTTP {e.code}: {detail[:400]}") from e
+
+    usage = _extract_usage(raw)
+    content = _responses_output_text(raw)
+    parsed = {"action": "done", "target": "", "text": "", "reason": "no-content"}
+    if content:
+        try:
+            maybe = json.loads(content)
+            if isinstance(maybe, dict):
+                parsed.update(maybe)
+        except Exception:
+            pass
+    return parsed, usage
+
+
 def _planner_via_codex(payload: dict[str, Any]) -> tuple[dict[str, Any], Usage]:
     model = os.getenv("BENCHMARK_MODEL", "gpt-5.3-codex")
     prompt = (
@@ -202,16 +268,16 @@ def _planner_via_codex(payload: dict[str, Any]) -> tuple[dict[str, Any], Usage]:
 
 def planner_next_action(request_text: str, page_view: dict[str, Any], history: list[str]) -> tuple[dict[str, Any], Usage]:
     api = os.getenv("BENCHMARK_API", "codex").strip().lower()
-    if api == "openai":
-        raise RuntimeError("BENCHMARK_API=openai is disabled for benchmark runs. Use codex or openrouter instead.")
 
     payload = _planner_payload(request_text, page_view, history)
     if api == "codex":
         parsed, usage = _planner_via_codex(payload)
     elif api == "openrouter":
         parsed, usage = _planner_via_openrouter(payload)
+    elif api == "openai":
+        parsed, usage = _planner_via_openai(payload)
     else:
-        raise RuntimeError(f"Unsupported BENCHMARK_API={api!r}. Expected 'codex' or 'openrouter'.")
+        raise RuntimeError(f"Unsupported BENCHMARK_API={api!r}. Expected 'codex', 'openai' or 'openrouter'.")
 
     parsed["action"] = str(parsed.get("action", "done")).strip().lower()
     parsed["target"] = str(parsed.get("target", "")).strip()

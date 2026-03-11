@@ -45,13 +45,12 @@ _Note: Browser-direct and OpenClaw rows are indicative - ongoing live testing in
 
 | Eval | Success rate | Median token-in | Median token-out | Est. cost/task |
 |---|---:|---:|---:|---:|
-| 5-task smoke reroll | 80% | 2,037 | 17 | $0.0065 |
 | 25-task full eval | 96% (24/25) | 1,004 | 17 | $0.0067 |
 
 Yes, this is a dramatic jump.
 
-The one remaining miss in the 25-task run is a StackOverflow anti-bot challenge loop.
-When that happens, harness now captures screenshots and sends them to the planner.
+The one remaining miss in the 25-task run is a rather tricky anti-bot challenge loop. We're working on that.
+When that happens, harness now captures screenshots and sends them to the planner (LLM) to solve.
 
 ## Task harness (quality gate)
 

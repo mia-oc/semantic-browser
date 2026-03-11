@@ -35,11 +35,11 @@ Benchmark files:
 
 Tested sites: Amazon, YouTube, Reddit, LinkedIn, Instagram, X, Google Maps, Notion, Wikipedia, BBC.
 
-| Method | Success rate | Stuck rate | Median speed (ms) | Median token-in | Median token-out |
-|---|---:|---:|---:|---:|---:|
-| Standard browser use | 0.75 | 0.25 | 2408.2 | 159.0 | 13.0 |
-| OpenClaw browser | 0.60 | 0.40 | 2452.5 | 2644.0 | 13.0 |
-| **Semantic Browser (auto + planner)** | **0.80** | **0.20** | 5478.9 | 1039.0 | 13.0 |
+| Method | Success rate | Stuck rate | Median speed (ms) | Median token-in | Median token-out | Est. cost / request (USD) | Est. cost / 10 requests (USD) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Standard browser use | 0.75 | 0.25 | 2408.2 | 159.0 | 13.0 | 0.000672 | 0.006720 |
+| OpenClaw browser | 0.60 | 0.40 | 2452.5 | 2644.0 | 13.0 | 0.008127 | 0.081270 |
+| **Semantic Browser (auto + planner)** | **0.80** | **0.20** | 5478.9 | 1039.0 | 13.0 | 0.003312 | 0.033120 |
 
 ### What this means (honest version)
 
@@ -47,8 +47,11 @@ Tested sites: Amazon, YouTube, Reddit, LinkedIn, Instagram, X, Google Maps, Noti
 - **Semantic Browser now wins on reliability** (highest success, lowest stuck).
 - We are still **slower** and need a focused speed pass.
 - Token-in remains far lower than OpenClaw ARIA-style payloads while maintaining stronger task completion in this run.
+- Cost estimate (Sonnet 4.6 pricing) shows materially lower projected spend than OpenClaw-style snapshot payloads at 10 requests.
 
 Short version: reliability win achieved; speed optimisation is next.
+
+`token-out` note: current benchmark counts policy action payload tokens. Next revision will switch this to provider-reported completion usage telemetry.
 
 ---
 

@@ -5,10 +5,12 @@ Methods:
 - OpenClaw browser (snapshot refs + click)
 - Semantic Browser (auto route + planner action IDs)
 
-| Method | Success rate | Stuck rate | Median speed ms | Median tok-in | Median tok-out |
-|---|---:|---:|---:|---:|---:|
-| Standard browser use | 0.75 | 0.25 | 2408.2 | 159.0 | 13.0 |
-| OpenClaw browser | 0.60 | 0.40 | 2452.5 | 2644.0 | 13.0 |
-| Semantic Browser | 0.80 | 0.20 | 5478.9 | 1039.0 | 13.0 |
+| Method | Success rate | Stuck rate | Median speed ms | Median tok-in | Median tok-out | Est. cost / request (USD) | Est. cost / 10 requests (USD) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Standard browser use | 0.75 | 0.25 | 2408.2 | 159.0 | 13.0 | 0.000672 | 0.006720 |
+| OpenClaw browser | 0.60 | 0.40 | 2452.5 | 2644.0 | 13.0 | 0.008127 | 0.081270 |
+| Semantic Browser | 0.80 | 0.20 | 5478.9 | 1039.0 | 13.0 | 0.003312 | 0.033120 |
 
-Note: `tok-out` is measured as the action payload token count emitted by the method policy for each task step.
+Cost basis: Claude Sonnet 4.6 pricing = $3 / 1M input tokens and $15 / 1M output tokens (Anthropic public pricing page).
+
+Important: current `tok-out` is a policy action-payload proxy, not provider-reported completion usage. Next harness revision will capture true model usage telemetry.

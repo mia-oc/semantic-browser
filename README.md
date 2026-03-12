@@ -32,14 +32,39 @@ Other browser tools give the LLM the same data in a different wrapper. We give i
 
 ## Benchmark Results
 
-### Baseline (before text-adventure evolution)
+### Full comparative rerun (12 Mar 2026, 25 tasks x 3 methods)
 
-_Note: Browser-direct and OpenClaw rows are indicative - ongoing live testing in progress (11 Mar 2026)_
+_Route: OpenAI API (`gpt-5.3-codex`). All three methods ran the same 25-task corpus with stage-level telemetry enabled._
 
-| Method | Success rate | Median token-in | Median token-out | Est. cost |
-|---|---:|---:|---:|---:|
-| Standard browser tooling (indicative) | 40% | 24,885 | 408 | $0.139 |
-| OpenClaw browser tooling (indicative) | 40% | 22,858 | 289 | $0.119 |
+Metric basis (explicit):
+- `planner input/output (billable)`: provider-billable planner tokens only.
+- `browser/runtime payload token-estimate` and `total effective context load`: non-billable estimates for payload/context pressure.
+- `indicative planner cost`: Sonnet 4.6-normalised estimate from planner billable tokens only.
+
+| Method | Success rate | Failures | Median speed (ms) | Planner input median | Planner output median | Payload token-est median | Total effective context median | Median browser/runtime calls | Indicative planner cost/request (USD) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Standard browser tooling | 24% (6/25) | 19 | 11,819.8 | 10,118 | 74 | 6,918 | 17,224 | 6.0 | 0.041005 |
+| OpenClaw browser tooling | 72% (18/25) | 7 | 10,514.2 | 6,833 | 66 | 5,219 | 12,078 | 6.0 | 0.022053 |
+| Semantic Browser | 48% (12/25) | 13 | 24,514.5 | 2,596 | 35 | 1,231 | 3,870 | 14.0 | 0.006195 |
+
+#### Planner cost summary (full 25-task run)
+
+| Method | Requests | Total indicative planner cost (USD) | Average/request (USD) |
+|---|---:|---:|---:|
+| Standard browser tooling | 25 | 1.025136 | 0.041005 |
+| OpenClaw browser tooling | 25 | 0.551322 | 0.022053 |
+| Semantic Browser | 25 | 0.154866 | 0.006195 |
+| **Cross-method grand total** | **75** | **1.731324** | **0.023084** |
+
+Interpretation:
+- OpenClaw browser tooling gave the best task success in this run, with materially lower planner spend than standard tooling.
+- Semantic Browser had the lowest planner cost by a wide margin, but lower completion than OpenClaw on this corpus/run.
+- Cost labels are planner-billable-only; payload/context metrics are estimated and reported separately.
+
+Source artefacts:
+- `docs/benchmarks/2026-03-11-actionset-compare.json`
+- `docs/benchmarks/2026-03-11-actionset-compare.md`
+- `docs/benchmarks/journals/2026-03-12/`
 
 ### Semantic Browser
 

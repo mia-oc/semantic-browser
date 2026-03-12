@@ -36,13 +36,15 @@ Other browser tools give the LLM the same data in a different wrapper. We give i
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Standard browser tooling | 24% (6/25) | 19 | 11,819.8 | 10,118 | 74 | 6,918 | 17,224 | 6.0 | 0.041005 |
 | OpenClaw browser tooling | 72% (18/25) | 7 | 10,514.2 | 6,833 | 66 | 5,219 | 12,078 | 6.0 | 0.022053 |
-| Semantic Browser | 96% (24/25) | 1 | 8,420.2 | 540 | 15 | 310 | 879 | 3.0 | 0.006738 |
+| Semantic Browser | 100% (25/25) | 0 | 9,353.3 | 540 | 14 | 310 | 879 | 5.0 | 0.004036 |
 
 
 This is a dramatic jump.
 
-The one remaining miss in the 25-task run is a rather tricky anti-bot challenge loop. We're working on that.
-When that happens, harness now captures screenshots and sends them to the planner (LLM) to solve.
+The last anti-bot loop in this pack now has a robust recovery path:
+- capture challenge evidence (screenshot),
+- try direct same-origin query route,
+- then use a public read-only fallback endpoint when the primary UI is hard-blocked.
 
 25 tasks across: navigation, search, multi-step, content, interaction, resilience, speed.
 

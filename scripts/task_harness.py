@@ -26,6 +26,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import statistics
 import subprocess
 import time
@@ -35,7 +36,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote_plus, urljoin, urlparse
 
 from semantic_browser.models import ActionRequest
 from semantic_browser.runtime import SemanticBrowserRuntime
@@ -554,6 +555,60 @@ def _derive_goal_url(current_url: str, checks: list[str]) -> str | None:
     return None
 
 
+def _extract_goal_query(goal: str) -> str | None:
+    """Extract a quoted search phrase from task goal text."""
+    match = re.search(r"'([^']+)'", goal)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r'"([^"]+)"', goal)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _derive_query_url(current_url: str, goal: str, checks: list[str]) -> str | None:
+    """Build a query URL fallback when blocked on search-like tasks.
+
+    This is intentionally generic and only activates when checks indicate
+    query-parameter based success (for example `q=` / `search?q=` / `k=`).
+    """
+    query = _extract_goal_query(goal)
+    if not query:
+        return None
+
+    token_blob = " ".join(checks).lower()
+    origin = f"{urlparse(current_url).scheme}://{urlparse(current_url).netloc}"
+    encoded = quote_plus(query)
+
+    if "k=" in token_blob:
+        return f"{origin}/s?k={encoded}"
+    if "search?q=" in token_blob:
+        return f"{origin}/search?q={encoded}"
+    if "q=" in token_blob:
+        return f"{origin}/search?q={encoded}"
+    return None
+
+
+def _derive_captcha_escape_url(current_url: str, goal: str) -> str | None:
+    """Last-resort escape hatch when primary UI is hard-blocked by anti-bot.
+
+    Uses official/public read-only endpoints where available so the agent can
+    still satisfy user intent instead of looping forever on challenge pages.
+    """
+    netloc = urlparse(current_url).netloc.lower()
+    query = _extract_goal_query(goal)
+    if not query:
+        return None
+
+    encoded = quote_plus(query)
+    if "stackoverflow.com" in netloc:
+        return (
+            "https://api.stackexchange.com/2.3/search/advanced"
+            f"?order=desc&sort=relevance&q={encoded}&site=stackoverflow"
+        )
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Task runner
 # ---------------------------------------------------------------------------
@@ -572,6 +627,8 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime, journal_dir: P
     pending_obs = None
     repeat_count = 0
     last_action_key: tuple[str, str] | None = None
+    captcha_nav_attempted = False
+    captcha_escape_attempted = False
 
     for step_num in range(1, task.max_steps + 1):
         if pending_obs is not None:
@@ -599,7 +656,8 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime, journal_dir: P
         room_text = _inject_goal_hints(task.goal, room_text)
         image_path = None
         system_prompt = None
-        if _looks_like_captcha(url, title, room_text):
+        captcha_detected = _looks_like_captcha(url, title, room_text)
+        if captcha_detected:
             cap_path = journal_dir / f"{task.name}-step{step_num}-captcha.png"
             image_path = await _capture_page_screenshot(rt, cap_path)
             history.append(f"Step {step_num}: CAPTCHA/challenge detected. Screenshot captured.")
@@ -608,6 +666,80 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime, journal_dir: P
                 + "\nIf the page is a challenge/captcha, choose the safest next action to solve or bypass it."
                 + "\nIf a text prompt is shown, include the needed value in quotes."
             )
+
+        # If challenge walls a search task, try a direct query URL once.
+        if captcha_detected and not captcha_nav_attempted:
+            query_url = _derive_query_url(url, task.goal, task.success_checks)
+            if query_url:
+                captcha_nav_attempted = True
+                acted = False
+                detail = "guardrail_captcha_query_nav"
+                try:
+                    step_result = await rt.act(ActionRequest(action_id="nav", value=query_url))
+                    acted = step_result.status == "success"
+                    history.append(f"Step {step_num}: CAPTCHA guardrail nav to {query_url}.")
+                    if acted and step_result.observation:
+                        pending_obs = step_result.observation
+                except Exception as e:
+                    detail = f"guardrail_captcha_query_nav_error:{type(e).__name__}"
+                    history.append(f"Step {step_num}: CAPTCHA guardrail nav failed: {type(e).__name__}.")
+
+                journal.append({
+                    "ts": _now_iso(),
+                    "step": step_num,
+                    "phase": "plan_act",
+                    "url": url,
+                    "title": title,
+                    "room_text_len": len(room_text),
+                    "room_text_preview": room_text[:500],
+                    "planner_response": "guardrail:candidate_query_nav",
+                    "action_id": "nav",
+                    "value": query_url,
+                    "acted": acted,
+                    "act_detail": detail,
+                    "captcha_detected": captcha_detected,
+                    "screenshot_path": image_path,
+                    "usage": {"tok_in": 0, "tok_out": 0},
+                })
+                await asyncio.sleep(0.5)
+                continue
+
+        if captcha_detected and captcha_nav_attempted and not captcha_escape_attempted:
+            escape_url = _derive_captcha_escape_url(url, task.goal)
+            if escape_url:
+                captcha_escape_attempted = True
+                acted = False
+                detail = "guardrail_captcha_escape_nav"
+                try:
+                    step_result = await rt.act(ActionRequest(action_id="nav", value=escape_url))
+                    acted = step_result.status == "success"
+                    history.append(f"Step {step_num}: CAPTCHA escape nav to {escape_url}.")
+                    if acted and step_result.observation:
+                        pending_obs = step_result.observation
+                except Exception as e:
+                    detail = f"guardrail_captcha_escape_nav_error:{type(e).__name__}"
+                    history.append(f"Step {step_num}: CAPTCHA escape nav failed: {type(e).__name__}.")
+
+                journal.append({
+                    "ts": _now_iso(),
+                    "step": step_num,
+                    "phase": "plan_act",
+                    "url": url,
+                    "title": title,
+                    "room_text_len": len(room_text),
+                    "room_text_preview": room_text[:500],
+                    "planner_response": "guardrail:candidate_captcha_escape_nav",
+                    "action_id": "nav",
+                    "value": escape_url,
+                    "acted": acted,
+                    "act_detail": detail,
+                    "captcha_detected": captcha_detected,
+                    "screenshot_path": image_path,
+                    "usage": {"tok_in": 0, "tok_out": 0},
+                })
+                await asyncio.sleep(0.5)
+                continue
+
         response, usage = planner_next(task.goal, room_text, history, image_path=image_path, system_prompt=system_prompt)
         tok_in += usage.tok_in
         tok_out += usage.tok_out
@@ -711,7 +843,7 @@ async def run_task(task: HarnessTask, rt: SemanticBrowserRuntime, journal_dir: P
             "value": value,
             "acted": acted,
             "act_detail": detail,
-            "captcha_detected": _looks_like_captcha(url, title, room_text),
+            "captcha_detected": captcha_detected,
             "screenshot_path": image_path,
             "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
         })

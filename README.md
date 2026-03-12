@@ -1,4 +1,6 @@
-# Semantic Browser Runtime
+# Semantic Browser
+
+<img width="512" height="512" alt="Gemini_Generated_Image_n0t5nrn0t5nrn0t5" src="https://github.com/user-attachments/assets/e1c2e51b-103a-4a65-bb2e-b2a243793225" />
 
 Make browser automation feel less like parsing soup and more like an old BBC Micro text adventure.
 

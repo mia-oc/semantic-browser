@@ -283,5 +283,3 @@ semantic-browser export-trace --session <id> --out trace.json
 - `docs/system_arch.md` - architecture diagrams
 - `docs/getting_started.md` - copy/paste onboarding guide
 - `docs/dependencies.md` - explicit dependency matrix
-
-If you just cloned the repo, start with `docs/project_plan.md`.

@@ -14,7 +14,10 @@ from semantic_browser.models import (
     PageSummary,
     StepResult,
 )
+from semantic_browser.service import routes as routes_mod
 from semantic_browser.service.server import create_app
+from semantic_browser.service.settings import ServiceSettings
+from semantic_browser.service.state import SessionRegistry
 
 
 class FakeRuntime:
@@ -121,3 +124,34 @@ def test_service_launch_observe_act_close(monkeypatch):
 
     closed = client.post(f"/sessions/{sid}/close")
     assert closed.status_code == 200
+
+
+def test_service_requires_token_when_configured(monkeypatch):
+    async def fake_launch(headful=True):
+        return FakeSession()
+
+    from semantic_browser import session as session_mod
+
+    monkeypatch.setattr(session_mod.ManagedSession, "launch", fake_launch)
+    monkeypatch.setattr(
+        routes_mod,
+        "_settings",
+        ServiceSettings(
+            api_token="dev-token",
+            allow_origins=["http://127.0.0.1", "http://localhost"],
+            session_ttl_seconds=1800,
+        ),
+    )
+    monkeypatch.setattr(routes_mod, "_registry", SessionRegistry(session_ttl_seconds=1800))
+
+    app = create_app()
+    client = TestClient(app)
+    unauthorized = client.post("/sessions/launch", json={"headful": False})
+    assert unauthorized.status_code == 401
+
+    authorized = client.post(
+        "/sessions/launch",
+        json={"headful": False},
+        headers={"X-API-Token": "dev-token"},
+    )
+    assert authorized.status_code == 200

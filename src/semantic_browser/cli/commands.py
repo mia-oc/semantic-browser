@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import click
 
+from semantic_browser import __version__
 from semantic_browser.models import ActionRequest
 from semantic_browser.runtime import SemanticBrowserRuntime
 from semantic_browser.session import ManagedSession
@@ -35,7 +37,7 @@ def _runtime_for(session_id: str) -> SemanticBrowserRuntime:
 
 @click.command("version")
 def version_cmd():
-    _emit({"name": "semantic-browser", "version": "0.1.0"}, as_json=True)
+    _emit({"name": "semantic-browser", "version": __version__}, as_json=True)
 
 
 @click.command("doctor")
@@ -269,8 +271,19 @@ def portal_cmd(url: str, headful: bool):
 @click.command("serve")
 @click.option("--host", default="127.0.0.1")
 @click.option("--port", default=8765, type=int)
-def serve_cmd(host: str, port: int):
+@click.option("--api-token", default=None, help="Optional API token required in X-API-Token header.")
+@click.option(
+    "--cors-origins",
+    default="http://127.0.0.1,http://localhost",
+    help="Comma-separated allowed origins.",
+)
+@click.option("--session-ttl-seconds", default=1800, type=int, help="Session TTL for idle sessions.")
+def serve_cmd(host: str, port: int, api_token: str | None, cors_origins: str, session_ttl_seconds: int):
     """Run local HTTP service."""
+    os.environ["SEMANTIC_BROWSER_CORS_ORIGINS"] = cors_origins
+    os.environ["SEMANTIC_BROWSER_SESSION_TTL_SECONDS"] = str(session_ttl_seconds)
+    if api_token:
+        os.environ["SEMANTIC_BROWSER_API_TOKEN"] = api_token
     try:
         import uvicorn
     except Exception as exc:

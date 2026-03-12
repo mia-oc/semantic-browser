@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import hashlib
 from typing import Any
 
 from semantic_browser.models import (
@@ -14,19 +15,26 @@ from semantic_browser.models import (
 )
 
 
+def _stable_id(prefix: str, seed: str) -> str:
+    digest = hashlib.sha1(seed.encode("utf-8")).hexdigest()[:10]
+    return f"{prefix}-{digest}"
+
+
 def build_regions(nodes: list[dict[str, Any]]) -> list[RegionSummary]:
     region_like = {"main", "nav", "header", "footer", "aside", "section", "article", "dialog", "form"}
     regions: list[RegionSummary] = []
     order = 0
     for node in nodes:
         if node["tag"] in region_like or node["role"] in {"main", "navigation", "dialog", "form"}:
-            rid = f"rgn-{order}"
+            frame_id = str(node.get("frame_id") or "main")
+            seed = "|".join([frame_id, str(node.get("role") or node.get("tag") or ""), str(node.get("name") or "")[:80]])
+            rid = _stable_id("rgn", seed)
             regions.append(
                 RegionSummary(
                     id=rid,
                     kind=node["role"],
                     name=node["name"] or node["tag"],
-                    frame_id="main",
+                    frame_id=frame_id,
                     order=order,
                     visible=True,
                     in_viewport=node["in_viewport"],
@@ -65,11 +73,14 @@ def build_forms(nodes: list[dict[str, Any]], actions: list[ActionDescriptor]) ->
             if a.op in {"fill", "select_option", "toggle"} and (a.target_id or "").startswith("elm-")
         ]
         submit_ids = [a.id for a in actions if a.op in {"submit", "click"} and "submit" in a.label.lower()]
+        frame_id = str(node.get("frame_id") or "main")
+        form_name = node["name"] or f"Form {idx+1}"
+        form_id = _stable_id("frm", "|".join([frame_id, form_name[:80], str(idx)]))
         forms.append(
             FormSummary(
-                id=f"frm-{idx}",
-                name=node["name"] or f"Form {idx+1}",
-                frame_id="main",
+                id=form_id,
+                name=form_name,
+                frame_id=frame_id,
                 field_ids=[f for f in fields if f],
                 submit_action_ids=submit_ids,
                 validity="unknown",
@@ -83,13 +94,15 @@ def build_content_groups(nodes: list[dict[str, Any]]) -> list[ContentGroupSummar
     buckets: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for n in nodes:
         if n["tag"] in {"li", "article"} or n["role"] in {"listitem", "row"}:
-            key = n["role"] or n["tag"]
+            key = f"{n.get('frame_id') or 'main'}::{n['role'] or n['tag']}"
             buckets[key].append(n)
     groups: list[ContentGroupSummary] = []
-    for idx, (kind, items) in enumerate(buckets.items()):
+    for idx, (bucket_key, items) in enumerate(buckets.items()):
+        kind = bucket_key.split("::", 1)[1] if "::" in bucket_key else bucket_key
+        group_id = _stable_id("grp", f"{bucket_key}|{len(items)}|{idx}")
         previews = [
             ContentItemPreview(
-                id=f"itm-{idx}-{i}",
+                id=_stable_id("itm", f"{group_id}|{i}|{item.get('name') or item.get('text') or ''}"),
                 title=(item["name"] or item["text"][:80] or None),
                 subtitle=item["text"][:120] or None,
             )
@@ -97,7 +110,7 @@ def build_content_groups(nodes: list[dict[str, Any]]) -> list[ContentGroupSummar
         ]
         groups.append(
             ContentGroupSummary(
-                id=f"grp-{idx}",
+                id=group_id,
                 kind=kind,
                 name=f"{kind} items",
                 item_count=len(items),

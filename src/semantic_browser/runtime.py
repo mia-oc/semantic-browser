@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import json
+import time
 import uuid
 from typing import Any
 
 from semantic_browser.config import RuntimeConfig
-from semantic_browser.errors import ActionExecutionError, ActionNotFoundError, ActionStaleError, AttachmentError, BrowserNotReadyError
+from semantic_browser.errors import (
+    ActionExecutionError,
+    ActionNotFoundError,
+    ActionStaleError,
+    AttachmentError,
+    BrowserNotReadyError,
+    SettleTimeoutError,
+)
 from semantic_browser.executor.actions import execute_action
 from semantic_browser.executor.results import build_execution, classify_status
 from semantic_browser.executor.validation import resolve_action
@@ -149,8 +157,24 @@ class SemanticBrowserRuntime:
         max_attempts = 3 if mode == "summary" else 1
         observation: Observation | None = None
         id_map: dict[str, str] = {}
+        settle_timed_out = False
+        settle_ms = 0
         for attempt in range(1, max_attempts + 1):
-            await wait_for_settle(self._page, self._config.settle)
+            settle_start = time.perf_counter()
+            try:
+                await wait_for_settle(self._page, self._config.settle)
+            except SettleTimeoutError:
+                settle_timed_out = True
+                self._trace.add(
+                    "observe_warning",
+                    {
+                        "kind": "settle_timeout",
+                        "attempt": attempt,
+                        "mode": mode,
+                    },
+                )
+            settle_ms = int((time.perf_counter() - settle_start) * 1000)
+            observe_start = time.perf_counter()
             observation, id_map = await observe_page(
                 session_id=self._session_id,
                 page=self._page,
@@ -160,17 +184,16 @@ class SemanticBrowserRuntime:
                 previous_ids=self._id_map,
                 expanded=expanded,
             )
+            observe_ms = int((time.perf_counter() - observe_start) * 1000)
             if attempt < max_attempts and self._is_no_visible_nodes_state(observation):
-                if attempt == 1:
-                    await self._page.wait_for_timeout(350)
-                else:
-                    try:
-                        await self._page.reload(wait_until="domcontentloaded")
-                    except TypeError:
-                        await self._page.reload()
-                    await self._page.wait_for_timeout(700)
+                await self._page.wait_for_timeout(300 + (attempt * 200))
                 continue
             break
+
+        if observation is None:
+            raise BrowserNotReadyError("Observation failed: no observation payload produced.")
+        if settle_timed_out and "settle timeout" not in {r.lower() for r in observation.confidence.reasons}:
+            observation.confidence.reasons.append("settle timeout")
 
         self._id_map = id_map
         self._current_observation = observation
@@ -181,6 +204,9 @@ class SemanticBrowserRuntime:
                 "expanded": expanded,
                 "actions": len(observation.available_actions),
                 "recovery_attempts": max(0, attempt - 1),
+                "settle_ms": settle_ms,
+                "observe_ms": observe_ms,
+                "settle_timed_out": settle_timed_out,
             },
         )
         return observation
@@ -208,6 +234,7 @@ class SemanticBrowserRuntime:
 
         self._last_expanded = False
         obs_before = self._current_observation or await self.observe(mode="summary")
+        resolve_start = time.perf_counter()
         try:
             action = resolve_action(request, obs_before)
         except ActionStaleError as exc:
@@ -230,10 +257,17 @@ class SemanticBrowserRuntime:
                 observation=obs_before,
                 delta=build_delta(obs_before, obs_before),
             )
-        self._trace.add("action_request", request.model_dump())
+        resolve_ms = int((time.perf_counter() - resolve_start) * 1000)
+        self._trace.add("action_request", self._safe_action_payload(request))
+        self._trace.add("action_stage", {"stage": "resolve", "resolve_ms": resolve_ms, "action_id": action.id})
+        execute_start = time.perf_counter()
         try:
             ok, message = await execute_action(self._page, action, request)
         except ActionExecutionError as exc:
+            self._trace.add(
+                "action_error",
+                {"stage": "execute", "error_type": type(exc).__name__, "message": str(exc), "action_id": action.id},
+            )
             execution = build_execution(action.op, False, str(exc), obs_before)
             return StepResult(
                 request=request,
@@ -243,8 +277,21 @@ class SemanticBrowserRuntime:
                 observation=obs_before,
                 delta=build_delta(obs_before, obs_before),
             )
-        await wait_for_settle(self._page, self._config.settle)
+        execute_ms = int((time.perf_counter() - execute_start) * 1000)
+        settle_timed_out = False
+        settle_start = time.perf_counter()
+        try:
+            await wait_for_settle(self._page, self._config.settle)
+        except SettleTimeoutError:
+            settle_timed_out = True
+            self._trace.add(
+                "action_warning",
+                {"stage": "post_action_settle", "kind": "settle_timeout", "action_id": action.id},
+            )
+        settle_ms = int((time.perf_counter() - settle_start) * 1000)
         obs_after = await self.observe(mode="delta")
+        if settle_timed_out and message:
+            message = f"{message}; settle timeout"
         delta = build_delta(obs_before, obs_after)
         status = classify_status(ok, message, delta)
         execution = build_execution(action.op, ok, message, obs_after)
@@ -256,7 +303,16 @@ class SemanticBrowserRuntime:
             observation=obs_after,
             delta=delta,
         )
-        self._trace.add("action_result", {"status": status, "message": message})
+        self._trace.add(
+            "action_result",
+            {
+                "status": status,
+                "message": message,
+                "resolve_ms": resolve_ms,
+                "execute_ms": execute_ms,
+                "settle_ms": settle_ms,
+            },
+        )
         return result
 
     async def _handle_see_more(self, request: ActionRequest) -> StepResult:
@@ -265,7 +321,7 @@ class SemanticBrowserRuntime:
         If the previous observation was already expanded, return the same
         observation with a hint to choose from the existing list instead.
         """
-        obs_before = self._current_observation
+        obs_before = self._current_observation or await self.observe(mode="summary")
 
         if self._last_expanded:
             execution = build_execution("see_more", True, "already expanded", obs_before)
@@ -379,6 +435,13 @@ class SemanticBrowserRuntime:
         }
         self._trace.add("trace_export", {"path": path, "bytes": len(json.dumps(payload, default=str))})
         return export_json_bundle(path, payload)
+
+    @staticmethod
+    def _safe_action_payload(request: ActionRequest) -> dict[str, Any]:
+        payload = request.model_dump()
+        if payload.get("value") is not None:
+            payload["value"] = "[REDACTED]"
+        return payload
 
     async def close(self) -> None:
         if self._managed and self._manager:

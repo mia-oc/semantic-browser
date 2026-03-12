@@ -49,12 +49,14 @@ trace-*.json
 corpus-report.json
 
 # Benchmark/test-run generated artefacts
-benchmarks/
 benchmark-outputs/
 benchmark-results/
 benchmark-runs/
+benchmarks/raw/
+benchmarks/tmp/
 
 # Local benchmark scratch + journals (keep canonical benchmark docs manually)
+docs/benchmarks/
 docs/benchmarks/journals/
 docs/benchmarks/tmp/
 docs/benchmarks/scratch/
@@ -67,11 +69,11 @@ playwright-report/
 test-results/
 *.har
 *.webm
-*.png
-*.jpg
 
 # CLI/agent transient outputs
 .codex/
+.tmp/
+scripts/docs/
 *.pid
 *.tmp
 *.bak

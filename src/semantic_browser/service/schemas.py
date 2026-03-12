@@ -29,3 +29,7 @@ class NavigateRequest(BaseModel):
 
 class ActRequest(BaseModel):
     action: ActionRequest
+
+
+class ExportTraceRequest(BaseModel):
+    out_path: str | None = None

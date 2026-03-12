@@ -49,7 +49,7 @@ class FakePage:
     async def title(self):
         return "Example Domain"
 
-    async def evaluate(self, script):
+    async def evaluate(self, script, *_args, **_kwargs):
         text = str(script)
         if "document.readyState" in text:
             return "complete"
@@ -102,7 +102,7 @@ class FakePage:
 
 
 class FlakyNoVisibleNodesPage(FakePage):
-    async def evaluate(self, script):
+    async def evaluate(self, script, *_args, **_kwargs):
         text = str(script)
         if "node_count" in text:
             self.node_snapshot_calls += 1
@@ -112,7 +112,7 @@ class FlakyNoVisibleNodesPage(FakePage):
 
 
 class DensePage(FakePage):
-    async def evaluate(self, script):
+    async def evaluate(self, script, *_args, **_kwargs):
         text = str(script)
         if "node_count" in text:
             top_nodes = [
@@ -147,7 +147,7 @@ async def test_runtime_observe_retries_on_no_visible_nodes_state():
     assert obs.page.domain == "example.com"
     assert len(obs.available_actions) > 0
     assert page.node_snapshot_calls >= 3
-    assert page.reload_calls == 1
+    assert page.reload_calls == 0
 
 
 @pytest.mark.asyncio

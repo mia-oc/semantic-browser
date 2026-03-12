@@ -136,7 +136,6 @@ def _build_narration(
 
     region_kinds = [r.kind for r in regions if r.kind not in {"root", "form"}]
     has_nav = any(k in {"navigation", "nav"} for k in region_kinds)
-    has_main = any(k in {"main", "article"} for k in region_kinds)
 
     page_desc = page_info.title or page_info.domain
     if headings:
@@ -352,7 +351,7 @@ def _build_planner_view(
     )
 
 
-def _action_for_node(node: dict[str, Any], node_id: str, idx: int) -> ActionDescriptor | None:
+def _action_for_node(node: dict[str, Any], node_id: str, action_id: str, idx: int) -> ActionDescriptor | None:
     role = node.get("role", "")
     tag = node.get("tag", "")
     name = (node.get("name") or "").strip() or f"{tag}-{idx}"
@@ -382,7 +381,7 @@ def _action_for_node(node: dict[str, Any], node_id: str, idx: int) -> ActionDesc
     if not op:
         return None
     return ActionDescriptor(
-        id=f"a{idx}",
+        id=action_id,
         op=op,
         label=name,
         target_id=node_id,
@@ -390,7 +389,14 @@ def _action_for_node(node: dict[str, Any], node_id: str, idx: int) -> ActionDesc
         requires_value=requires_value,
         navigational=op in {"open"},
         confidence=0.85,
-        locator_recipe={"name": name, "role": role, "tag": tag, "type": node.get("type", "")},
+        locator_recipe={
+            "name": name,
+            "role": role,
+            "tag": tag,
+            "type": node.get("type", ""),
+            "dom_id": node.get("id", ""),
+            "href": node.get("href", ""),
+        },
     )
 
 
@@ -407,11 +413,17 @@ async def observe_page(
     start = time.perf_counter()
 
     fast_path = mode in {"auto", "summary"} and not expanded
-    sem = await extract_semantics(page)
+    sem = await extract_semantics(
+        page,
+        include_frames=config.extraction.include_frames,
+        max_elements=config.extraction.max_elements,
+    )
     all_nodes = redact_nodes(sem.get("nodes", []), config.redaction)
     nodes, top_scoped, extraction_route, aria_quality = await _nodes_for_mode(all_nodes, page, mode, config)
     id_map = assign_node_ids(nodes, previous=previous_ids)
     page_info = await capture_page_info(page)
+    if isinstance(sem.get("frame_count"), int):
+        page_info.frame_count = max(1, int(sem.get("frame_count", 1)))
 
     use_fast_path = fast_path and aria_quality >= 0.7
     if not use_fast_path:
@@ -464,9 +476,15 @@ async def observe_page(
             confidence=1.0,
         ),
     ]
+    seen_fingerprints: dict[str, int] = {}
     for i, node in enumerate(nodes):
         fp = fingerprint_for(node)
-        action = _action_for_node(node, id_map[fp], i)
+        ordinal = seen_fingerprints.get(fp, 0)
+        seen_fingerprints[fp] = ordinal + 1
+        node_key = f"{fp}#{ordinal}"
+        node_id = id_map.get(node_key, f"elm-{fp[:8]}-{ordinal}")
+        action_id = f"act-{node_id.replace('elm-', '')}"
+        action = _action_for_node(node, node_id, action_id, i)
         if action is not None:
             actions.append(action)
 
@@ -476,11 +494,10 @@ async def observe_page(
     if use_fast_path:
         forms = build_forms(nodes, actions)
         groups = []
-        dom_stats: dict[str, Any] = {}
     else:
         forms = build_forms(nodes, actions)
         groups = build_content_groups(nodes)
-        dom_stats = await capture_dom_stats(page)
+        await capture_dom_stats(page)
 
     confidence, warnings = confidence_from_nodes(nodes, len(actions), config.extraction)
 

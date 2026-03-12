@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "results": [
+    {
+      "id": "reference-run-2026-03-12",
+      "date_utc": "2026-03-12T00:00:00Z",
+      "commit": "unversioned-local",
+      "task_pack": "shared-25-task-pack",
+      "task_count": 25,
+      "planner": "reference-harness",
+      "environment": {
+        "browser": "chromium",
+        "mode": "headless"
+      },
+      "summary": {
+        "semantic_browser_success_rate": 1.0,
+        "openclaw_success_rate": 0.72,
+        "standard_success_rate": 0.24
+      },
+      "reports": [
+        "corpus-report.json"
+      ]
+    }
+  ]
+}

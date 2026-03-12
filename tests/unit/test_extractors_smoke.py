@@ -26,7 +26,7 @@ class FakePage:
     async def title(self):
         return "Example Domain"
 
-    async def evaluate(self, script):
+    async def evaluate(self, script, *_args, **_kwargs):
         text = str(script)
         if "document.readyState" in text:
             return "complete"

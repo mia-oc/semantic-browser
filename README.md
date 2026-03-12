@@ -41,10 +41,36 @@ _Route: OpenAI API (`gpt-5.3-codex`). Full 25-task run against non-semantic rout
 | Standard browser tooling | 28% (7/25) | 10,846ms | 11,895.8 | 109.8 |
 | OpenClaw browser tooling | 68% (17/25) | 9,590ms | 4,889.2 | 50.5 |
 
+Tool-usage telemetry is now captured explicitly in the harness output (per run and success-only aggregates).
+
+### Apples-to-apples telemetry validation (12 Mar 2026, 1-task validation)
+
+_Route: OpenAI API (`gpt-5.3-codex`). Validation rerun used one shared task (`wikipedia_english_current_events`) across all three methods after telemetry normalisation and OpenAI planner support in Semantic Browser mode._
+
+Metric basis (same for every row):
+- `tok-in` / `tok-out`: planner LLM tokens only.
+- `planner tool calls`: tool/function calls declared by planner API responses.
+- `browser/runtime calls`: browser operations performed by each method loop.
+- `total tool calls`: planner tool calls + browser/runtime calls.
+- `est. cost/request`: Sonnet 4.6-normalised estimate from planner tokens only.
+
+| Method | Success rate | Median tok-in | Median tok-out | Median planner tool calls | Median browser/runtime calls | Median total tool calls | Est. cost/request (USD) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Standard browser tooling | 0% (0/1) | 39,444 | 255 | 0.0 | 15.0 | 15.0 | 0.122157 |
+| OpenClaw browser tooling | 0% (0/1) | 11,511 | 102 | 0.0 | 5.0 | 5.0 | 0.036063 |
+| Semantic Browser | 0% (0/1) | 3,085 | 49 | 0.0 | 15.0 | 15.0 | 0.009990 |
+
+Caveats:
+- This is a telemetry validation run, not a quality/performance claim from one task.
+- Cross-method token deltas are expected because each method sends different observation payload shapes to the same planner.
+
 Source artefacts:
 - `docs/benchmarks/2026-03-11-other-routes-25.json`
 - `docs/benchmarks/2026-03-11-other-routes-25.md`
 - `docs/benchmarks/journals/2026-03-11/compare-other-routes-25/`
+- `docs/benchmarks/2026-03-11-actionset-compare.json` (tool-call telemetry validation)
+- `docs/benchmarks/2026-03-11-actionset-compare.md` (tool-call telemetry validation)
+- `docs/benchmarks/journals/2026-03-12/` (per-platform validation journals)
 
 ### Semantic Browser
 

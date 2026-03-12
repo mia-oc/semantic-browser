@@ -7,213 +7,133 @@
       "note": "Planner route can be non-Sonnet; cost is normalised using Sonnet 4.6 constants."
     },
     "planner_route": {
-      "api": "codex",
+      "api": "openai",
       "model": "gpt-5.3-codex"
     },
     "standard_browser_use": {
-      "success_rate": 0.4,
-      "failure_count": 3,
+      "success_rate": 0.0,
+      "failure_count": 1,
       "speed_ms": {
-        "median": 18471.5,
-        "mean": 40701.8,
-        "n": 5
+        "median": 30906.0,
+        "mean": 30906.0,
+        "n": 1
       },
       "tok_in": {
-        "median": 24885.0,
-        "mean": 41171.6,
-        "n": 5
+        "median": 39444.0,
+        "mean": 39444.0,
+        "n": 1
       },
       "tok_out": {
-        "median": 408.0,
-        "mean": 1029.8,
-        "n": 5
+        "median": 255.0,
+        "mean": 255.0,
+        "n": 1
       },
-      "estimated_cost_per_request_usd": 0.138962
+      "planner_tool_calls": {
+        "median": 0.0,
+        "mean": 0.0,
+        "n": 1
+      },
+      "browser_tool_calls": {
+        "median": 15.0,
+        "mean": 15.0,
+        "n": 1
+      },
+      "tool_calls_total": {
+        "median": 15.0,
+        "mean": 15.0,
+        "n": 1
+      },
+      "tool_calls_total_success_only": {
+        "median": 0.0,
+        "mean": 0.0,
+        "n": 0
+      },
+      "estimated_cost_per_request_usd": 0.122157
     },
     "openclaw_browser": {
-      "success_rate": 0.4,
-      "failure_count": 3,
+      "success_rate": 0.0,
+      "failure_count": 1,
       "speed_ms": {
-        "median": 60000.0,
-        "mean": 46260.7,
-        "n": 5
+        "median": 12345.7,
+        "mean": 12345.7,
+        "n": 1
       },
       "tok_in": {
-        "median": 22858.0,
-        "mean": 35014.6,
-        "n": 5
+        "median": 11511.0,
+        "mean": 11511.0,
+        "n": 1
       },
       "tok_out": {
-        "median": 289.0,
-        "mean": 952.0,
-        "n": 5
+        "median": 102.0,
+        "mean": 102.0,
+        "n": 1
       },
-      "estimated_cost_per_request_usd": 0.119324
+      "planner_tool_calls": {
+        "median": 0.0,
+        "mean": 0.0,
+        "n": 1
+      },
+      "browser_tool_calls": {
+        "median": 5.0,
+        "mean": 5.0,
+        "n": 1
+      },
+      "tool_calls_total": {
+        "median": 5.0,
+        "mean": 5.0,
+        "n": 1
+      },
+      "tool_calls_total_success_only": {
+        "median": 0.0,
+        "mean": 0.0,
+        "n": 0
+      },
+      "estimated_cost_per_request_usd": 0.036063
     },
     "semantic_browser": {
-      "success_rate": 0.4,
-      "failure_count": 3,
+      "success_rate": 0.0,
+      "failure_count": 1,
       "speed_ms": {
-        "median": 52384.3,
-        "mean": 59839.7,
-        "n": 5
+        "median": 56972.6,
+        "mean": 56972.6,
+        "n": 1
       },
       "tok_in": {
-        "median": 20892.0,
-        "mean": 35837.6,
-        "n": 5
+        "median": 3085.0,
+        "mean": 3085.0,
+        "n": 1
       },
       "tok_out": {
-        "median": 320.0,
-        "mean": 1051.2,
-        "n": 5
+        "median": 49.0,
+        "mean": 49.0,
+        "n": 1
       },
-      "estimated_cost_per_request_usd": 0.123281
+      "planner_tool_calls": {
+        "median": 0.0,
+        "mean": 0.0,
+        "n": 1
+      },
+      "browser_tool_calls": {
+        "median": 15.0,
+        "mean": 15.0,
+        "n": 1
+      },
+      "tool_calls_total": {
+        "median": 15.0,
+        "mean": 15.0,
+        "n": 1
+      },
+      "tool_calls_total_success_only": {
+        "median": 0.0,
+        "mean": 0.0,
+        "n": 0
+      },
+      "estimated_cost_per_request_usd": 0.00999
     },
-    "task_count": 5,
-    "journal_dir": "docs/benchmarks/journals/2026-03-11"
+    "task_count": 1,
+    "journal_dir": "docs/benchmarks/journals/2026-03-12"
   },
   "tasks": [
-    {
-      "task": "amazon_deals_electronics",
-      "site": "amazon",
-      "url": "https://www.amazon.co.uk/",
-      "request": "Open Today's Deals, then navigate to Electronics deals.",
-      "checks": [
-        "/gp/goldbox"
-      ],
-      "standard": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 18471.5,
-        "tok_in": 22053,
-        "tok_out": 408
-      },
-      "openclaw": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 73063.5,
-        "tok_in": 76940,
-        "tok_out": 1899
-      },
-      "semantic": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 60000.0,
-        "tok_in": 0,
-        "tok_out": 0
-      },
-      "journals": {
-        "standard": "docs/benchmarks/journals/2026-03-11/standard__amazon_deals_electronics.json",
-        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__amazon_deals_electronics.json",
-        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__amazon_deals_electronics.json"
-      }
-    },
-    {
-      "task": "reddit_popular_askreddit",
-      "site": "reddit",
-      "url": "https://www.reddit.com/",
-      "request": "Open the Popular feed, then open r/AskReddit.",
-      "checks": [
-        "/r/askreddit"
-      ],
-      "standard": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 49771.5,
-        "tok_in": 70434,
-        "tok_out": 1233
-      },
-      "openclaw": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 60000.0,
-        "tok_in": 0,
-        "tok_out": 0
-      },
-      "semantic": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 52384.3,
-        "tok_in": 67668,
-        "tok_out": 870
-      },
-      "journals": {
-        "standard": "docs/benchmarks/journals/2026-03-11/standard__reddit_popular_askreddit.json",
-        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__reddit_popular_askreddit.json",
-        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__reddit_popular_askreddit.json"
-      }
-    },
-    {
-      "task": "youtube_explore_trending",
-      "site": "youtube",
-      "url": "https://www.youtube.com/",
-      "request": "Open Explore, then open Trending.",
-      "checks": [
-        "/feed/trending"
-      ],
-      "standard": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 108705.1,
-        "tok_in": 64466,
-        "tok_out": 3136
-      },
-      "openclaw": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 73276.6,
-        "tok_in": 64352,
-        "tok_out": 2478
-      },
-      "semantic": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 147490.5,
-        "tok_in": 71003,
-        "tok_out": 3866
-      },
-      "journals": {
-        "standard": "docs/benchmarks/journals/2026-03-11/standard__youtube_explore_trending.json",
-        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__youtube_explore_trending.json",
-        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__youtube_explore_trending.json"
-      }
-    },
-    {
-      "task": "bbc_news_technology",
-      "site": "bbc",
-      "url": "https://www.bbc.co.uk/",
-      "request": "Open BBC News, then open the Technology section.",
-      "checks": [
-        "/news/technology"
-      ],
-      "standard": {
-        "ok": true,
-        "stuck": false,
-        "speed_ms": 13376.7,
-        "tok_in": 24885,
-        "tok_out": 192
-      },
-      "openclaw": {
-        "ok": true,
-        "stuck": false,
-        "speed_ms": 7657.9,
-        "tok_in": 10923,
-        "tok_out": 94
-      },
-      "semantic": {
-        "ok": true,
-        "stuck": false,
-        "speed_ms": 20870.5,
-        "tok_in": 19625,
-        "tok_out": 200
-      },
-      "journals": {
-        "standard": "docs/benchmarks/journals/2026-03-11/standard__bbc_news_technology.json",
-        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__bbc_news_technology.json",
-        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__bbc_news_technology.json"
-      }
-    },
     {
       "task": "wikipedia_english_current_events",
       "site": "wikipedia",
@@ -223,30 +143,39 @@
         "Portal:Current_events"
       ],
       "standard": {
-        "ok": true,
-        "stuck": false,
-        "speed_ms": 13184.2,
-        "tok_in": 24020,
-        "tok_out": 180
+        "ok": false,
+        "stuck": true,
+        "speed_ms": 30906.0,
+        "tok_in": 39444,
+        "tok_out": 255,
+        "planner_tool_calls": 0,
+        "browser_tool_calls": 15,
+        "tool_calls_total": 15
       },
       "openclaw": {
-        "ok": true,
-        "stuck": false,
-        "speed_ms": 17305.4,
-        "tok_in": 22858,
-        "tok_out": 289
+        "ok": false,
+        "stuck": true,
+        "speed_ms": 12345.7,
+        "tok_in": 11511,
+        "tok_out": 102,
+        "planner_tool_calls": 0,
+        "browser_tool_calls": 5,
+        "tool_calls_total": 5
       },
       "semantic": {
-        "ok": true,
-        "stuck": false,
-        "speed_ms": 18453.4,
-        "tok_in": 20892,
-        "tok_out": 320
+        "ok": false,
+        "stuck": true,
+        "speed_ms": 56972.6,
+        "tok_in": 3085,
+        "tok_out": 49,
+        "planner_tool_calls": 0,
+        "browser_tool_calls": 15,
+        "tool_calls_total": 15
       },
       "journals": {
-        "standard": "docs/benchmarks/journals/2026-03-11/standard__wikipedia_english_current_events.json",
-        "openclaw": "docs/benchmarks/journals/2026-03-11/openclaw__wikipedia_english_current_events.json",
-        "semantic": "docs/benchmarks/journals/2026-03-11/semantic__wikipedia_english_current_events.json"
+        "standard": "docs/benchmarks/journals/2026-03-12/standard__wikipedia_english_current_events.json",
+        "openclaw": "docs/benchmarks/journals/2026-03-12/openclaw__wikipedia_english_current_events.json",
+        "semantic": "docs/benchmarks/journals/2026-03-12/semantic__wikipedia_english_current_events.json"
       }
     }
   ]

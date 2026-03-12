@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import math
 import statistics
 import subprocess
 import time
@@ -37,6 +38,9 @@ class Usage:
     tok_in: int
     tok_out: int
     tool_calls: int = 0
+
+
+PAYLOAD_CHARS_PER_TOKEN_EST = 4.0
 
 
 TASKS: list[Task] = [
@@ -137,6 +141,25 @@ def _extract_usage(payload: dict[str, Any]) -> Usage:
         tok_in = usage.get("total_tokens", 0)
     return Usage(tok_in=int(tok_in or 0), tok_out=int(tok_out or 0), tool_calls=_extract_tool_calls(payload))
 
+
+
+
+def _estimate_payload_bytes_and_tokens(payload: Any) -> tuple[int, int]:
+    """Estimate browser/runtime payload size and token-equivalent load.
+
+    Estimated token-equivalent uses character-count / 4 and is not billable.
+    """
+    if isinstance(payload, str):
+        text = payload
+    else:
+        text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    payload_bytes = len(text.encode("utf-8"))
+    payload_tokens_est = int(math.ceil(len(text) / PAYLOAD_CHARS_PER_TOKEN_EST)) if text else 0
+    return payload_bytes, payload_tokens_est
+
+
+def _planner_billable_cost_usd(tok_in: int, tok_out: int) -> float:
+    return round((tok_in * SONNET46_INPUT_USD_PER_1M + tok_out * SONNET46_OUTPUT_USD_PER_1M) / 1_000_000, 6)
 
 def _planner_payload(request_text: str, page_view: dict[str, Any], history: list[str]) -> dict[str, Any]:
     schema_prompt = {
@@ -309,10 +332,9 @@ def _planner_via_codex(payload: dict[str, Any]) -> tuple[dict[str, Any], Usage]:
     return parsed, usage
 
 
-def planner_next_action(request_text: str, page_view: dict[str, Any], history: list[str]) -> tuple[dict[str, Any], Usage]:
+def planner_next_action_from_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], Usage]:
     api = os.getenv("BENCHMARK_API", "codex").strip().lower()
 
-    payload = _planner_payload(request_text, page_view, history)
     if api == "codex":
         parsed, usage = _planner_via_codex(payload)
     elif api == "openrouter":
@@ -327,6 +349,11 @@ def planner_next_action(request_text: str, page_view: dict[str, Any], history: l
     parsed["text"] = str(parsed.get("text", "")).strip()
     parsed["reason"] = str(parsed.get("reason", "")).strip()
     return parsed, usage
+
+
+def planner_next_action(request_text: str, page_view: dict[str, Any], history: list[str]) -> tuple[dict[str, Any], Usage]:
+    payload = _planner_payload(request_text, page_view, history)
+    return planner_next_action_from_payload(payload)
 
 
 def shq(value: str) -> str:
@@ -457,6 +484,7 @@ def _standard_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, 
 def standard_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     t0 = time.perf_counter()
     tok_in = tok_out = planner_tool_calls = 0
+    browser_payload_bytes = browser_payload_tokens_est = 0
     stats: dict[str, int] = {"browser_tool_calls": 0}
     history: list[str] = []
     journal: list[dict[str, Any]] = []
@@ -470,7 +498,11 @@ def standard_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                 ok = True
                 journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": obs.get("url", "")})
                 break
-            plan, usage = planner_next_action(task.request, obs, history)
+            planner_payload = _planner_payload(task.request, obs, history)
+            payload_bytes, payload_tokens_est = _estimate_payload_bytes_and_tokens(planner_payload)
+            browser_payload_bytes += payload_bytes
+            browser_payload_tokens_est += payload_tokens_est
+            plan, usage = planner_next_action_from_payload(planner_payload)
             tok_in += usage.tok_in
             tok_out += usage.tok_out
             planner_tool_calls += usage.tool_calls
@@ -488,7 +520,12 @@ def standard_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                     "plan": plan,
                     "acted": acted,
                     "act_detail": detail,
-                    "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
+                    "usage": {
+                        "planner_input_tokens_billable": usage.tok_in,
+                        "planner_output_tokens_billable": usage.tok_out,
+                        "browser_payload_bytes": payload_bytes,
+                        "browser_payload_tokens_estimated": payload_tokens_est,
+                    },
                 }
             )
             if plan.get("action") == "done":
@@ -505,6 +542,12 @@ def standard_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
             "planner_tool_calls": planner_tool_calls,
             "browser_tool_calls": browser_tool_calls,
             "tool_calls_total": planner_tool_calls + browser_tool_calls,
+            "planner_input_tokens_billable": tok_in,
+            "planner_output_tokens_billable": tok_out,
+            "browser_payload_bytes": browser_payload_bytes,
+            "browser_payload_tokens_estimated": browser_payload_tokens_est,
+            "total_effective_context_load_tokens_estimated": tok_in + browser_payload_tokens_est,
+            "indicative_planner_cost_usd": _planner_billable_cost_usd(tok_in, tok_out),
         }, journal
     finally:
         try:
@@ -557,6 +600,7 @@ def _openclaw_exec(tid: str, action: dict[str, Any], candidates: list[dict[str, 
 def openclaw_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     t0 = time.perf_counter()
     tok_in = tok_out = planner_tool_calls = 0
+    browser_payload_bytes = browser_payload_tokens_est = 0
     stats: dict[str, int] = {"browser_tool_calls": 0}
     history: list[str] = []
     journal: list[dict[str, Any]] = []
@@ -570,7 +614,11 @@ def openclaw_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                 ok = True
                 journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": obs.get("url", "")})
                 break
-            plan, usage = planner_next_action(task.request, obs, history)
+            planner_payload = _planner_payload(task.request, obs, history)
+            payload_bytes, payload_tokens_est = _estimate_payload_bytes_and_tokens(planner_payload)
+            browser_payload_bytes += payload_bytes
+            browser_payload_tokens_est += payload_tokens_est
+            plan, usage = planner_next_action_from_payload(planner_payload)
             tok_in += usage.tok_in
             tok_out += usage.tok_out
             planner_tool_calls += usage.tool_calls
@@ -588,7 +636,12 @@ def openclaw_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
                     "plan": plan,
                     "acted": acted,
                     "act_detail": detail,
-                    "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
+                    "usage": {
+                        "planner_input_tokens_billable": usage.tok_in,
+                        "planner_output_tokens_billable": usage.tok_out,
+                        "browser_payload_bytes": payload_bytes,
+                        "browser_payload_tokens_estimated": payload_tokens_est,
+                    },
                 }
             )
             if plan.get("action") == "done":
@@ -605,6 +658,12 @@ def openclaw_method(task: Task) -> tuple[dict[str, Any], list[dict[str, Any]]]:
             "planner_tool_calls": planner_tool_calls,
             "browser_tool_calls": browser_tool_calls,
             "tool_calls_total": planner_tool_calls + browser_tool_calls,
+            "planner_input_tokens_billable": tok_in,
+            "planner_output_tokens_billable": tok_out,
+            "browser_payload_bytes": browser_payload_bytes,
+            "browser_payload_tokens_estimated": browser_payload_tokens_est,
+            "total_effective_context_load_tokens_estimated": tok_in + browser_payload_tokens_est,
+            "indicative_planner_cost_usd": _planner_billable_cost_usd(tok_in, tok_out),
         }, journal
     finally:
         try:
@@ -724,9 +783,8 @@ def _semantic_planner_via_codex(prompt: str) -> tuple[str, Usage]:
     return content, usage
 
 
-def _semantic_planner_next(task_request: str, room_text: str, history: list[str]) -> tuple[str, Usage]:
+def _semantic_planner_next_from_prompt(prompt: str) -> tuple[str, Usage]:
     api = os.getenv("BENCHMARK_API", "codex").strip().lower()
-    prompt = _semantic_build_prompt(task_request, room_text, history)
     if api == "codex":
         return _semantic_planner_via_codex(prompt)
     elif api == "openrouter":
@@ -734,6 +792,11 @@ def _semantic_planner_next(task_request: str, room_text: str, history: list[str]
     elif api == "openai":
         return _semantic_planner_via_openai(prompt)
     raise RuntimeError(f"Unsupported BENCHMARK_API={api!r}")
+
+
+def _semantic_planner_next(task_request: str, room_text: str, history: list[str]) -> tuple[str, Usage]:
+    prompt = _semantic_build_prompt(task_request, room_text, history)
+    return _semantic_planner_next_from_prompt(prompt)
 
 
 def _parse_semantic_response(response: str) -> tuple[str | None, str | None]:
@@ -760,6 +823,7 @@ def _parse_semantic_response(response: str) -> tuple[str | None, str | None]:
 async def semantic_method(task: Task, ws: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     t0 = time.perf_counter()
     tok_in = tok_out = planner_tool_calls = 0
+    browser_payload_bytes = browser_payload_tokens_est = 0
     history: list[str] = []
     journal: list[dict[str, Any]] = []
     runtime_calls = 0
@@ -781,7 +845,11 @@ async def semantic_method(task: Task, ws: str) -> tuple[dict[str, Any], list[dic
                 journal.append({"ts": _now_iso(), "step": step, "phase": "check", "done": True, "url": url})
                 break
 
-            response, usage = _semantic_planner_next(task.request, room_text, history)
+            planner_prompt = _semantic_build_prompt(task.request, room_text, history)
+            payload_bytes, payload_tokens_est = _estimate_payload_bytes_and_tokens(planner_prompt)
+            browser_payload_bytes += payload_bytes
+            browser_payload_tokens_est += payload_tokens_est
+            response, usage = _semantic_planner_next_from_prompt(planner_prompt)
             tok_in += usage.tok_in
             tok_out += usage.tok_out
             planner_tool_calls += usage.tool_calls
@@ -830,7 +898,12 @@ async def semantic_method(task: Task, ws: str) -> tuple[dict[str, Any], list[dic
                     "value": value,
                     "acted": acted,
                     "act_detail": detail,
-                    "usage": {"tok_in": usage.tok_in, "tok_out": usage.tok_out},
+                    "usage": {
+                        "planner_input_tokens_billable": usage.tok_in,
+                        "planner_output_tokens_billable": usage.tok_out,
+                        "browser_payload_bytes": payload_bytes,
+                        "browser_payload_tokens_estimated": payload_tokens_est,
+                    },
                 }
             )
             if action_id == "done":
@@ -847,6 +920,12 @@ async def semantic_method(task: Task, ws: str) -> tuple[dict[str, Any], list[dic
             "planner_tool_calls": planner_tool_calls,
             "browser_tool_calls": browser_tool_calls,
             "tool_calls_total": planner_tool_calls + browser_tool_calls,
+            "planner_input_tokens_billable": tok_in,
+            "planner_output_tokens_billable": tok_out,
+            "browser_payload_bytes": browser_payload_bytes,
+            "browser_payload_tokens_estimated": browser_payload_tokens_est,
+            "total_effective_context_load_tokens_estimated": tok_in + browser_payload_tokens_est,
+            "indicative_planner_cost_usd": _planner_billable_cost_usd(tok_in, tok_out),
         }, journal
     finally:
         await rt.close()
@@ -862,8 +941,8 @@ def summarise(rows: list[dict[str, Any]], key: str) -> dict[str, Any]:
 def cost_per_request_usd(rows: list[dict[str, Any]]) -> float:
     if not rows:
         return 0.0
-    avg_in = statistics.mean(float(r.get("tok_in", 0) or 0) for r in rows)
-    avg_out = statistics.mean(float(r.get("tok_out", 0) or 0) for r in rows)
+    avg_in = statistics.mean(float(r.get("planner_input_tokens_billable", r.get("tok_in", 0)) or 0) for r in rows)
+    avg_out = statistics.mean(float(r.get("planner_output_tokens_billable", r.get("tok_out", 0)) or 0) for r in rows)
     return round((avg_in * SONNET46_INPUT_USD_PER_1M + avg_out * SONNET46_OUTPUT_USD_PER_1M) / 1_000_000, 6)
 
 
@@ -963,43 +1042,53 @@ async def main() -> None:
             "input_usd_per_1m": SONNET46_INPUT_USD_PER_1M,
             "output_usd_per_1m": SONNET46_OUTPUT_USD_PER_1M,
             "note": "Planner route can be non-Sonnet; cost is normalised using Sonnet 4.6 constants.",
+            "payload_token_estimate_method": "Estimated as payload character count / 4; non-billable approximation.",
         },
         "planner_route": {"api": planner_api, "model": os.getenv("BENCHMARK_MODEL", "gpt-5.3-codex" if planner_api == "codex" else "google/gemma-3-27b-it:free")},
         "standard_browser_use": {
             "success_rate": success_rate(standard_rows),
             "failure_count": failure_count(standard_rows),
             "speed_ms": summarise(standard_rows, "speed_ms"),
-            "tok_in": summarise(standard_rows, "tok_in"),
-            "tok_out": summarise(standard_rows, "tok_out"),
+            "planner_input_tokens_billable": summarise(standard_rows, "planner_input_tokens_billable"),
+            "planner_output_tokens_billable": summarise(standard_rows, "planner_output_tokens_billable"),
+            "browser_payload_bytes": summarise(standard_rows, "browser_payload_bytes"),
+            "browser_payload_tokens_estimated": summarise(standard_rows, "browser_payload_tokens_estimated"),
+            "total_effective_context_load_tokens_estimated": summarise(standard_rows, "total_effective_context_load_tokens_estimated"),
             "planner_tool_calls": summarise(standard_rows, "planner_tool_calls"),
             "browser_tool_calls": summarise(standard_rows, "browser_tool_calls"),
             "tool_calls_total": summarise(standard_rows, "tool_calls_total"),
             "tool_calls_total_success_only": summarise(success_only(standard_rows), "tool_calls_total"),
-            "estimated_cost_per_request_usd": cost_per_request_usd(standard_rows),
+            "indicative_planner_cost_per_request_usd": cost_per_request_usd(standard_rows),
         },
         "openclaw_browser": {
             "success_rate": success_rate(openclaw_rows),
             "failure_count": failure_count(openclaw_rows),
             "speed_ms": summarise(openclaw_rows, "speed_ms"),
-            "tok_in": summarise(openclaw_rows, "tok_in"),
-            "tok_out": summarise(openclaw_rows, "tok_out"),
+            "planner_input_tokens_billable": summarise(openclaw_rows, "planner_input_tokens_billable"),
+            "planner_output_tokens_billable": summarise(openclaw_rows, "planner_output_tokens_billable"),
+            "browser_payload_bytes": summarise(openclaw_rows, "browser_payload_bytes"),
+            "browser_payload_tokens_estimated": summarise(openclaw_rows, "browser_payload_tokens_estimated"),
+            "total_effective_context_load_tokens_estimated": summarise(openclaw_rows, "total_effective_context_load_tokens_estimated"),
             "planner_tool_calls": summarise(openclaw_rows, "planner_tool_calls"),
             "browser_tool_calls": summarise(openclaw_rows, "browser_tool_calls"),
             "tool_calls_total": summarise(openclaw_rows, "tool_calls_total"),
             "tool_calls_total_success_only": summarise(success_only(openclaw_rows), "tool_calls_total"),
-            "estimated_cost_per_request_usd": cost_per_request_usd(openclaw_rows),
+            "indicative_planner_cost_per_request_usd": cost_per_request_usd(openclaw_rows),
         },
         "semantic_browser": {
             "success_rate": success_rate(semantic_rows),
             "failure_count": failure_count(semantic_rows),
             "speed_ms": summarise(semantic_rows, "speed_ms"),
-            "tok_in": summarise(semantic_rows, "tok_in"),
-            "tok_out": summarise(semantic_rows, "tok_out"),
+            "planner_input_tokens_billable": summarise(semantic_rows, "planner_input_tokens_billable"),
+            "planner_output_tokens_billable": summarise(semantic_rows, "planner_output_tokens_billable"),
+            "browser_payload_bytes": summarise(semantic_rows, "browser_payload_bytes"),
+            "browser_payload_tokens_estimated": summarise(semantic_rows, "browser_payload_tokens_estimated"),
+            "total_effective_context_load_tokens_estimated": summarise(semantic_rows, "total_effective_context_load_tokens_estimated"),
             "planner_tool_calls": summarise(semantic_rows, "planner_tool_calls"),
             "browser_tool_calls": summarise(semantic_rows, "browser_tool_calls"),
             "tool_calls_total": summarise(semantic_rows, "tool_calls_total"),
             "tool_calls_total_success_only": summarise(success_only(semantic_rows), "tool_calls_total"),
-            "estimated_cost_per_request_usd": cost_per_request_usd(semantic_rows),
+            "indicative_planner_cost_per_request_usd": cost_per_request_usd(semantic_rows),
         },
         "task_count": len(tasks),
         "journal_dir": str(journal_dir),
@@ -1025,14 +1114,18 @@ async def main() -> None:
         "Cost model: Sonnet 4.6 estimated pricing constants (input $3.00 / 1M, output $15.00 / 1M).",
         "",
         "Metric basis (apples-to-apples across all three methods):",
-        "- `tok-in` / `tok-out`: planner LLM input/output tokens only (does not include browser payload bytes).",
+        "- `planner input tokens (billable)`: tokens billed as planner input by the LLM provider.",
+        "- `planner output tokens (billable)`: tokens billed as planner output by the LLM provider.",
+        "- `browser/runtime payload bytes`: UTF-8 byte size of observation payload returned from browser/runtime and sent to planner.",
+        "- `browser/runtime payload token-estimate` (estimated): payload character count ÷ 4 (non-billable estimate).",
+        "- `total effective context load` (estimated): planner input tokens + payload token-estimate.",
         "- `planner tool calls`: LLM-declared tool/function calls returned by planner API response payloads.",
         "- `browser/runtime calls`: browser operations issued by each method loop (navigate/observe/act/open/close/evaluate/click/type/press).",
         "- `total tool calls`: planner tool calls + browser/runtime calls.",
-        "- `est. cost/request`: Sonnet 4.6-normalised cost from planner tokens only.",
+        "- `indicative planner cost/request`: Sonnet 4.6-normalised cost from planner billable tokens only.",
         "",
-        "| Method | Success rate | Failures | Median speed ms | Median tok-in | Median tok-out | Median planner tool calls | Median browser/runtime calls | Median total tool calls | Median total tool calls (success-only) | Est. cost/request (USD) |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Method | Success rate | Failures | Median speed ms | Planner in (billable) | Planner out (billable) | Browser payload bytes | Payload token-est (estimated) | Total effective context load (estimated) | Median planner tool calls | Median browser/runtime calls | Median total tool calls | Median total tool calls (success-only) | Indicative planner cost/request (USD) |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
 
     for key, label in [
@@ -1042,7 +1135,7 @@ async def main() -> None:
     ]:
         s = summary[key]
         md.append(
-            f"| {label} | {s['success_rate']} | {s['failure_count']} | {s['speed_ms']['median']} | {s['tok_in']['median']} | {s['tok_out']['median']} | {s['planner_tool_calls']['median']} | {s['browser_tool_calls']['median']} | {s['tool_calls_total']['median']} | {s['tool_calls_total_success_only']['median']} | {s['estimated_cost_per_request_usd']:.6f} |"
+            f"| {label} | {s['success_rate']} | {s['failure_count']} | {s['speed_ms']['median']} | {s['planner_input_tokens_billable']['median']} | {s['planner_output_tokens_billable']['median']} | {s['browser_payload_bytes']['median']} | {s['browser_payload_tokens_estimated']['median']} | {s['total_effective_context_load_tokens_estimated']['median']} | {s['planner_tool_calls']['median']} | {s['browser_tool_calls']['median']} | {s['tool_calls_total']['median']} | {s['tool_calls_total_success_only']['median']} | {s['indicative_planner_cost_per_request_usd']:.6f} |"
         )
 
     md.extend([

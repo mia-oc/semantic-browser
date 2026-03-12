@@ -4,7 +4,8 @@
       "model_reference": "Anthropic Sonnet 4.6 (estimated)",
       "input_usd_per_1m": 3.0,
       "output_usd_per_1m": 15.0,
-      "note": "Planner route can be non-Sonnet; cost is normalised using Sonnet 4.6 constants."
+      "note": "Planner route can be non-Sonnet; cost is normalised using Sonnet 4.6 constants.",
+      "payload_token_estimate_method": "Estimated as payload character count / 4; non-billable approximation."
     },
     "planner_route": {
       "api": "openai",
@@ -14,18 +15,33 @@
       "success_rate": 0.0,
       "failure_count": 1,
       "speed_ms": {
-        "median": 30906.0,
-        "mean": 30906.0,
+        "median": 65814.7,
+        "mean": 65814.7,
         "n": 1
       },
-      "tok_in": {
-        "median": 39444.0,
-        "mean": 39444.0,
+      "planner_input_tokens_billable": {
+        "median": 39442.0,
+        "mean": 39442.0,
         "n": 1
       },
-      "tok_out": {
-        "median": 255.0,
-        "mean": 255.0,
+      "planner_output_tokens_billable": {
+        "median": 252.0,
+        "mean": 252.0,
+        "n": 1
+      },
+      "browser_payload_bytes": {
+        "median": 78984.0,
+        "mean": 78984.0,
+        "n": 1
+      },
+      "browser_payload_tokens_estimated": {
+        "median": 18534.0,
+        "mean": 18534.0,
+        "n": 1
+      },
+      "total_effective_context_load_tokens_estimated": {
+        "median": 57976.0,
+        "mean": 57976.0,
         "n": 1
       },
       "planner_tool_calls": {
@@ -48,26 +64,41 @@
         "mean": 0.0,
         "n": 0
       },
-      "estimated_cost_per_request_usd": 0.122157
+      "indicative_planner_cost_per_request_usd": 0.122106
     },
     "openclaw_browser": {
       "success_rate": 0.0,
       "failure_count": 1,
       "speed_ms": {
-        "median": 12345.7,
-        "mean": 12345.7,
+        "median": 13540.1,
+        "mean": 13540.1,
         "n": 1
       },
-      "tok_in": {
+      "planner_input_tokens_billable": {
         "median": 11511.0,
         "mean": 11511.0,
         "n": 1
       },
-      "tok_out": {
+      "planner_output_tokens_billable": {
         "median": 102.0,
         "mean": 102.0,
         "n": 1
       },
+      "browser_payload_bytes": {
+        "median": 32000.0,
+        "mean": 32000.0,
+        "n": 1
+      },
+      "browser_payload_tokens_estimated": {
+        "median": 7914.0,
+        "mean": 7914.0,
+        "n": 1
+      },
+      "total_effective_context_load_tokens_estimated": {
+        "median": 19425.0,
+        "mean": 19425.0,
+        "n": 1
+      },
       "planner_tool_calls": {
         "median": 0.0,
         "mean": 0.0,
@@ -88,24 +119,39 @@
         "mean": 0.0,
         "n": 0
       },
-      "estimated_cost_per_request_usd": 0.036063
+      "indicative_planner_cost_per_request_usd": 0.036063
     },
     "semantic_browser": {
-      "success_rate": 0.0,
-      "failure_count": 1,
+      "success_rate": 1.0,
+      "failure_count": 0,
       "speed_ms": {
-        "median": 56972.6,
-        "mean": 56972.6,
+        "median": 19403.9,
+        "mean": 19403.9,
         "n": 1
       },
-      "tok_in": {
-        "median": 3085.0,
-        "mean": 3085.0,
+      "planner_input_tokens_billable": {
+        "median": 1693.0,
+        "mean": 1693.0,
         "n": 1
       },
-      "tok_out": {
-        "median": 49.0,
-        "mean": 49.0,
+      "planner_output_tokens_billable": {
+        "median": 23.0,
+        "mean": 23.0,
+        "n": 1
+      },
+      "browser_payload_bytes": {
+        "median": 3872.0,
+        "mean": 3872.0,
+        "n": 1
+      },
+      "browser_payload_tokens_estimated": {
+        "median": 951.0,
+        "mean": 951.0,
+        "n": 1
+      },
+      "total_effective_context_load_tokens_estimated": {
+        "median": 2644.0,
+        "mean": 2644.0,
         "n": 1
       },
       "planner_tool_calls": {
@@ -114,21 +160,21 @@
         "n": 1
       },
       "browser_tool_calls": {
-        "median": 15.0,
-        "mean": 15.0,
+        "median": 10.0,
+        "mean": 10.0,
         "n": 1
       },
       "tool_calls_total": {
-        "median": 15.0,
-        "mean": 15.0,
+        "median": 10.0,
+        "mean": 10.0,
         "n": 1
       },
       "tool_calls_total_success_only": {
-        "median": 0.0,
-        "mean": 0.0,
-        "n": 0
+        "median": 10.0,
+        "mean": 10.0,
+        "n": 1
       },
-      "estimated_cost_per_request_usd": 0.00999
+      "indicative_planner_cost_per_request_usd": 0.005424
     },
     "task_count": 1,
     "journal_dir": "docs/benchmarks/journals/2026-03-12"
@@ -145,32 +191,50 @@
       "standard": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 30906.0,
-        "tok_in": 39444,
-        "tok_out": 255,
+        "speed_ms": 65814.7,
+        "tok_in": 39442,
+        "tok_out": 252,
         "planner_tool_calls": 0,
         "browser_tool_calls": 15,
-        "tool_calls_total": 15
+        "tool_calls_total": 15,
+        "planner_input_tokens_billable": 39442,
+        "planner_output_tokens_billable": 252,
+        "browser_payload_bytes": 78984,
+        "browser_payload_tokens_estimated": 18534,
+        "total_effective_context_load_tokens_estimated": 57976,
+        "indicative_planner_cost_usd": 0.122106
       },
       "openclaw": {
         "ok": false,
         "stuck": true,
-        "speed_ms": 12345.7,
+        "speed_ms": 13540.1,
         "tok_in": 11511,
         "tok_out": 102,
         "planner_tool_calls": 0,
         "browser_tool_calls": 5,
-        "tool_calls_total": 5
+        "tool_calls_total": 5,
+        "planner_input_tokens_billable": 11511,
+        "planner_output_tokens_billable": 102,
+        "browser_payload_bytes": 32000,
+        "browser_payload_tokens_estimated": 7914,
+        "total_effective_context_load_tokens_estimated": 19425,
+        "indicative_planner_cost_usd": 0.036063
       },
       "semantic": {
-        "ok": false,
-        "stuck": true,
-        "speed_ms": 56972.6,
-        "tok_in": 3085,
-        "tok_out": 49,
+        "ok": true,
+        "stuck": false,
+        "speed_ms": 19403.9,
+        "tok_in": 1693,
+        "tok_out": 23,
         "planner_tool_calls": 0,
-        "browser_tool_calls": 15,
-        "tool_calls_total": 15
+        "browser_tool_calls": 10,
+        "tool_calls_total": 10,
+        "planner_input_tokens_billable": 1693,
+        "planner_output_tokens_billable": 23,
+        "browser_payload_bytes": 3872,
+        "browser_payload_tokens_estimated": 951,
+        "total_effective_context_load_tokens_estimated": 2644,
+        "indicative_planner_cost_usd": 0.005424
       },
       "journals": {
         "standard": "docs/benchmarks/journals/2026-03-12/standard__wikipedia_english_current_events.json",

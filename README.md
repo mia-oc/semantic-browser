@@ -48,17 +48,21 @@ Tool-usage telemetry is now captured explicitly in the harness output (per run a
 _Route: OpenAI API (`gpt-5.3-codex`). Validation rerun used one shared task (`wikipedia_english_current_events`) across all three methods after telemetry normalisation and OpenAI planner support in Semantic Browser mode._
 
 Metric basis (same for every row):
-- `tok-in` / `tok-out`: planner LLM tokens only.
+- `planner input tokens (billable)`: tokens billed as planner input by the model provider.
+- `planner output tokens (billable)`: tokens billed as planner output by the model provider.
+- `browser/runtime payload bytes`: UTF-8 byte size of observation payload returned from browser/runtime and sent to planner.
+- `browser/runtime payload token-estimate` (estimated): payload character count ÷ 4 (non-billable estimate).
+- `total effective context load` (estimated): planner input billable tokens + payload token-estimate.
 - `planner tool calls`: tool/function calls declared by planner API responses.
 - `browser/runtime calls`: browser operations performed by each method loop.
 - `total tool calls`: planner tool calls + browser/runtime calls.
-- `est. cost/request`: Sonnet 4.6-normalised estimate from planner tokens only.
+- `indicative planner cost/request`: Sonnet 4.6-normalised estimate from planner billable tokens only.
 
-| Method | Success rate | Median tok-in | Median tok-out | Median planner tool calls | Median browser/runtime calls | Median total tool calls | Est. cost/request (USD) |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Standard browser tooling | 0% (0/1) | 39,444 | 255 | 0.0 | 15.0 | 15.0 | 0.122157 |
-| OpenClaw browser tooling | 0% (0/1) | 11,511 | 102 | 0.0 | 5.0 | 5.0 | 0.036063 |
-| Semantic Browser | 0% (0/1) | 3,085 | 49 | 0.0 | 15.0 | 15.0 | 0.009990 |
+| Method | Success rate | Planner input (billable) | Planner output (billable) | Browser payload bytes | Payload token-est (estimated) | Total effective context load (estimated) | Planner tool calls | Browser/runtime calls | Total tool calls | Indicative planner cost/request (USD) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Standard browser tooling | 0% (0/1) | 39,442 | 252 | 78,984 | 18,534 | 57,976 | 0.0 | 15.0 | 15.0 | 0.122106 |
+| OpenClaw browser tooling | 0% (0/1) | 11,511 | 102 | 32,000 | 7,914 | 19,425 | 0.0 | 5.0 | 5.0 | 0.036063 |
+| Semantic Browser | 100% (1/1) | 1,693 | 23 | 3,872 | 951 | 2,644 | 0.0 | 10.0 | 10.0 | 0.005424 |
 
 Caveats:
 - This is a telemetry validation run, not a quality/performance claim from one task.

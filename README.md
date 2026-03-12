@@ -30,23 +30,6 @@ Other browser tools give the LLM the same data in a different wrapper. We give i
 - **Guardrails for reality** - anti-repeat fallback, nav hardening, transient extract retry.
 - **Honest failure mode** - if a site throws anti-bot gates, we say so and show evidence.
 
-## Benchmark Results
-
-### Full comparative rerun (12 Mar 2026, 25 tasks x 3 methods)
-
-_Route: OpenAI API (`gpt-5.3-codex`). All three methods ran the same 25-task corpus with stage-level telemetry enabled._
-
-Metric basis (explicit):
-- `planner input/output (billable)`: provider-billable planner tokens only.
-- `browser/runtime payload token-estimate` and `total effective context load`: non-billable estimates for payload/context pressure.
-- `indicative planner cost`: Sonnet 4.6-normalised estimate from planner billable tokens only.
-
-| Method | Success rate | Failures | Median speed (ms) | Planner input median | Planner output median | Payload token-est median | Total effective context median | Median browser/runtime calls | Indicative planner cost/request (USD) |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Standard browser tooling | 24% (6/25) | 19 | 11,819.8 | 10,118 | 74 | 6,918 | 17,224 | 6.0 | 0.041005 |
-| OpenClaw browser tooling | 72% (18/25) | 7 | 10,514.2 | 6,833 | 66 | 5,219 | 12,078 | 6.0 | 0.022053 |
-| Semantic Browser | 48% (12/25) | 13 | 24,514.5 | 2,596 | 35 | 1,231 | 3,870 | 14.0 | 0.006195 |
-
 #### Planner cost summary (full 25-task run)
 
 | Method | Requests | Total indicative planner cost (USD) | Average/request (USD) |

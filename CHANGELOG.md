@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (Planned)
+## 1.1.0
 
 - Added explicit runtime ownership modes:
   - `owned_ephemeral`

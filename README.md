@@ -72,8 +72,16 @@ Reproducibility artifacts:
 
 ## Install
 
+Install directly from PyPI (no `git clone` required):
+
 ```bash
-pip install semantic-browser
+pip install --upgrade semantic-browser
+```
+
+Pin to this release explicitly:
+
+```bash
+pip install "semantic-browser==1.1.0"
 ```
 
 Managed mode (recommended first run):

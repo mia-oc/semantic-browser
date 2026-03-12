@@ -46,6 +46,8 @@ Other browser tools give the LLM the same data in a different wrapper. Semantic 
 | OpenClaw browser tooling | 72% (18/25) | 7 | 10,514.2 | 6,833 | 66 | 5,219 | 12,078 | 6.0 | 0.022053 |
 | Semantic Browser | 100% (25/25) | 0 | 9,353.3 | 540 | 14 | 310 | 879 | 5.0 | 0.004036 |
 
+To put costs into context, at 5 complex browser tasks/day over a year (1,825 tasks), the estimated planner cost is about **$74.83/year** for the standard browser approach vs **$7.37/year** for Semantic Browser, a difference of about **$67.47/year**.
+
 This is a dramatic jump in a reference harness run, not a universal guarantee.
 
 The last anti-bot loop in this pack now has a robust recovery path:

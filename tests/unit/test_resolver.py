@@ -64,7 +64,7 @@ async def test_custom_element_uses_css_selector_first():
             "is_custom_element": True,
         },
     )
-    loc = await resolve_locator(page, action)
+    _loc = await resolve_locator(page, action)
     assert page.calls[0][0] == "locator"
     assert page.calls[0][1] == ("abc-button.btn-odds",)
     assert len(page.calls) == 1  # No ARIA fallback attempted
@@ -102,7 +102,7 @@ async def test_css_selector_fallback_when_aria_fails():
             "css_selector": "div.special-button",
         },
     )
-    loc = await resolve_locator(page, action)
+    _loc = await resolve_locator(page, action)
     # ARIA methods are tried and fail, then css_selector fallback is used
     assert any(call[0] == "locator" and call[1] == ("div.special-button",) for call in page.calls)
 
@@ -138,7 +138,7 @@ async def test_fallback_to_body_when_no_recipe():
         confidence=0.5,
         locator_recipe={},
     )
-    loc = await resolve_locator(page, action)
+    _loc = await resolve_locator(page, action)
     assert page.calls[-1][0] == "locator"
     assert page.calls[-1][1] == ("body",)
 

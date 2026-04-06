@@ -4,7 +4,7 @@
 </p>
 Semantic Browser turns live Chromium pages into compact semantic "rooms" for LLM planners.
 
-**Release:** [`v1.3.0` (Alpha)](https://github.com/visser23/semantic-browser/releases/tag/v1.3.0)  
+**Release:** [`v1.3.0` (Beta)](https://github.com/visser23/semantic-browser/releases/tag/v1.3.0)  
 **Latest release tag format:** see `docs/versioning.md`
 
 Make browser automation feel less like parsing soup and more like an old BBC Micro text adventure.

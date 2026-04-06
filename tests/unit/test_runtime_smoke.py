@@ -52,9 +52,11 @@ class FakePage:
         text = str(script)
         if "document.readyState" in text:
             return "complete"
+        if text == "location.href":
+            return self.url
         if "querySelectorAll(sel)" in text:
             return 1
-        if "querySelector('[role=\"dialog\"" in text:
+        if "dialog" in text and ("modal" in text or "aria-modal" in text):
             return False
         if "node_count" in text:
             self.node_snapshot_calls += 1
@@ -68,7 +70,7 @@ class FakePage:
             }
         if "html_length" in text:
             return {"html_length": 1000, "forms": 0, "links": 1, "inputs": 0}
-        return None
+        return 0
 
     async def goto(self, url):
         self.url = url

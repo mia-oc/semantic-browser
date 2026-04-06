@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.3.0
+
+- Framework-agnostic element discovery: custom elements with AngularJS (`ng-click`,
+  `on-click`), Vue (`v-on:click`, `@click`), Alpine.js (`x-on:click`), and other
+  framework bindings are now captured via a universal hyphenated-tag discovery pass.
+- Fuzzy structural settle: page settle now uses a configurable tolerance (`settle_tolerance_pct`,
+  default 5%) instead of exact count matching; auto-escalates to 10% after 3 resets to prevent
+  timeout on live-updating pages (sports odds, stock tickers, chat, etc.).
+- Stable fingerprints: action IDs no longer include `rect.y` pixel position, using DOM id
+  and CSS selector instead. Eliminates stale action IDs caused by layout shifts.
+- Increased budgets: curated actions raised from 15 to 25, room budget from 1000 to 2000
+  chars, expanded room from 4000 to 8000, action labels from 40 to 60 chars, narration
+  from 200 to 350 chars, max elements from 2000 to 4000.
+- Custom element curation priority: framework-rendered interactive components with `open`
+  or `toggle` ops are promoted to the primary curation tier.
+- Enhanced modal/overlay detection: three-tier detection covering standard ARIA (now
+  visibility-checked — invisible/zero-size dialog remnants no longer trigger false positives),
+  class-based heuristics (`[class*="modal"]`, `[class*="overlay"]`), custom-element modals
+  (e.g. `<abc-modal>`, `<safety-message-modal>`), and viewport-coverage heuristic for
+  fixed-position overlays covering >50% of viewport with high z-index.
+- Improved resolver for custom elements: tag+text fallback (`tag:has-text(...)`) and
+  count-checked CSS selector resolution to avoid returning empty locators.
+- SPA navigation settle: URL changes during structural settle reset counters and flag
+  `spa_navigation_during_settle` instability. SPA navigation now always classifies as
+  "success" instead of falling through to "ambiguous".
+- Cookie blocker detection widened: now matches "allow" in addition to "accept"/"consent"
+  for OneTrust-style consent banners.
+- Smarter result classification: actions that produce positive side-effects (changed regions,
+  values, or materiality) alongside newly-appearing blockers (e.g. betslip opening with
+  role="dialog") are now classified as "success" instead of false "blocked".
+- Dialog blocker visibility check: `role="dialog"` elements are only flagged as modal blockers
+  when visible in viewport and covering >30% of the screen, preventing false positives from
+  hidden dialog remnants or small betslip panels.
+- Resolver CSS sanitization: volatile framework state classes (Angular `ng-pristine`,
+  `ng-untouched`, `ng-valid`, `ng-empty`, etc.; Vue transition classes; Element UI modifier
+  classes) are stripped from CSS selectors before resolution, preventing stale locator failures.
+- Input locator priority: `<input>`/`<textarea>`/`<select>` elements now resolve via
+  sanitized CSS selector first, then `get_by_label`, then `get_by_placeholder` (with a tag
+  check to avoid targeting custom element wrappers like `<sbk-input>`).
+
 ## 1.2.0
 
 - Added CSS selector fallback for custom web components (Paddy Power `<abc-button>` support)

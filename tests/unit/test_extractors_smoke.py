@@ -30,9 +30,11 @@ class FakePage:
         text = str(script)
         if "document.readyState" in text:
             return "complete"
+        if text == "location.href":
+            return self.url
         if "querySelectorAll(sel)" in text:
             return 1
-        if "querySelector('[role=\"dialog\"" in text:
+        if "dialog" in text and ("modal" in text or "aria-modal" in text):
             return False
         if "html_length" in text:
             return {"html_length": 100, "forms": 0, "links": 1, "inputs": 0}
@@ -45,7 +47,9 @@ class FakePage:
                     {"tag": "a", "role": "link", "name": "More", "type": "", "href": "https://example.com/more", "disabled": False, "in_viewport": True, "text": "more"},
                 ],
             }
-        return "generic"
+        if "password" in text or "article" in text or "table" in text:
+            return "generic"
+        return 0
 
 
 @pytest.mark.asyncio

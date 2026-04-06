@@ -28,7 +28,7 @@ from .page_state import capture_page_info
 from .redaction import redact_nodes
 from .semantics import extract_semantics
 
-_MAX_CURATED_ACTIONS = 15
+_MAX_CURATED_ACTIONS = 25
 _SEE_MORE_ID = "more"
 
 
@@ -172,13 +172,13 @@ def _build_narration(
             parts.append(f"Input fields: {', '.join(input_names)}.")
 
     narration = " ".join(parts)
-    if len(narration) > 200:
-        narration = narration[:197] + "..."
+    if len(narration) > 350:
+        narration = narration[:347] + "..."
     return narration
 
 
-_CURATED_ROOM_BUDGET = 1000
-_EXPANDED_ROOM_BUDGET = 4000
+_CURATED_ROOM_BUDGET = 2000
+_EXPANDED_ROOM_BUDGET = 8000
 
 
 def _cap_room_text(text: str, budget: int) -> str:
@@ -228,6 +228,8 @@ def _curate_actions(
             tier_input.append(a)
         elif a.primary or a.op in {"submit", "click"}:
             tier_primary.append(a)
+        elif a.locator_recipe.get("is_custom_element") and a.op in {"open", "toggle"}:
+            tier_primary.append(a)
         elif a.id in {"back", "fwd", "reload", "wait", "nav"}:
             tier_global.append(a)
         else:
@@ -249,7 +251,7 @@ def _curate_actions(
 
 def _format_action_line(idx: int, action: ActionDescriptor) -> str:
     """Format one action as a terse room description line."""
-    label = action.label[:40]
+    label = action.label[:60]
     if action.requires_value:
         return f'{idx} {action.op} {label} [{action.id}] *value'
     return f'{idx} {action.op} "{label}" [{action.id}]'
@@ -378,6 +380,18 @@ def _action_for_node(node: dict[str, Any], node_id: str, action_id: str, idx: in
         op = "click"
     elif not op and (str(node.get("tabindex", "")) == "0" or node.get("has_click_handler")):
         op = "click"
+    if not op:
+        fw = node.get("framework_attrs") or {}
+        click_attrs = {"ng-click", "ng-submit", "ng-dblclick", "on-click", "onclick", "data-action",
+                        "v-on:click", "@click", "x-on:click", "x-on:submit", "data-ng-click"}
+        if any(a in fw for a in click_attrs):
+            op = "click"
+        elif "ng-model" in fw and tag in {"input", "textarea"}:
+            op = "fill"
+            requires_value = True
+        elif "ng-model" in fw and tag == "select":
+            op = "select_option"
+            requires_value = True
     if not op:
         return None
     recipe = {

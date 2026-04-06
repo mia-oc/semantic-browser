@@ -15,7 +15,8 @@ def fingerprint_for(node: dict[str, Any]) -> str:
             str(node.get("name", ""))[:80],
             str(node.get("type", "")),
             str(node.get("href", ""))[:120],
-            str((node.get("rect") or {}).get("y", "")),
+            str(node.get("id", "")),
+            str(node.get("css_selector", "")),
         ]
     )
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]

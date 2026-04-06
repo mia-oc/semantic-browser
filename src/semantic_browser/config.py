@@ -19,11 +19,12 @@ class SettleConfig(BaseModel):
     frame_stable_hits: int = 2
     settle_profile_fast_ms: int = 1500
     settle_profile_slow_ms: int = 4000
+    settle_tolerance_pct: float = 0.05
 
 
 class ExtractionConfig(BaseModel):
     include_frames: bool = True
-    max_elements: int = 2000
+    max_elements: int = 4000
     content_group_min_items: int = 3
     low_name_threshold: float = 0.5
     low_action_coverage_threshold: float = 0.3

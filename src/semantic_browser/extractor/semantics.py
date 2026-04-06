@@ -7,9 +7,13 @@ from typing import Any
 
 EXTRACT_JS = """
 ({ includeFrames, maxElements }) => {
-  const selectors = 'a[href],button,input,select,textarea,[role="button"],[role="link"],[role="checkbox"],[role="textbox"],[role="tab"],[role="menuitem"],[role="option"],[role="treeitem"],[tabindex="0"],[onclick],[data-action],main,nav,header,footer,aside,section,article,form,dialog,table,ul,ol,h1,h2,h3,[role="heading"]';
-  // CSS selectors for custom web components not exposed to ARIA (e.g. Paddy Power's <abc-button>)
-  const customComponentSelectors = '[onclick],[data-action],[tabindex]';
+  const selectors = 'a[href],button,input,select,textarea,[role="button"],[role="link"],[role="checkbox"],[role="textbox"],[role="tab"],[role="menuitem"],[role="option"],[role="treeitem"],[tabindex="0"],[onclick],[data-action],[ng-click],[ng-submit],[ng-model],[on-click],[data-ng-click],[x-on\\\\:click],[x-on\\\\:submit],main,nav,header,footer,aside,section,article,form,dialog,table,ul,ol,h1,h2,h3,[role="heading"]';
+  const FRAMEWORK_INTERACTIVE_ATTRS = [
+    'ng-click','ng-submit','ng-dblclick','ng-mousedown','ng-change',
+    'on-click','x-on-click','data-ng-click','ng-model',
+    'v-on:click','@click','x-on:click','x-on:submit',
+    'onclick','data-action','tabindex',
+  ];
   const STANDARD_TAGS = new Set([
     'a','abbr','address','area','article','aside','audio','b','base','bdi','bdo',
     'blockquote','body','br','button','canvas','caption','cite','code','col','colgroup',
@@ -95,7 +99,9 @@ EXTRACT_JS = """
       const id = el.id || '';
       const href = el.getAttribute('href') || '';
       const tabindex = el.getAttribute('tabindex') || '';
-      const hasClickHandler = el.hasAttribute('onclick') || el.hasAttribute('data-action');
+      const hasClickHandler = FRAMEWORK_INTERACTIVE_ATTRS.some(a =>
+        a !== 'ng-model' && a !== 'tabindex' && el.hasAttribute(a)
+      );
       const disabled = el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true';
       const checked = el.getAttribute('aria-checked') === 'true' || (tag === 'input' && el.checked === true);
       const expanded = el.getAttribute('aria-expanded');
@@ -127,22 +133,37 @@ EXTRACT_JS = """
       });
     }
 
-    // Discover custom web components not in standard ARIA tree
-    // (e.g. <abc-button class="btn-odds"> used by Paddy Power)
-    const customAll = Array.from(doc.querySelectorAll(customComponentSelectors));
-    const customVisible = customAll.filter(
-      (el) => !seen.has(el) && isVisible(el, view)
-    );
-    for (const el of customVisible) {
+    // Discover all visible hyphenated-tag custom elements not already captured.
+    // Covers Web Components, AngularJS components, Lit, Stencil, Vue, etc.
+    const allElements = doc.querySelectorAll('*');
+    for (const el of allElements) {
       if (nodes.length >= maxElements) break;
+      if (seen.has(el)) continue;
       const tag = el.tagName.toLowerCase();
       if (!isCustomElement(tag)) continue;
+      if (!isVisible(el, view)) continue;
+
+      const hasFrameworkBinding = FRAMEWORK_INTERACTIVE_ATTRS.some(a => el.hasAttribute(a));
+      const hasInteractiveChild = el.querySelector('button,a,input,[role="button"],[role="link"]');
+      const cursorPointer = view.getComputedStyle(el).cursor === 'pointer';
+      const isInteractive = hasFrameworkBinding || !!hasInteractiveChild || cursorPointer;
+
+      if (!isInteractive) continue;
+
+      seen.add(el);
       const role = roleOrTag(el);
-      const name = nameFor(el, doc);
+      let name = nameFor(el, doc);
+      if (!name) {
+        const bound = el.getAttribute('ng-bind') || el.getAttribute('v-text') || '';
+        if (bound) name = bound;
+      }
       const id = el.id || '';
       const tabindex = el.getAttribute('tabindex') || '';
-      const hasClickHandler = el.hasAttribute('onclick') || el.hasAttribute('data-action');
-      const disabled = el.getAttribute('aria-disabled') === 'true';
+      const hasClickHandler = FRAMEWORK_INTERACTIVE_ATTRS.some(a =>
+        a !== 'ng-model' && a !== 'tabindex' && el.hasAttribute(a)
+      );
+      const disabled = el.getAttribute('aria-disabled') === 'true'
+        || el.hasAttribute('ng-disabled') || el.hasAttribute('disabled');
       const rect = el.getBoundingClientRect();
       const inViewport =
         rect.bottom >= 0 &&
@@ -150,6 +171,12 @@ EXTRACT_JS = """
         rect.top <= (view.innerHeight || 0) &&
         rect.left <= (view.innerWidth || 0);
       const cssSelector = buildCssSelector(el, doc);
+
+      const fwAttrs = {};
+      for (const a of FRAMEWORK_INTERACTIVE_ATTRS) {
+        if (el.hasAttribute(a)) fwAttrs[a] = el.getAttribute(a) || '';
+      }
+
       nodes.push({
         dom_index: nodes.length,
         tag,
@@ -157,10 +184,10 @@ EXTRACT_JS = """
         name,
         type: '',
         id,
-        href: '',
+        href: el.getAttribute('href') || '',
         disabled,
         checked: false,
-        expanded: null,
+        expanded: el.getAttribute('aria-expanded'),
         in_viewport: inViewport,
         frame_id: frameId,
         rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
@@ -168,6 +195,7 @@ EXTRACT_JS = """
         has_click_handler: hasClickHandler,
         css_selector: cssSelector,
         is_custom_element: true,
+        framework_attrs: fwAttrs,
         text: (el.innerText || '').trim().slice(0, 300),
       });
     }

@@ -11,9 +11,18 @@ def classify_status(ok: bool, message: str, delta: ObservationDelta) -> StepStat
         return "failed"
     if msg in {"waited", "went back", "went forward", "reloaded", "navigated"}:
         return "success"
-    if delta.added_blockers:
+    if delta.navigated:
+        return "success"
+    has_positive_effect = (
+        delta.changed_values
+        or delta.changed_regions
+        or delta.materiality != "minor"
+        or delta.content_state_changes
+        or delta.interaction_state_changes
+    )
+    if delta.added_blockers and not has_positive_effect:
         return "blocked"
-    if delta.navigated or delta.changed_values or delta.changed_regions or delta.materiality != "minor":
+    if has_positive_effect:
         return "success"
     if "not found" in msg:
         return "stale"

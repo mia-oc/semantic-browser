@@ -4,7 +4,7 @@
 </p>
 Semantic Browser turns live Chromium pages into compact semantic "rooms" for LLM planners.
 
-**Release:** [`v1.2.0` (Alpha)](https://github.com/visser23/semantic-browser/releases/tag/v1.2.0)  
+**Release:** [`v1.3.0` (Alpha)](https://github.com/visser23/semantic-browser/releases/tag/v1.3.0)  
 **Latest release tag format:** see `docs/versioning.md`
 
 Make browser automation feel less like parsing soup and more like an old BBC Micro text adventure.
@@ -25,12 +25,20 @@ Make browser automation feel less like parsing soup and more like an old BBC Mic
 
 The planner replies with one action ID and the runtime executes deterministically. This means less confusion, less hallucination and ultimately significantly less cost.
 
-## What's New in v1.2.0
+## What's New in v1.3.0
 
-- **Custom web component support** — CSS selector fallback for shadow-DOM components (e.g. Paddy Power `<abc-button>`). Elements inside custom web components that don't expose standard selectors are now matched via fallback heuristics.
-- **CI fixes** — Playwright browsers installed before test step.
-- **Lint fixes** — Resolved F841 unused variable errors in `test_resolver.py`.
-- **Security** — Suppressed CVE-2026-4539 in pip-audit.
+v1.3 is a substantial extraction overhaul focused on making Semantic Browser work reliably on modern framework-heavy, live-updating websites — the kind of pages (betting, trading, SPA dashboards) that previously caused timeouts, stale actions, or missing elements.
+
+- **Framework-agnostic element discovery** — AngularJS (`ng-click`, `ng-model`), Vue (`v-on:click`, `@click`), Alpine.js (`x-on:click`), and arbitrary custom elements (`<abc-tab>`, `<sbk-input>`) are now discovered via a universal hyphenated-tag pass with framework attribute inference.
+- **Fuzzy structural settle** — Pages with live-updating content (odds feeds, stock tickers, chat) no longer cause settle timeouts. A configurable tolerance (default 5%) replaces exact count matching, with auto-escalation to 10% after repeated resets.
+- **Stable fingerprints** — Action IDs no longer include pixel position (`rect.y`), using DOM id and CSS selector instead. Eliminates stale action IDs from minor layout shifts.
+- **Smarter locator resolution** — Volatile framework state classes (`ng-pristine`, `ng-untouched`, etc.) are stripped from CSS selectors before resolution. Input elements resolve via sanitized CSS first, avoiding custom element wrapper traps like `<sbk-input>`.
+- **Better result classification** — Actions that produce positive side-effects alongside newly-appearing blockers (e.g. a betslip opening with `role="dialog"`) are now correctly classified as `"success"` instead of false `"blocked"`.
+- **Robust modal detection** — Three-tier detection covering ARIA (with visibility checks), class-based heuristics, custom-element modals, and viewport-coverage heuristics. Dialog blockers now require >30% screen coverage to trigger.
+- **Increased budgets** — Curated actions raised from 15→25, room budget 1K→2K chars, max elements 2K→4K. Complex pages no longer exhaust the action surface.
+- **SPA navigation awareness** — URL changes during settle reset structural counters. SPA navigations always classify as `"success"`.
+
+Validated headful against Paddy Power (cookie dismiss → football navigation → add bet → fill stake → "Login & Place Bets" button found → match page → back) with 98.8% fingerprint stability on live betting pages.
 
 See [CHANGELOG.md](CHANGELOG.md) for full release notes.
 
@@ -39,7 +47,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full release notes.
 Other browser tools give the LLM the same data in a different wrapper. Semantic Browser gives it a fundamentally different view.
 
 - **Plain-text room descriptions** - prose, not JSON.
-- **Curated actions first** - top 15 useful actions, then `more` if needed.
+- **Curated actions first** - top 25 useful actions, then `more` if needed.
 - **Progressive disclosure** - `more` gives full action list without flooding every step.
 - **Tiny action replies** - action IDs, `nav`, `back`, `done`.
 - **Narrative history** - readable previous steps, not noisy machine dump.
@@ -90,7 +98,7 @@ pip install --upgrade semantic-browser
 Pin to this release explicitly:
 
 ```bash
-pip install "semantic-browser==1.2.0"
+pip install "semantic-browser==1.3.0"
 ```
 
 Managed mode (recommended first run):

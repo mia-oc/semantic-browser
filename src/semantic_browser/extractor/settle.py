@@ -60,10 +60,28 @@ async def wait_for_settle(page: Any, config: SettleConfig, *, intent: str = "act
         await asyncio.sleep(0.05)
     report.durations_ms["navigation_settle"] = int((time.perf_counter() - nav_start) * 1000)
 
+    # Capture URL for SPA transition detection during structural settle
+    try:
+        settle_start_url = await page.evaluate("location.href")
+    except Exception:
+        settle_start_url = None
+
+    settle_tolerance_pct = float(getattr(config, "settle_tolerance_pct", 0.05))
+    fuzzy_fallback_engaged = False
+
+    def _within_tolerance(
+        prev: tuple[int, int], curr: tuple[int, int], tol: float
+    ) -> bool:
+        if prev[0] == 0:
+            return curr[0] == 0
+        diff = abs(curr[0] - prev[0]) / max(prev[0], 1)
+        return diff <= tol and prev[1] == curr[1]
+
     previous_signature: tuple[int, int] | None = None
     structural_hits = 0
     structural_start = time.perf_counter()
     resets = 0
+    active_tolerance = settle_tolerance_pct
     while time.monotonic() < deadline:
         try:
             signature = await page.evaluate(
@@ -89,11 +107,28 @@ async def wait_for_settle(page: Any, config: SettleConfig, *, intent: str = "act
             sig_struct = (_as_int(signature, 0), 0)
         else:
             sig_struct = (_as_int(signature[0], 0), _as_int(signature[1], 0))
-        if previous_signature is None or previous_signature == sig_struct:
+        # Detect SPA navigation mid-settle: URL change resets structural counters
+        if settle_start_url is not None:
+            try:
+                current_url = await page.evaluate("location.href")
+                if current_url != settle_start_url:
+                    settle_start_url = current_url
+                    previous_signature = None
+                    structural_hits = 0
+                    report.instability.append("spa_navigation_during_settle")
+                    await asyncio.sleep(interactable_stable_ms / 1000)
+                    continue
+            except Exception:
+                pass
+
+        if previous_signature is None or _within_tolerance(previous_signature, sig_struct, active_tolerance):
             structural_hits += 1
         else:
             resets += 1
             structural_hits = 0
+            if resets >= 3 and active_tolerance < 0.10:
+                active_tolerance = 0.10
+                fuzzy_fallback_engaged = True
         previous_signature = sig_struct
         if structural_hits >= structural_stable_hits:
             break
@@ -167,8 +202,10 @@ async def wait_for_settle(page: Any, config: SettleConfig, *, intent: str = "act
         await asyncio.sleep(0.1)
     report.durations_ms["frame_settle"] = int((time.perf_counter() - frame_start) * 1000)
 
-    if resets >= 4:
+    if resets >= 3:
         report.instability.append("mutation_storm")
+    if fuzzy_fallback_engaged:
+        report.instability.append("mutation_storm_fallback")
     if previous_behavioral and previous_behavioral[0] > 0:
         report.instability.append("overlay_interference")
     if report.durations_ms["navigation_settle"] > settle_profile_slow_ms:

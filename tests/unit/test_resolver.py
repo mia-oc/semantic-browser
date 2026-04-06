@@ -11,6 +11,20 @@ class _DummyLocator:
     def first(self):
         return self
 
+    async def count(self):
+        return 1
+
+
+class _ZeroLocator:
+    """Locator that reports zero matches."""
+
+    @property
+    def first(self):
+        return self
+
+    async def count(self):
+        return 0
+
 
 class _Page:
     def __init__(self):
@@ -22,6 +36,10 @@ class _Page:
 
     def get_by_label(self, name):
         self.calls.append(("get_by_label", (name,), {}))
+        return _DummyLocator()
+
+    def get_by_placeholder(self, name):
+        self.calls.append(("get_by_placeholder", (name,), {}))
         return _DummyLocator()
 
     def get_by_text(self, name):
@@ -79,6 +97,10 @@ class _FailingPage(_Page):
 
     def get_by_label(self, name):
         self.calls.append(("get_by_label", (name,), {}))
+        raise ValueError("not found")
+
+    def get_by_placeholder(self, name):
+        self.calls.append(("get_by_placeholder", (name,), {}))
         raise ValueError("not found")
 
     def get_by_text(self, name):
@@ -156,3 +178,70 @@ async def test_dom_id_resolution():
     # role is empty, so get_by_role is skipped; get_by_text tried then dom_id via locator
     await resolve_locator(page, action)
     assert any(call[0] == "locator" and call[1] == ("#my-button",) for call in page.calls)
+
+
+@pytest.mark.asyncio
+async def test_input_prefers_sanitized_css_over_label():
+    """Input elements should try sanitized CSS selector first, before label/placeholder."""
+
+    page = _Page()
+    action = ActionDescriptor(
+        id="a7",
+        op="fill",
+        label="0.00",
+        confidence=0.7,
+        locator_recipe={
+            "name": "0.00",
+            "tag": "input",
+            "type": "text",
+            "css_selector": "input.ng-pristine.ng-untouched",
+        },
+    )
+    await resolve_locator(page, action)
+    assert page.calls[0][0] == "locator"
+    assert "ng-pristine" not in page.calls[0][1][0]
+
+
+@pytest.mark.asyncio
+async def test_input_falls_to_placeholder_when_css_and_label_fail():
+    """When sanitized CSS returns 0 and label fails, placeholder is tried."""
+
+    class _NoMatchPage(_Page):
+        def get_by_label(self, name):
+            self.calls.append(("get_by_label", (name,), {}))
+            return _ZeroLocator()
+
+        def locator(self, sel):
+            self.calls.append(("locator", (sel,), {}))
+            return _ZeroLocator()
+
+    page = _NoMatchPage()
+    action = ActionDescriptor(
+        id="a7b",
+        op="fill",
+        label="0.00",
+        confidence=0.7,
+        locator_recipe={
+            "name": "0.00",
+            "tag": "input",
+            "type": "text",
+            "css_selector": "input.ng-pristine.ng-untouched",
+        },
+    )
+    await resolve_locator(page, action)
+    assert any(call[0] == "get_by_placeholder" for call in page.calls)
+
+
+@pytest.mark.asyncio
+async def test_input_sanitizes_volatile_css_classes():
+    """Input resolution should strip Angular/Vue volatile state classes from CSS selector."""
+    from semantic_browser.executor.resolver import _sanitize_css
+
+    raw = "div.input-text-wrapper > input.input-text.ng-pristine.ng-untouched.ng-valid.ng-empty"
+    sanitized = _sanitize_css(raw)
+    assert "ng-pristine" not in sanitized
+    assert "ng-untouched" not in sanitized
+    assert "ng-valid" not in sanitized
+    assert "ng-empty" not in sanitized
+    assert "input-text-wrapper" in sanitized
+    assert "input-text" in sanitized

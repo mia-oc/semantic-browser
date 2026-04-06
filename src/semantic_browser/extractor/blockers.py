@@ -11,7 +11,7 @@ from semantic_browser.models import Blocker, ConfidenceReport, WarningNotice
 def detect_blockers(nodes: list[dict[str, Any]]) -> list[Blocker]:
     blockers: list[Blocker] = []
     names = " ".join((n.get("name", "") + " " + n.get("text", "")) for n in nodes).lower()
-    if "cookie" in names and ("accept" in names or "consent" in names):
+    if "cookie" in names and ("accept" in names or "consent" in names or "allow" in names):
         blockers.append(
             Blocker(kind="cookie_banner", severity="medium", description="Cookie consent likely visible.")
         )
@@ -23,8 +23,34 @@ def detect_blockers(nodes: list[dict[str, Any]]) -> list[Blocker]:
         blockers.append(
             Blocker(kind="login_wall", severity="low", description="Password field present; login may gate content.")
         )
-    if any(n["role"] == "dialog" for n in nodes):
-        blockers.append(Blocker(kind="modal", severity="medium", description="Dialog or modal is active."))
+    for n in nodes:
+        if n["role"] == "dialog" and n.get("in_viewport", False):
+            rect = n.get("rect", {})
+            vp_w = max(1, n.get("viewport_width", 1920))
+            vp_h = max(1, n.get("viewport_height", 1080))
+            coverage = (rect.get("width", 0) * rect.get("height", 0)) / (vp_w * vp_h)
+            if coverage > 0.3:
+                blockers.append(
+                    Blocker(kind="modal", severity="medium", description="Dialog or modal is active.")
+                )
+                break
+
+    modal_tag_keywords = {"modal", "overlay", "dialog", "popup"}
+    for n in nodes:
+        tag = n.get("tag", "")
+        if "-" not in tag:
+            continue
+        if any(kw in tag for kw in modal_tag_keywords):
+            if not n.get("disabled") and n.get("in_viewport", False):
+                blockers.append(
+                    Blocker(
+                        kind="modal",
+                        severity="medium",
+                        description=f"Custom element <{tag}> likely a modal/overlay.",
+                    )
+                )
+                break
+
     return blockers
 
 

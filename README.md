@@ -1,243 +1,180 @@
 # Semantic Browser
+
 <p align="left">
   <img src="https://github.com/user-attachments/assets/dac79ee0-6ebb-48b3-a27d-2e339ea16961" alt="Semantic Browser mascot" width="240" align="right" />
 </p>
-Semantic Browser turns live Chromium pages into compact semantic "rooms" for LLM planners.
 
-**Release:** [`v1.3.0` (Beta)](https://github.com/visser23/semantic-browser/releases/tag/v1.3.0)  
-**Latest release tag format:** see `docs/versioning.md`
+**Version 1.3.1 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
 
-Make browser automation feel less like parsing soup and more like an old BBC Micro text adventure.
-
-- Live page -> structured room state
-- DOM distilled into meaningful objects, not soup
-- Built for agentic browser automation
-- Token-efficient, deterministic, inspectable
+Semantic Browser turns live Chromium pages into compact semantic "rooms" for LLM planners. The planner sees a text-adventure description of the page, picks one action ID, and the runtime executes it deterministically.
 
 ```
 @ BBC News (bbc.co.uk)
 > Home page. Main content: "Top stories". Navigation: News, Sport, Weather.
+! Cookie consent banner detected -> dismiss [act-a1b2c3d4-0]
 1 open "News" [act-8f2a2d1c-0]
 2 open "Sport" [act-c3e119fa-0]
 3 fill Search BBC [act-0b9411de-0] *value
 + 28 more [more]
 ```
 
-The planner replies with one action ID and the runtime executes deterministically. This means less confusion, less hallucination and ultimately significantly less cost.
-
-## What's New in v1.3.0
-
-v1.3 is a substantial extraction overhaul focused on making Semantic Browser work reliably on modern framework-heavy, live-updating websites — the kind of pages (betting, trading, SPA dashboards) that previously caused timeouts, stale actions, or missing elements.
-
-- **Framework-agnostic element discovery** — AngularJS (`ng-click`, `ng-model`), Vue (`v-on:click`, `@click`), Alpine.js (`x-on:click`), and arbitrary custom elements (`<abc-tab>`, `<sbk-input>`) are now discovered via a universal hyphenated-tag pass with framework attribute inference.
-- **Fuzzy structural settle** — Pages with live-updating content (odds feeds, stock tickers, chat) no longer cause settle timeouts. A configurable tolerance (default 5%) replaces exact count matching, with auto-escalation to 10% after repeated resets.
-- **Stable fingerprints** — Action IDs no longer include pixel position (`rect.y`), using DOM id and CSS selector instead. Eliminates stale action IDs from minor layout shifts.
-- **Smarter locator resolution** — Volatile framework state classes (`ng-pristine`, `ng-untouched`, etc.) are stripped from CSS selectors before resolution. Input elements resolve via sanitized CSS first, avoiding custom element wrapper traps like `<sbk-input>`.
-- **Better result classification** — Actions that produce positive side-effects alongside newly-appearing blockers (e.g. a betslip opening with `role="dialog"`) are now correctly classified as `"success"` instead of false `"blocked"`.
-- **Robust modal detection** — Three-tier detection covering ARIA (with visibility checks), class-based heuristics, custom-element modals, and viewport-coverage heuristics. Dialog blockers now require >30% screen coverage to trigger.
-- **Increased budgets** — Curated actions raised from 15→25, room budget 1K→2K chars, max elements 2K→4K. Complex pages no longer exhaust the action surface.
-- **SPA navigation awareness** — URL changes during settle reset structural counters. SPA navigations always classify as `"success"`.
-
-Validated headful against Paddy Power (cookie dismiss → football navigation → add bet → fill stake → "Login & Place Bets" button found → match page → back) with 98.8% fingerprint stability on live betting pages.
-
-See [CHANGELOG.md](CHANGELOG.md) for full release notes.
-
-## Why this is different (and why it now works)
-
-Other browser tools give the LLM the same data in a different wrapper. Semantic Browser gives it a fundamentally different view.
-
-- **Plain-text room descriptions** - prose, not JSON.
-- **Curated actions first** - top 25 useful actions, then `more` if needed.
-- **Progressive disclosure** - `more` gives full action list without flooding every step.
-- **Tiny action replies** - action IDs, `nav`, `back`, `done`.
-- **Narrative history** - readable previous steps, not noisy machine dump.
-- **Guardrails for reality** - anti-repeat fallback, nav hardening, transient extract retry.
-- **Honest failure mode** - if a site throws anti-bot gates, we say so and show evidence.
-
-#### Cross-method comparator (shared 25-task pack)
-
-| Method | Success rate | Failures | Median speed (ms) | Planner input median (billable) | Planner output median (billable) | Payload token-est median (estimated) | Total effective context median (estimated) | Median browser/runtime calls | Indicative planner cost/request (USD) |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Standard browser tooling | 24% (6/25) | 19 | 11,819.8 | 10,118 | 74 | 6,918 | 17,224 | 6.0 | 0.041005 |
-| OpenClaw browser tooling | 72% (18/25) | 7 | 10,514.2 | 6,833 | 66 | 5,219 | 12,078 | 6.0 | 0.022053 |
-| Semantic Browser | 100% (25/25) | 0 | 9,353.3 | 540 | 14 | 310 | 879 | 5.0 | 0.004036 |
-
-To put costs into context, at 5 complex browser tasks/day over a year (1,825 tasks), the estimated planner cost is about **$74.83/year** for the standard browser approach vs **$7.37/year** for Semantic Browser, a difference of about **$67.47/year**.
-
-This is a dramatic jump in a reference harness run, not a universal guarantee.
-
-The last anti-bot loop in this pack now has a robust recovery path:
-- capture challenge evidence (screenshot),
-- try direct same-origin query route,
-- then use a public read-only fallback endpoint when the primary UI is hard-blocked.
-
-25 tasks across navigation, search, multi-step interaction, resilience, and speed.
-
-If challenge/captcha is detected, the harness captures screenshot evidence and includes it in the LLM call.
-
-Reproducibility artifacts:
-- Protocol: `docs/benchmark_protocol.md`
-- Manifest: `benchmarks/manifest.json`
+Less confusion, less hallucination, dramatically less cost.
 
 ## Why Semantic Browser
 
-- Semantic room output instead of DOM/JSON soup.
-- Curated action surface for token-efficient planning.
-- Deterministic action execution loop (`observe` -> `act` -> `observe delta`).
-- Built-in blocker signaling and confidence reporting.
-- Python API, CLI, and local service interfaces.
+- **Plain-text room descriptions** — prose, not JSON soup.
+- **Curated action surface** — top 25 actions, with `more` for progressive disclosure.
+- **Deterministic execution** — `observe → act → observe delta`, every time.
+- **Built-in blockers** — cookie banners, modals, and anti-bot gates are detected and signaled.
+- **Token-efficient** — median planner input of ~540 tokens vs ~10,000 for standard tooling.
+- **Three interfaces** — Python API, CLI, and HTTP service.
 
 ## Install
-
-Install directly from PyPI (no `git clone` required):
-
-```bash
-pip install --upgrade semantic-browser
-```
-
-Pin to this release explicitly:
-
-```bash
-pip install "semantic-browser==1.3.0"
-```
-
-Managed mode (recommended first run):
 
 ```bash
 pip install "semantic-browser[managed]"
 semantic-browser install-browser
 ```
 
-Service mode:
-
-```bash
-pip install "semantic-browser[server]"
-```
+For service mode: `pip install "semantic-browser[server]"`
 
 ## Quickstart
+
+### Interactive portal
 
 ```bash
 semantic-browser portal --url https://example.com --headless
 ```
 
-Inside portal:
-
-- `observe summary`
-- `actions`
-- `act <action_id>`
-- `back` / `forward` / `reload`
-- `trace run-trace.json`
-- `quit`
-
-More examples: `docs/getting_started.md`
-
-## Profile-Aware Runtime Modes
-
-Persistent profiles are first-class in this release. Use them for serious long-running agent tasks where session continuity matters (SSO, cookies, extension state, trust signals).
-
-- `profile_mode=ephemeral`: disposable context, best for stateless tasks.
-- `profile_mode=persistent`: real reusable Chromium profile directory.
-- `profile_mode=clone`: copy profile into temporary sandbox before run.
-
-CLI launch examples:
-
-```bash
-# Ephemeral (default)
-semantic-browser launch --headless
-
-# Persistent profile (recommended agent mode)
-semantic-browser launch --headless --profile-mode persistent --profile-dir "/path/to/chrome-profile"
-
-# Clone mode (safe experimentation)
-semantic-browser launch --headless --profile-mode clone --profile-dir "/path/to/chrome-profile"
-```
-
-Storage state can still be used in ephemeral mode:
-
-```bash
-semantic-browser launch --headless --profile-mode ephemeral --storage-state-path state.json
-```
-
-Note: storage state bootstrap is not equivalent to a real profile.
-
-## Breaking API Change (v1.1+)
-
-Launch config no longer accepts `user_data_dir`.
-
-- removed: `user_data_dir`
-- added: `profile_mode`, `profile_dir`, `storage_state_path`
-
-If you previously passed `user_data_dir` for storage state, migrate to `storage_state_path` in `ephemeral` mode.
-If you intended a true browser profile, use `profile_mode=persistent` with `profile_dir`.
-
-## Python Usage
+### Python
 
 ```python
 import asyncio
 from semantic_browser import ManagedSession
 from semantic_browser.models import ActionRequest
 
-async def demo() -> None:
+async def main() -> None:
     session = await ManagedSession.launch(headful=False)
     runtime = session.runtime
+
     await runtime.navigate("https://example.com")
     obs = await runtime.observe(mode="summary")
-    first_open = next((a for a in obs.available_actions if a.op == "open"), None)
-    if first_open:
-        result = await runtime.act(ActionRequest(action_id=first_open.id))
+    print(obs.planner.room_text)
+
+    first_link = next((a for a in obs.available_actions if a.op == "open"), None)
+    if first_link:
+        result = await runtime.act(ActionRequest(action_id=first_link.id))
         print(result.status, result.observation.page.url)
+
     await session.close()
 
-asyncio.run(demo())
+asyncio.run(main())
 ```
+
+### LLM Agent Loop (Minimal)
+
+```python
+async def agent_loop(url: str, task: str) -> None:
+    session = await ManagedSession.launch(headful=False)
+    runtime = session.runtime
+    await runtime.navigate(url)
+    obs = await runtime.observe(mode="summary")
+
+    for step in range(25):
+        action_id = call_your_llm(obs.planner.room_text, task)  # returns one action ID
+        if action_id == "done":
+            break
+        result = await runtime.act(ActionRequest(action_id=action_id))
+        obs = result.observation
+
+    await session.close()
+```
+
+Full worked examples for OpenAI, Anthropic, and more: **[Integration Examples](docs/integration_examples.md)**
+
+## Documentation
+
+| Document | What it covers |
+|----------|---------------|
+| **[Getting Started](docs/getting_started.md)** | Install, first run, interactive portal, Python/CLI/service quickstarts |
+| **[Planner Contract](docs/planner_contract.md)** | The exact interface between Semantic Browser and an LLM planner — what the planner receives, what it should reply, how to handle blockers, failures, and stopping |
+| **[Integration Examples](docs/integration_examples.md)** | End-to-end examples: OpenAI chat, OpenAI function-calling, Anthropic tool use, HTTP service, CDP attach, error handling patterns |
+| **[API Reference](docs/api_reference.md)** | Every public class, method, model, and field — `ManagedSession`, `SemanticBrowserRuntime`, `Observation`, `StepResult`, `ActionDescriptor`, configuration, errors |
+| **[Runtime Modes](docs/runtime_modes.md)** | Decision table for ephemeral/persistent/clone/attach/service modes, headful vs headless, ownership semantics |
+| **[Real Profiles](docs/real_profiles.md)** | Using real Chromium profiles for login persistence, SSO, clone mode, safety guarantees, common pitfalls |
+| **[Benchmark Protocol](docs/benchmark_protocol.md)** | How benchmark numbers are produced and validated |
+| **[Versioning](docs/versioning.md)** | Version numbering scheme |
+| **[Publishing](docs/publishing.md)** | PyPI publish checklist |
+| **[Changelog](CHANGELOG.md)** | Full release history |
+
+## How It Works
+
+```
+Live page → extract semantic tree → group into regions → curate actions → render room text
+                                                                              ↓
+                                                              LLM planner picks action ID
+                                                                              ↓
+                                                              runtime resolves & executes
+                                                                              ↓
+                                                              observe delta → repeat
+```
+
+1. **Observe** — the runtime extracts the page's semantic structure, groups it into regions, curates the top actions, and renders a text-adventure "room".
+2. **Plan** — the LLM planner reads the room text and replies with one action ID.
+3. **Act** — the runtime resolves the action to a DOM element, executes it, waits for the page to settle, and produces a delta observation.
+4. **Repeat** — the planner sees the delta and picks the next action.
+
+## Benchmarks
+
+Cross-method comparison on a shared 25-task pack:
+
+| Method | Success | Median planner input (tokens) | Median planner output (tokens) | Indicative cost/request (USD) |
+|--------|---------|---:|---:|---:|
+| Standard browser tooling | 24% (6/25) | 10,118 | 74 | $0.041 |
+| OpenClaw browser tooling | 72% (18/25) | 6,833 | 66 | $0.022 |
+| **Semantic Browser** | **100% (25/25)** | **540** | **14** | **$0.004** |
+
+At 5 tasks/day over a year: ~$75/year standard vs ~$7/year Semantic Browser.
+
+These are reference harness results, not universal guarantees. Protocol: [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md). Manifest: [`benchmarks/manifest.json`](benchmarks/manifest.json).
 
 ## CLI Reference
 
 ```bash
-semantic-browser version
-semantic-browser doctor
-semantic-browser install-browser
-semantic-browser launch --headless
-semantic-browser attach --cdp ws://127.0.0.1:9222/devtools/browser/<id>
+semantic-browser version                # Show version
+semantic-browser doctor                 # Verify installation
+semantic-browser install-browser        # Download Chromium
+semantic-browser launch --headless      # Start a session
+semantic-browser attach --cdp <ws-url>  # Attach to running Chrome
+semantic-browser portal --url <url>     # Interactive exploration REPL
 semantic-browser observe --session <id> --mode summary
 semantic-browser act --session <id> --action <action_id>
 semantic-browser inspect --session <id> --target <target_id>
-semantic-browser navigate --session <id> --url https://example.com
+semantic-browser navigate --session <id> --url <url>
+semantic-browser back --session <id>
+semantic-browser forward --session <id>
+semantic-browser reload --session <id>
+semantic-browser diagnostics --session <id>
 semantic-browser export-trace --session <id> --out trace.json
-semantic-browser serve --host 127.0.0.1 --port 8765 --api-token dev-token
+semantic-browser serve --host 127.0.0.1 --port 8765 --api-token <token>
 ```
 
-## Ownership and Attach Safety
+## What's New in v1.3.0
 
-Runtime sessions now carry explicit ownership semantics:
+- **Framework-agnostic element discovery** — AngularJS, Vue, Alpine.js, and custom elements discovered automatically.
+- **Fuzzy structural settle** — live-updating pages (odds, tickers, chat) no longer cause timeouts.
+- **Stable fingerprints** — action IDs use DOM id + CSS selector, not pixel position.
+- **Smarter locator resolution** — volatile framework classes stripped from selectors.
+- **Robust modal detection** — three-tier detection with visibility and size checks.
+- **Increased budgets** — 25 curated actions, 2K room budget, 4K max elements.
+- **SPA navigation awareness** — URL changes during settle are handled correctly.
 
-- `owned_ephemeral`: runtime may close browser/context/page.
-- `owned_persistent_profile`: runtime closes browser process only; never deletes profile data.
-- `attached_context`: runtime does not close external browser/context by default.
-- `attached_cdp`: runtime does not close external Chrome by default.
+Full details: [CHANGELOG.md](CHANGELOG.md)
 
-If you explicitly want destructive close behavior in attached modes, use `force_close_browser()`.
+## Contributing
 
-## Service Security Defaults
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and PR expectations.
 
-- Localhost-focused CORS defaults.
-- Optional token auth via `SEMANTIC_BROWSER_API_TOKEN` / `X-API-Token`.
-- Idle session TTL cleanup.
+## License
 
-## Benchmarks
-
-Benchmark numbers are reference harness runs, not universal guarantees.
-
-- Protocol: `docs/benchmark_protocol.md`
-- Manifest: `benchmarks/manifest.json`
-
-## Open Source Docs
-
-- `docs/getting_started.md`
-- `docs/real_profiles.md`
-- `docs/versioning.md`
-- `docs/publishing.md`
-- `CHANGELOG.md`
-- `LICENSE`
-- `CONTRIBUTING.md`
-- `SECURITY.md`
+MIT — see [LICENSE](LICENSE).

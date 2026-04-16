@@ -1,40 +1,43 @@
 # Versioning
 
-Semantic Browser follows an alpha-first release flow starting at `v1.0`.
+Semantic Browser uses [Semantic Versioning](https://semver.org/) (SemVer).
 
-## Current baseline
+## Current version
 
-- Release tag baseline: `v1.0`
-- Package baseline: `1.0.0`
+**1.3.1** — consistent across `pyproject.toml`, `semantic_browser.__version__`, and README.
 
-## Commit-driven increment rule
+## Version sources
 
-After `v1.0`, each pushed commit increments the package version using:
+The version is defined in exactly two places. Both must match on every release:
 
-- `minor = commits_since_v1_0 // 100`
-- `patch = commits_since_v1_0 % 100`
-- package version: `1.<minor>.<patch>`
+| File | Field |
+|------|-------|
+| `pyproject.toml` | `version = "X.Y.Z"` |
+| `src/semantic_browser/__init__.py` | `__version__ = "X.Y.Z"` |
 
-Examples:
+The README references the current version in the header line. The CHANGELOG records the history.
 
-- first commit after `v1.0` -> package `1.0.1` (display tag style: `v1.01`)
-- tenth commit after `v1.0` -> package `1.0.10` (display tag style: `v1.010`)
-- 100th commit after `v1.0` -> package `1.1.0` (display tag style: `v1.1`)
+## Increment rules
 
-At 1000 commits (`minor == 10`), move to `v2.0`.
+| Change type | Bump | Example |
+|-------------|------|---------|
+| Breaking API change | Major (X) | Removing a public method, changing return types |
+| New feature, backward-compatible | Minor (Y) | New observation mode, new CLI command |
+| Bug fix, docs, version alignment | Patch (Z) | Fix version mismatch, doc improvements |
+
+## Release checklist
+
+1. Update version in `pyproject.toml` and `__init__.py` (both must match).
+2. Add a CHANGELOG entry for the new version.
+3. Ensure README version header matches.
+4. Tag the release in git: `git tag v1.3.1`
+5. Build and publish to PyPI (see `docs/publishing.md`).
+6. Verify: `pip install semantic-browser==1.3.1 && semantic-browser version`
 
 ## Helper script
-
-Use:
 
 ```bash
 python tools/next_version.py
 ```
 
-This prints:
-
-- `commits_since_v1_0`
-- canonical package version (`1.x.y`)
-- display tag style (`v1...`)
-
-If `v1.0` does not exist yet, the script falls back to counting from repo start and reminds you to create the baseline tag.
+Prints the current version state and commit count for reference.

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.3.1
+
+- Fixed version mismatch: `__init__.py` now exports `1.3.0` matching `pyproject.toml` and
+  README (was incorrectly left at `1.2.0`).
+- Documentation overhaul:
+  - Added `docs/planner_contract.md` — canonical interface contract for LLM planners
+    (observation format, allowed replies, blocker handling, failure recovery, system prompt).
+  - Added `docs/integration_examples.md` — end-to-end worked examples for OpenAI chat,
+    OpenAI function-calling, Anthropic tool use, HTTP service, CDP attach, and error
+    handling patterns.
+  - Added `docs/api_reference.md` — complete reference for every public class, method,
+    model field, configuration option, and error type.
+  - Added `docs/runtime_modes.md` — decision table for ephemeral/persistent/clone/attach/
+    service modes with ownership semantics and migration guide.
+  - Rewrote `docs/getting_started.md` — comprehensive onboarding covering portal, Python
+    API, CLI, service mode, output format explanation, and troubleshooting.
+  - Expanded `docs/real_profiles.md` — when to use each profile mode, safety guarantees,
+    common pitfalls, profile path locations.
+  - Restructured `README.md` — cleaner layout, consistent version references, documentation
+    index linking all guides, removed verbose inline details in favor of dedicated docs.
+
 ## 1.3.0
 
 - Framework-agnostic element discovery: custom elements with AngularJS (`ng-click`,

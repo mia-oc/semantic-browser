@@ -18,7 +18,7 @@ Raw journal: `raw/2026-10-06/competitors-v1.7.jsonl` (every step; demo-site pass
 ## Method and honesty notes
 
 - **Single run per task, one machine** (macOS arm64, headless Chromium, live sites). `docs/benchmark_protocol.md` asks for 3 runs and medians;
-  this report does **not** meet that bar, so no figure from it is quoted in the README. Read the numbers as indicative.
+  the hand-driven tables do **not** meet that bar (the replay section below does: 3 runs, medians, raw data), so only the replay figures are the README's headline numbers (its hand-driven summary is labelled single-run). Read the numbers as indicative.
 - The `sb` columns are **aggregates over all recorded steps for that task, including runs made before a fix landed**, so they overstate `sb`'s
   final cost (for instance `shop` shows 24 calls; the final run was 2 calls). Competitors were not re-run after `sb` fixes, but their journals
   also include my own slips (one `ab` success was corrected to a re-run, noted in the journal).
@@ -54,6 +54,35 @@ Medians over every task each tool attempted (from `tj --report`; includes the ca
 Where `sb` was **not** faster: raw per-call latency on a warm page is similar for all three (50-150 ms). `ab` was quicker on `form` (1.6 s vs
 3.1 s) and `todo` because each of its calls is tiny; `sb` wins by needing about a third of the calls, not by being faster per call. `sb` loses
 on token cost for `mdn` versus `ab` (9.7k aggregate, dominated by the two pre-fix runs where the modal was invisible).
+
+## Repeat runs (protocol-grade): `scripts/dogfood/replay.py`
+
+The hand-driven table above is single-run and includes my false starts. To meet `docs/benchmark_protocol.md` (3 runs, medians, raw data), the shortest
+working command sequence each tool needed was replayed 3 times per task, **cold start every run, rounds interleaved** (round -> task -> tool), headless Chromium,
+same machine, 2026-10-06. Raw: `raw/2026-10-06/replay-v1.7.jsonl` (45 runs). Success = the expected answer appears in the output
+(`330`, `points`, `2 items left`, both product names on the cart page, `Dropped!`). `sb` was 1.7.0 from the working tree; `agent-browser` 0.38.2; `@playwright/cli` 0.1.22.
+
+| Task | `sb` | `agent-browser` | `playwright-cli` |
+|---|---|---|---|
+| wiki (Eiffel height) | 3/3 · 2 calls · 2.1 s · 1.8k tok | 3/3 · 2 · 1.8 s · 24.2k | 3/3 · 2 · 1.9 s · 87.5k |
+| hn (front page) | 3/3 · 1 · 1.7 s · 1.3k | 3/3 · 2 · 1.9 s · 1.0k | 3/3 · 2 · 2.1 s · 12.0k |
+| todo (3 adds, tick one) | 3/3 · 2 · 2.2 s · 0.4k | 3/3 · 11 · 2.1 s · 0.7k | 3/3 · 11 · 5.0 s · 3.2k |
+| shop (login, 2 adds, cart) | 3/3 · 2 · 2.8 s · 0.5k | 3/3 · 10 · 2.0 s · 0.9k | 3/3 · 10 · 5.2 s · 3.5k |
+| dnd (drag) | 3/3 · 2 · 2.1 s · 0.2k | 3/3 · 5 · 2.0 s · 0.1k | 3/3 · 4 · 2.9 s · 0.4k |
+| **median of all 15 runs** | **2 calls · 2.1 s · 460 tok** | 5 · 2.0 s · 862 | 4 · 2.9 s · 3,486 |
+
+Reading it honestly:
+
+- **Calls and tokens favour `sb`; browser time does not.** `agent-browser` is as fast or faster per task (shop 2.0 s vs 2.8 s, todo 2.1 s vs 2.2 s): its calls are tiny, while `sb`'s first call
+  starts a background browser daemon. `playwright-cli` is slower on multi-step tasks (5 s) and verbose on big pages (87.5k tokens for Wikipedia).
+- `agent-browser` prints less than `sb` on the smallest pages (HN 1.0k vs 1.3k, drag 0.1k vs 0.2k) because it lists only interactive elements; it pays for that on
+  content questions (Wikipedia 24.2k, since `read` dumps the page).
+- The replay is **hindsight for all three tools**: refs and sequences come from the hand-driven runs. It measures what each tool costs when the model knows what to do. It does not
+  measure how well a model finds its way, which is what the hand-driven table does (and where `agent-browser` failed the shop task: clicks reported `✓ Done` with no page change; the replay
+  shows the same task passes with the right refs, so that failure was about discovering them from its output).
+- Illustration, not a measurement: with a model turn of ~4 s the shop task is ~11 s for `sb` (2.8 + 2x4), ~42 s for `agent-browser` (2.0 + 10x4) and ~45 s for `playwright-cli` (5.2 + 10x4).
+  The turn time is an assumption; the call counts are measured.
+- Five tasks, one machine, three runs: indicative. Tokens = printed characters / 4.
 
 ## Sites covered by `sb` beyond the head-to-head set
 

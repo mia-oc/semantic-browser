@@ -4,7 +4,7 @@
   <img src="https://github.com/user-attachments/assets/dac79ee0-6ebb-48b3-a27d-2e339ea16961" alt="Semantic Browser mascot" width="240" align="right" />
 </p>
 
-**Version 1.7.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
+**Version 1.7.1 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
 
 Semantic Browser turns live Chromium pages into compact, numbered text views for LLM agents. The agent reads one short view
 (content *and* its options), replies with one command like `click 12`, and the runtime executes it on that exact element.
@@ -23,9 +23,28 @@ $ sb click 4
 clicked [4] 'Anvil Pro' -> now at 'Anvil Pro' (https://shop.example/p/anvil-pro)
 ```
 
-Less confusion, less hallucination, dramatically less cost: on 8 live sites the model reads a median **~2.5k tokens per step (1.3k with
-`--budget 2500`) instead of ~15k for a raw accessibility snapshot**, at ~1.4 s per two-step task with 16/16 success
-([benchmark report](docs/benchmarks/2026-10-06-dogfood-v1.4.md)).
+## Why this is a different way to browse for an AI
+
+Most browser tools for agents give the model either a **screenshot** or a **dump of the page's internals** (an accessibility tree or the HTML), and
+then ask it to pick an element id. That is like asking someone to run a web page by reading its wiring diagram. The model has to wade through
+thousands of tokens it doesn't need, guess which of six identical "Add to cart" buttons is which, and take a "✓ Done" on trust even when nothing happened.
+
+Semantic Browser prints the page **the way a person would read it out loud**: headings, text, prices and options, with each button, link and
+field sitting *inside* the sentence it belongs to and numbered (`[4]Anvil Pro £89.50 Low stock`). Duplicates say what they belong to
+(`Add to cart — Sauce Labs Backpack`). Menus and footers are folded away, and long pages are windowed. After every action it tells you what changed
+(or that nothing did), and a stale number is refused instead of silently hitting a different button.
+
+**Why that is faster.** All of these tools drive the same Chromium through Playwright, so the browser itself takes about the same time
+(50-150 ms per step; see below). What costs real time in an agent is the *model*: every extra step is another turn of a few seconds, plus all the tokens it reads.
+Semantic Browser saves exactly those:
+
+1. **Fewer turns.** Because the model can name what it wants (`click "Add to cart — Sauce Labs Backpack"`) and chain steps (`sb do "type …" "type …" "click Cart"`),
+   logging into a shop, adding two items and opening the cart takes **2 calls instead of 10**.
+2. **Less to read.** The Eiffel Tower's height costs ~1.8k tokens (search the whole page with `find`) against 24k-87k for a full dump of the same page.
+3. **No wasted retries.** Actions are verified and the page is told when it is gated (`! BLOCKING OVERLAY`, `! This looks like a bot/verification page`),
+   and a script that never loads can't hold a page hostage (`goto` returns after a short grace window instead of waiting a minute).
+
+Measured figures are in [Benchmarks](#benchmarks), including where it is *not* faster.
 
 ## Give it to your agent (30 seconds)
 
@@ -46,7 +65,7 @@ messages, bot-wall and CAPTCHA signalling, and rules that treat page text as unt
 
 - **One compact view** — page content with inline `[n]` refs; shadow DOM, iframes (cross-origin too), custom div widgets and duplicate labels handled.
 - **Exact-element execution** — a ref is bound to one element handle; stale refs fail loudly, never retarget (no silent `<body>` clicks).
-- **Fast** — event-driven settling: ~0.3–0.5 s to a usable page; whole 3–5-step tasks in ~0.3–1 s on the local hard-pattern suite (v1.3.2: ~4 s).
+- **Fewer model turns** — chained steps and label targets cut a 10-step task to 2 calls (measured vs `agent-browser` and `@playwright/cli`: [Benchmarks](#benchmarks)); the browser time per step is the same as theirs.
 - **Built-in blockers** — cookie banners and modals are detected with a ranked dismiss hint; bot walls and rate limits are flagged (`! This looks like a bot/verification page`) so an agent stops instead of hammering.
 - **CAPTCHA assist** — `sb captcha` produces a numbered (or, for canvas puzzles, ruler-annotated) image or PDF for a vision model, performs the clicks/drags it names, and reports ACCEPTED/REJECTED from the page's own message. Exercised on vendors' public demos only.
 - **Real controls** — sliders show their value, file inputs take `upload`, and `drag`, `dblclick`, `click --right` exist; hung third-party scripts no longer stall `goto`.
@@ -166,19 +185,35 @@ Chromium page ──one JS walk per frame──▶ semantic nodes + reading-orde
 
 ## Benchmarks
 
-Latest dogfood run (details, protocol, raw data and caveats: [docs/benchmarks/2026-10-06-dogfood-v1.4.md](docs/benchmarks/2026-10-06-dogfood-v1.4.md)):
+Same five tasks, same Chromium, same machine, run **three times each, cold start every time, rounds interleaved** with `scripts/dogfood/replay.py`
+(macOS arm64, headless, live sites, 2026-10-06; `sb` 1.7.0 vs `agent-browser` 0.38.2 vs `@playwright/cli` 0.1.22).
+A run passes only if the right answer appears in the tool's output. Each cell is *median calls · median seconds · median tokens read*; every cell passed 3/3.
 
-| Method | Local hard-pattern suite | 8 live sites | Tokens read / step (live, median) |
-|--------|---:|---:|---:|
-| v1.3.2 | 12/27 | 14/16 | ~0.8k |
-| Raw Playwright accessibility snapshot | 21/27 | 11/16 | ~15k (max 143k) |
-| **v1.4** | **27/27** | **16/16** | ~2.5k (1.3k with `--budget 2500`) |
+| Task | `sb` | `agent-browser` | `playwright-cli` |
+|---|---|---|---|
+| Eiffel Tower height (Wikipedia) | 2 · 2.1 s · **1.8k** | 2 · **1.8 s** · 24.2k | 2 · 1.9 s · 87.5k |
+| Read the Hacker News front page | **1** · **1.7 s** · 1.3k | 2 · 1.9 s · **1.0k** | 2 · 2.1 s · 12.0k |
+| Add 3 todos, tick one (TodoMVC) | **2** · 2.2 s · **0.4k** | 11 · **2.1 s** · 0.7k | 11 · 5.0 s · 3.2k |
+| Log in, add 2 items, open cart (saucedemo) | **2** · 2.8 s · **0.5k** | 10 · **2.0 s** · 0.9k | 10 · 5.2 s · 3.5k |
+| Drag one box onto another | **2** · **2.1 s** · 0.2k | 5 · 2.0 s · **0.1k** | 4 · 2.9 s · 0.4k |
+| **All 15 runs: median** | **2 calls · 2.1 s · 460 tokens** | 5 calls · 2.0 s · 862 tokens | 4 calls · 2.9 s · 3,486 tokens |
 
-**Real model, live sites** (me, Claude Sonnet 5.5, one command per call, journaled with `scripts/dogfood/sbj.py`;
-[report](docs/benchmarks/2026-10-06-dogfood-real-model.md)): round 1 on 1.4.0 completed 11 of 13 tasks (median 4 calls; it found a wrong-price bug and several missing-control bugs);
-after the fixes the final round completed 7 of 7 (median 1 call, ~0.26k tokens read; part of that is the new `do` batching). Reddit and Hacker News blocked this IP in every mode and are reported as such.
+What this does and doesn't say, honestly:
 
-The first table is a scripted stand-in for the model; the real-model numbers above are a handful of tasks on one machine. Neither is a universal guarantee. Protocol: [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md). Manifest: [`benchmarks/manifest.json`](benchmarks/manifest.json).
+- **Calls are where `sb` wins** (2 vs 10 on the shop and todo tasks), and tokens on big pages (Wikipedia: 13-49x less to read). Each call is a model turn.
+  *Illustration, not a measurement:* if a model turn takes ~4 s, the shop task is about 11 s with `sb` (2.8 s browser + 2 turns) against ~42 s (`agent-browser`) and ~45 s (`playwright-cli`).
+- **Browser time is a tie, and `agent-browser` is sometimes ahead.** Its calls are tiny and fast (the shop task: 2.0 s vs 2.8 s, since `sb` starts a background
+  browser daemon on the first call). On small pages its terse output also uses slightly fewer tokens (HN, drag-and-drop).
+- The command sequences are the **shortest each tool needed**, found by driving each tool by hand first; they are replayed with the refs that run read from the tool's own output. That is hindsight for all three, so the replay
+  measures per-tool cost, not how well a model finds its way. For that, see the hand-driven run next.
+- Five tasks, one machine, three runs: indicative, not a guarantee.
+
+**Hand-driven, live sites** (me, Claude Sonnet 5.5, one command per call, about 35 sites and tasks, single runs that include my false starts; full table, failures and fixes in
+[the comparison report](docs/benchmarks/2026-10-06-competitors-v1.7.md)): `sb` completed 16 of 19 tasks (median 3 calls), `agent-browser` 6 of 10 (median 9.5) and
+`playwright-cli` 7 of 9 (median 8). Its failures were clicks that printed `✓ Done` while the page didn't change, and a page whose script hangs for 30 s (the replay above shows `agent-browser` can do the shop task once the right refs are known; I couldn't get there by reading its output). Cloudflare-gated sites (npm, Stack Overflow) blocked every tool.
+
+CAPTCHA demos completed (vendors' public pages only): reCAPTCHA v2, hCaptcha, Cloudflare Turnstile (testing key), captcha.com text. Earlier scripted-model results (1.4) and the real-model rounds (1.5): [dogfood-v1.4](docs/benchmarks/2026-10-06-dogfood-v1.4.md), [real-model](docs/benchmarks/2026-10-06-dogfood-real-model.md).
+Protocol: [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md). Manifest: [`benchmarks/manifest.json`](benchmarks/manifest.json). Reproduce: `SAUCEDEMO_PASSWORD=<the demo site's published password> python scripts/dogfood/replay.py --runs 3`.
 
 ## CLI Reference
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-__version__ = "1.7.0"
+__version__ = "1.7.1"
 
 if TYPE_CHECKING:  # pragma: no cover
     from semantic_browser.agent import AgentSession

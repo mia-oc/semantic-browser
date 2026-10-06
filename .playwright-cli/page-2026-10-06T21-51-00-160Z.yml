@@ -1,0 +1,6 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - paragraph [ref=e4]: Drag me to my target
+    - paragraph [ref=e6]: Drop here
+    - paragraph [ref=e8]: start
+  - paragraph [ref=e10]: Taken from the JQuery demo.

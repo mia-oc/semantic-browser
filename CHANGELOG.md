@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.1
+
+Documentation and tooling only; no change to runtime behaviour.
+
+### Added
+- `scripts/dogfood/replay.py`: replays the shortest working command sequence of each tool N times (cold start, interleaved rounds) and reports medians, with pass/fail by expected output.
+- README: a plain-language explanation of why this approach differs (a page read aloud, not wiring) and why it saves model turns and tokens, and **measured** benchmark figures
+  from 3 interleaved runs of 5 tasks against `agent-browser` and `@playwright/cli` (15/15 passed for each; median 2 / 5 / 4 calls, 2.1 / 2.0 / 2.9 s, 460 / 862 / 3,486 tokens),
+  including where `sb` is not faster (browser time is a tie; `agent-browser` prints less on small pages). Raw data: `docs/benchmarks/raw/2026-10-06/replay-v1.7.jsonl`.
+- Replaces the 1.4-era README benchmark table (scripted stand-in model) with these figures.
+
 ## 1.7.0
 
 A wide hand-driven dogfood sweep (about 35 sites and tasks) against `agent-browser`, `@playwright/cli` and `browse`, timed with `scripts/dogfood/tj.py`.

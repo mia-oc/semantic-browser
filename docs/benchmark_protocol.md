@@ -14,7 +14,7 @@ Use this protocol before publishing benchmark numbers in `README.md`.
 
 ## Tooling
 
-`scripts/dogfood/tj.py` journals hand-driven runs of any CLI (`tj TOOL TASK words...`, `tj --done TOOL TASK success|fail|partial "note"`, `tj --report`);
+`scripts/dogfood/replay.py` repeats a fixed per-tool command sequence N times (cold start, interleaved rounds, medians, pass = expected text present) so a hand-driven result can meet the 3-run rule; refs in its sequences come from a hand-driven run, so it measures tool cost, not model navigation. `scripts/dogfood/tj.py` journals hand-driven runs of any CLI (`tj TOOL TASK words...`, `tj --done TOOL TASK success|fail|partial "note"`, `tj --report`);
 it records calls, wall time and output size per step. See `docs/benchmarks/2026-10-06-competitors-v1.7.md` for an example run.
 
 ## Reproducibility rules

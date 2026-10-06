@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.2
+
+Documentation only; no change to runtime behaviour.
+
+### Changed
+- README opens with a plain-English explanation of what Semantic Browser is, how it differs from screenshot/accessibility-dump browser tools, and why that saves model turns and tokens (and why it is not a faster browser).
+- Every benchmark figure in the docs is now measured on 1.7: the local hard-pattern suite (27/27 vs raw Playwright 21/27), the live-site suite run as 3 interleaved rounds (24/24 vs 17/24; `sb` reads ~5x fewer tokens but is ~0.5 s slower per task), and navigation warm/cold (339/434 ms, 1.3k tokens). Report: `docs/benchmarks/2026-10-06-v1.7-suites.md`, raw data under `docs/benchmarks/raw/2026-10-06/v1.7-*.jsonl`.
+- Older reports (1.3.2/1.4/1.5) carry a "historical" banner; the lite-mode and requirements docs now cite the 1.7 numbers. Benchmark protocol: live suites must interleave methods.
+
 ## 1.7.1
 
 Documentation and tooling only; no change to runtime behaviour.

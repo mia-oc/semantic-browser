@@ -1,4 +1,4 @@
-# Requirements (v1.4)
+# Requirements (v1.7)
 
 ## User-visible behaviour
 
@@ -15,9 +15,9 @@
 | R9 | Lite mode never breaks CAPTCHA images and is off by default | `test_lite_*` |
 | R10 | Existing Python/HTTP API continues to work; `engine="legacy"` restores v1.3 room text | existing suite (116 tests) |
 
-## KPIs (measured, see `docs/benchmarks/dogfood_v1.4.md`)
+## KPIs (measured on 1.7, see `docs/benchmarks/2026-10-06-v1.7-suites.md` and `2026-10-06-competitors-v1.7.md`)
 
-* Local hard-pattern suite: success rate and median wall time vs v1.3.2 and raw Playwright.
+* Local hard-pattern suite: success rate and median wall time vs raw Playwright (1.7: 27/27 vs 21/27, 0.47 s vs 0.58 s).
 * Real-site read-only scenarios: success, median wall time, tokens shown to the model per task.
 * `navigate` and `act` latency (median, local fixtures).
 

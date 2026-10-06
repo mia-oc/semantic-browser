@@ -23,7 +23,7 @@ Status legend: `[x]` done · `[ ]` open
 - [x] Results: [`benchmarks/2026-10-06-dogfood-v1.4.md`](benchmarks/2026-10-06-dogfood-v1.4.md).
 
 ## Phase 3 — Fix (only keep what the benchmark proves)
-- [x] F1 Fast settle (event-driven, network-aware): local suite 4.1 s -> 0.44 s median, real sites 4.5 s -> 1.4 s.
+- [x] F1 Fast settle (event-driven, network-aware): local suite 4.1 s -> 0.44 s median, real sites 4.5 s -> 1.4 s (1.4-era figures; re-measured on 1.7: 0.47 s local, 1.9 s interleaved live; see `benchmarks/2026-10-06-v1.7-suites.md`).
 - [x] F2 Page view: content + inline numbered refs, context-disambiguated labels (27/27 local, 16/16 real).
 - [x] F3 Ref-handle execution (no ordinal bug, no `body` false-success, shadow DOM + cross-origin frames); refs monotonic per session.
 - [x] F4 Persistent daemon + thin stdlib CLI (`sb`), label targets, `view --expand`.
@@ -63,6 +63,7 @@ Status legend: `[x]` done · `[ ]` open
 - [x] Navigation: DOMContentLoaded grace + `_unstick` for hung blocking resources (50-100 s `goto` -> a few seconds).
 - [x] CAPTCHA: canvas kind with coordinate ruler, `captcha click/drag`, REJECTED/ACCEPTED from the page's own text; demos completed: reCAPTCHA, hCaptcha, Turnstile (testing key), captcha.com text.
 - [x] Version 1.7.0; publish via `scripts/publish.sh --upload`.
+- [x] 1.7.2: every benchmark figure in the docs re-measured on 1.7 (local suite, interleaved live suite, navigation warm/cold; [`benchmarks/2026-10-06-v1.7-suites.md`](benchmarks/2026-10-06-v1.7-suites.md)); old reports marked historical; README opens with a plain-English explanation.
 - [x] 1.7.1: repeat-run replay (`scripts/dogfood/replay.py`, 3 interleaved runs, medians) and README with measured figures + plain-language rationale.
 
 ## Follow-ups (not started; see benchmark report "Known limitations")
@@ -75,7 +76,6 @@ Status legend: `[x]` done · `[ ]` open
 - Recognise a page's inner scroll container in `[screen n/m]` (Paddy Power reports 1/1).
 - Review remaining legacy-engine issues: `_extract_nav_labels` precedence, `blockers.py` modal rect key.
 - Press-and-hold / audio CAPTCHA verbs; Arkose/GeeTest demos.
-- Re-run the 1.7 comparison 3x with medians so numbers can go in the README (protocol gate).
 - eBay returns an error page to headless search; investigate whether headful/`--profile` changes it.
 
 ## Non-negotiables

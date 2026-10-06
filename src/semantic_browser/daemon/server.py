@@ -42,6 +42,7 @@ async def _serve(args: argparse.Namespace) -> None:
         headful=not args.headless, profile_dir=args.profile, cdp=args.cdp, name=name, lite=args.lite,
         budget=args.budget,
     )
+    started_at = time.time()
     lock = asyncio.Lock()
     stop = asyncio.Event()
     last = {"t": time.monotonic()}
@@ -56,7 +57,7 @@ async def _serve(args: argparse.Namespace) -> None:
             if not isinstance(argv, list) or not all(isinstance(a, str) for a in argv):
                 reply = {"ok": False, "text": "ERROR: bad request"}
             elif argv[:1] == ["__ping__"]:
-                reply = {"ok": True, "text": "pong"}
+                reply = {"ok": True, "text": "pong", "started": started_at, "pid": os.getpid()}
             else:
                 last["t"] = time.monotonic()
                 t0 = time.perf_counter()

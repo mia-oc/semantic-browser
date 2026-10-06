@@ -4,7 +4,7 @@
   <img src="https://github.com/user-attachments/assets/dac79ee0-6ebb-48b3-a27d-2e339ea16961" alt="Semantic Browser mascot" width="240" align="right" />
 </p>
 
-**Version 1.4.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
+**Version 1.5.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
 
 Semantic Browser turns live Chromium pages into compact, numbered text views for LLM agents. The agent reads one short view
 (content *and* its options), replies with one command like `click 12`, and the runtime executes it on that exact element.
@@ -47,12 +47,13 @@ For service mode: `pip install "semantic-browser[server]"`
 
 ## Quickstart
 
-### Agent CLI (`sb`, new in 1.4)
+### Agent CLI (`sb`, new in 1.4; `do` batches in 1.5)
 
 ```bash
 sb goto news.ycombinator.com   # first call starts a background Chromium (headful); later calls reuse it
 sb click 12                    # act on the [12] you see in the view (or: sb click "comments")
-sb find "price"                # search the whole page
+sb find "price"                # search the whole page (table rows come with their column headers)
+sb do "type 3 boots --enter" "click Football" view   # several steps, ONE call (stops at the first failure)
 sb captcha --pdf               # annotated image of a CAPTCHA for a vision model
 sb stop
 ```
@@ -157,7 +158,11 @@ Latest dogfood run (details, protocol, raw data and caveats: [docs/benchmarks/20
 | Raw Playwright accessibility snapshot | 21/27 | 11/16 | ~15k (max 143k) |
 | **v1.4** | **27/27** | **16/16** | ~2.5k (1.3k with `--budget 2500`) |
 
-These are single-machine results from a scripted stand-in for the model, not universal guarantees. Protocol: [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md). Manifest: [`benchmarks/manifest.json`](benchmarks/manifest.json).
+**Real model, live sites** (me, Claude Sonnet 5.5, one command per call, journaled with `scripts/dogfood/sbj.py`;
+[report](docs/benchmarks/2026-10-06-dogfood-real-model.md)): round 1 on 1.4.0 completed 11 of 13 tasks (median 4 calls; it found a wrong-price bug and several missing-control bugs);
+after the fixes the final round completed 7 of 7 (median 1 call, ~0.26k tokens read; part of that is the new `do` batching). Reddit and Hacker News blocked this IP in every mode and are reported as such.
+
+The first table is a scripted stand-in for the model; the real-model numbers above are a handful of tasks on one machine. Neither is a universal guarantee. Protocol: [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md). Manifest: [`benchmarks/manifest.json`](benchmarks/manifest.json).
 
 ## CLI Reference
 
@@ -179,6 +184,22 @@ semantic-browser diagnostics --session <id>
 semantic-browser export-trace --session <id> --out trace.json
 semantic-browser serve --host 127.0.0.1 --port 8765 --api-token <token>
 ```
+
+## What's New in v1.5.0
+
+Everything here came from driving `sb` as a real model (Claude Sonnet 5.5) on live sites, then fixing what hurt
+([report](docs/benchmarks/2026-10-06-dogfood-real-model.md)):
+
+- **`sb do "step" "step" …`** — a whole GOV.UK visa wizard (8 steps) is one call; median task went from 4 calls to 1.
+- **Correct text on hard markup** — Amazon prices no longer lose their decimal (`£569` → `£5.69`); transparent radios/checkboxes
+  (GOV.UK) have refs; delegated-handler widgets (jQuery UI datepicker Prev/Next) are controls.
+- **Honest overlays** — the dismiss hint ranks close/reject/short-accept, never "Continue", sign-in or pay-to-reject; `view --all` shows the page behind.
+- **Better `find`** — centred snippets, real `<th>` column headers, works behind an overlay. Labels you type (`click Save settings`) resolve, and
+  ambiguous ones show where each candidate goes.
+- **CAPTCHA** — the image is captured once the page is still (dynamic reCAPTCHA grids replace tiles after Verify).
+- Stale background sessions restart themselves after an upgrade. Release tooling: `scripts/publish.sh`.
+
+Full list: [CHANGELOG.md](CHANGELOG.md). Note: 1.4.0 was never published to PyPI; 1.5.0 includes it.
 
 ## What's New in v1.4.0
 

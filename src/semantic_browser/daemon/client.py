@@ -45,13 +45,35 @@ def _request(sock_file: Path, argv: list[str], timeout: float) -> dict:
         s.close()
 
 
-def _alive(sock_file: Path) -> bool:
+def _ping(sock_file: Path) -> dict | None:
     if not sock_file.exists():
-        return False
+        return None
     try:
-        return bool(_request(sock_file, ["__ping__"], 3).get("ok"))
+        reply = _request(sock_file, ["__ping__"], 3)
     except (OSError, ValueError):
-        return False
+        return None
+    return reply if reply.get("ok") else None
+
+
+def _alive(sock_file: Path) -> bool:
+    return _ping(sock_file) is not None
+
+
+def _code_mtime(pkg_dir: Path | None = None) -> float:
+    """Newest modification time of the installed package's source (python + the snapshot script)."""
+    root = pkg_dir or Path(__file__).resolve().parent.parent
+    newest = 0.0
+    for pattern in ("*.py", "*.js"):
+        for p in root.rglob(pattern):
+            with contextlib.suppress(OSError):
+                newest = max(newest, p.stat().st_mtime)
+    return newest
+
+
+def _is_stale(ping: dict, pkg_dir: Path | None = None) -> bool:
+    """True when the library changed on disk after the daemon started (e.g. `pip install -U`), so it runs old code."""
+    started = ping.get("started")
+    return isinstance(started, (int, float)) and _code_mtime(pkg_dir) > started + 1
 
 
 def _spawn(name: str, opts: dict) -> subprocess.Popen:
@@ -64,14 +86,19 @@ def _spawn(name: str, opts: dict) -> subprocess.Popen:
         cmd += ["--cdp", opts["cdp"]]
     if opts.get("budget"):
         cmd += ["--budget", str(opts["budget"])]
-    log = open(_run_dir() / f"{name}.log", "ab")  # noqa: SIM115 - handed to the child
+    log = open(_run_dir() / f"{name}.log", "wb")  # noqa: SIM115 - handed to the child; fresh per start so errors are current
     return subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
 
 
 def _ensure_daemon(name: str, opts: dict) -> Path:
     sock_file = _run_dir() / f"{name}.sock"
-    if _alive(sock_file):
+    ping = _ping(sock_file)
+    if ping is not None and not _is_stale(ping):
         return sock_file
+    if ping is not None:  # running old code: restart it (the browser session is lost; say so)
+        print(f"note: restarting session '{name}' because semantic-browser was updated since it started (page state reset).", file=sys.stderr)
+        _stop(name)
+        time.sleep(0.3)
     with contextlib.suppress(FileNotFoundError):
         sock_file.unlink()
     proc = _spawn(name, opts)
@@ -84,8 +111,22 @@ def _ensure_daemon(name: str, opts: dict) -> Path:
         time.sleep(0.1)
     tail = ""
     with contextlib.suppress(OSError):
-        tail = (_run_dir() / f"{name}.log").read_text(errors="replace")[-600:]
-    raise SystemExit(f"ERROR: could not start the browser daemon.\n{tail}")
+        tail = (_run_dir() / f"{name}.log").read_text(errors="replace")[-4000:]
+    raise SystemExit(f"ERROR: could not start the browser daemon.\n{_root_cause(tail)}")
+
+
+def _root_cause(log: str) -> str:
+    """The one line that explains a daemon start failure (plus the usual fix), not the head of a traceback."""
+    lines = [ln.strip() for ln in log.splitlines() if ln.strip()]
+    if not lines:
+        return "(the daemon exited without writing a log)"
+    cause = next((ln for ln in reversed(lines) if re.match(r"^[\w.]*(Error|Exception|Exit)\b.*:|^[\w.]+Error\b", ln)), lines[-1])
+    hint = ""
+    if "ECONNREFUSED" in cause or "connect_over_cdp" in cause:
+        hint = "\nIs the browser running with remote debugging on that port? (chrome --remote-debugging-port=PORT)"
+    elif "Executable doesn't exist" in log or "playwright install" in log:
+        hint = "\nRun: python -m playwright install chromium"
+    return cause[:400] + hint
 
 
 def _list_daemons() -> str:

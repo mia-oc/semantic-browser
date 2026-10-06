@@ -135,6 +135,22 @@ document.getElementById('verify').onclick=()=>{var ok=truth.length===picked.size
 """,
 )
 
+CAPTCHA_DYNAMIC = _page(
+    "Verify you are human",
+    """<h1>Security check</h1><div id=cap style="border:1px solid #888;padding:8px;width:330px">
+<p id=prompt><b>Select all squares with a red circle. Click verify once there are none left.</b></p>
+<div id=grid style="display:grid;grid-template-columns:repeat(3,100px);gap:2px"></div>
+<button id=verify>Verify</button></div><div id=outcome></div>""",
+    """
+var picked=new Set();var g=document.getElementById('grid');
+function draw(t,i){t.dataset.gen=(+t.dataset.gen||0)+(t.dataset.init?1:0);t.dataset.init=1;t.style.outline='none';
+ t.innerHTML='<svg width="100" height="100"><'+((+t.dataset.gen)%2===0&&i%2===0?'circle cx="50" cy="50" r="30" fill="red"':'rect x="20" y="20" width="60" height="60" fill="blue"')+'/></svg>';}
+for(let i=0;i<9;i++){const t=document.createElement('div');t.className='tile';t.style.cssText='width:100px;height:100px;background:#eef;cursor:pointer';
+ draw(t,i);t.onclick=()=>{if(picked.has(i)){picked.delete(i);t.style.outline='none';}else{picked.add(i);t.style.outline='3px solid #0a0';}};g.appendChild(t);}
+document.getElementById('verify').onclick=()=>{var sel=[...picked];setTimeout(()=>{sel.forEach(i=>{picked.delete(i);draw(g.children[i],i);});},1000);};
+""",
+)
+
 LAZY = _page(
     "Feed",
     '<h1>Activity feed</h1><div id=feed></div><div id=sentinel style="height:10px"></div><div id=outcome></div>',
@@ -162,6 +178,7 @@ PAGES = {
     "/search": SEARCH,
     "/search_item": SEARCH_ITEM,
     "/captcha": CAPTCHA,
+    "/captcha_dynamic": CAPTCHA_DYNAMIC,
     "/lazy": LAZY,
     "/hover": HOVER,
     "/hover_target": HOVER_TARGET,

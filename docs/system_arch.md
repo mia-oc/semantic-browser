@@ -1,4 +1,4 @@
-# System Architecture (v1.4)
+# System Architecture (v1.5)
 
 ```
  AI agent / shell                          Python caller                      HTTP caller
@@ -47,6 +47,12 @@
   are scoped to owned tabs (`runtime.restrict_tabs_to`); other tabs' titles are never read into model context. Only the owned tab is closed on exit.
 * Secrets: password / `cc-*` / `one-time-code` fields render as `•••`; daemon, captcha and screenshot directories are 0700 and checked
   for ownership before use (`daemon/paths.private_dir`).
+* Text policy in `snapshot.js`: visually-hidden text (off-canvas, 1px-clipped, `opacity:0`) is dropped *unless* it is the accessible twin of an
+  `aria-hidden` visual sibling (prices), in which case the twin is shown and the decoration dropped (`srOnly`/`hasHiddenTwin`/`hasSrTwin`/`opacityTwin`).
+  Transparent radios/checkboxes are controls. Table cells carry `h` (header) / `d` (data-table) markers so the view can keep blank cells and `find` can
+  show `↳ columns:` from real `<th>` rows only.
+* `do` is a verb-layer feature (`agent.py`): it re-enters `AgentSession.run` per step and stops at the first failure prefix; the daemon still sees one request.
+* The daemon's `__ping__` reply carries its start time; the thin client compares it with the newest package source mtime and restarts a stale daemon.
 * Snapshot JS returns a JSON **string** (structured returns cost ~3× in Playwright serialisation).
 * The thin client imports only the stdlib; the package `__init__` is lazy.
 

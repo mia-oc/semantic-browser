@@ -587,7 +587,8 @@ class SemanticBrowserRuntime:
         settle_ms = int((time.perf_counter() - settle_start) * 1000)
         obs_after = await self.observe(mode="delta", settle=False)
         delta = build_delta(obs_before, obs_after)
-        if self._needs_grace(action, outcome, delta, popup_note):
+        before_title, after_title = obs_before.page.title, obs_after.page.title
+        if before_title == after_title and self._needs_grace(action, outcome, delta, popup_note):  # a changed title IS the effect
             grace_cfg = self._config.settle.model_copy(
                 update={"quiet_ms": self._config.settle.grace_ms, "action_cap_ms": self._config.settle.grace_cap_ms}
             )
@@ -711,6 +712,10 @@ class SemanticBrowserRuntime:
             if new_lines or gone:
                 shown = "; ".join(ln[:90] for ln in new_lines[:4])
                 bits.append(f"page changed (+{len(new_lines)}/-{gone} lines){': ' + shown if shown else ''}")
+                if before.page.title != after.page.title:
+                    bits.append(f"title is now {after.page.title[:80]!r}")
+            elif before.page.title != after.page.title:
+                bits.append(f"page title is now {after.page.title[:80]!r}")
             elif not popup_note and action.op in {"click", "open", "toggle", "fill"} and "unchanged" not in (message or ""):
                 bits.append("no visible change on the page")
         if self._view is not None:

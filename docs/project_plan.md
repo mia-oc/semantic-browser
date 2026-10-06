@@ -1,4 +1,4 @@
-# Project Plan — v1.4 "Dogfood overhaul"
+# Project Plan — v1.4 "Dogfood overhaul" → v1.5 "Real-model dogfooding"
 
 North star: an AI agent should drive a real browser **as fast and as cheaply as a CLI**,
 with the page's *content and its options in one compact view*, and a path through
@@ -39,11 +39,24 @@ Status legend: `[x]` done · `[ ]` open
 - [x] Version bump to 1.4.0, CHANGELOG, README.
 - [x] Commit, push (fork -> PR to upstream), tag. PyPI upload: see scratchpad for what the machine could actually do.
 
+## Phase 5 — Real-model dogfooding (v1.5)
+- [x] Vet the repo for OpenClaw-era harness/config; remove it (scripts, journals, docs); protocol now requires a *named* planner.
+- [x] Drive the tool myself (Claude Sonnet 5.5) on live sites with a journaling wrapper (`scripts/dogfood/sbj.py`, typed text redacted).
+      Round 1: 11/13 tasks, median 4 calls. [`benchmarks/2026-10-06-dogfood-real-model.md`](benchmarks/2026-10-06-dogfood-real-model.md)
+- [x] Fix, test-first, what hurt: wrong prices (accessible twin), transparent radios, delegated handlers, overlay hints, `view --all`, `find`
+      (snippets, `<th>` columns, behind overlays), label targets, stretched-link `covered`, blank table cells, title-only effects,
+      CAPTCHA image settling, stale daemon, daemon start errors, `do` batching, `scroll N`.
+- [x] Round 3 (final code): 7/7 tasks, median 1 call.
+- [x] Release plumbing: `scripts/publish.sh`, `.env.example`, CI `pip-audit` fix. Version 1.5.0 (1.4.0 was never published).
+
 ## Follow-ups (not started; see benchmark report "Known limitations")
 - Brief mode: print only changed lines after non-navigating actions.
 - Fold repeated sidebar chrome after in-site navigation (Paddy Power repeats ~50 menu links before the content).
 - Profile HN/Amazon latency after clicks.
-- Run real weak LLMs through the harness instead of the oracle model.
+- Run a *weaker* LLM (not just a frontier model) through `sbj.py` to see which verbs/messages it trips on.
+- Fold promo/donation banners and the doubled rating/label text seen on Amazon/Guardian.
+- Skip the grace re-settle for `check`/toggle when the element's own line changed.
+- Recognise a page's inner scroll container in `[screen n/m]` (Paddy Power reports 1/1).
 - Review remaining legacy-engine issues: `_extract_nav_labels` precedence, `blockers.py` modal rect key.
 - Press-and-hold / slider / audio CAPTCHA verbs; hCaptcha/Turnstile verification.
 

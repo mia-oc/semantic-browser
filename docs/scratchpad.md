@@ -49,3 +49,21 @@
 - **Do not run shells with `-x`/xtrace.** It echoed an exported secret from `~/.zshenv` into the log. Debug with `echo`/`set -e` instead.
 - Playwright returns big structured objects slowly; `JSON.stringify` in the page + `json.loads` was ~3x faster for the snapshot.
 - Raw Playwright is *fast* (~200 ms) but hands the model 5–120 k tokens per step; the product is tokens-to-decision, not browser speed.
+
+### v1.5 real-model dogfood lessons (2026-10-06)
+
+- **Drive the tool as the real model, not a scripted oracle.** The oracle chose locators from the same text it was graded on, so it could not
+  notice a *wrong* price (`£569`), controls with no ref (GOV.UK radios) or a hint pointing at "Continue". Only reading the output as a model did.
+- **A wrong answer is worse than a missing one.** `find` printed the "World" total row as the column header once; the fix is "only real `<th>` rows,
+  otherwise say nothing". Same for dismiss hints: say "no obvious dismiss control" rather than guess.
+- **Probe the live DOM before theorising.** My first Amazon fix (twin text is off-canvas/1px) was wrong: the real accessible text is `opacity:0`
+  *on screen*. Dumping `outerHTML` + computed style (`/tmp` probe) found it in one step. Reproduce the real markup in the fixture, then fix.
+- **Long-lived daemons run old code.** Twice I "tested" a fix against a daemon started before the edit. Now the client restarts stale daemons;
+  until then `sb stop --all` before re-testing.
+- **Refs are per session.** I typed a ref number from a previous run into a new session and landed on the wrong control (privacy manager page).
+  Documented; the hint line is the thing to follow.
+- **Timing of dynamic captchas:** a single "two identical frames" check can match *before* the replacement images arrive; require ~1 s of stillness.
+- **Don't tag-hunt at the sites that block you.** Reddit (all modes) and HN (rate limit) were IP-level; reporting plainly beat engineering around it.
+- **zsh/macOS:** `sed -i` needs `sed -i ''`; a long `echo ======` is parsed as a command in zsh (use `echo "-----"`); don't pipe tool output through
+  `head` and then conclude the page is short (I did, once, on Paddy Power).
+- **Chained `str.replace` edits can garble a line** (`after_title after_title`): run the tests immediately after each scripted edit.

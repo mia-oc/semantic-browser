@@ -11,10 +11,12 @@ Every verb returns plain text: a one-line outcome (what the action did / why it 
 from __future__ import annotations
 
 import contextlib
+import re
 import shlex
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urljoin, urlsplit
 
 from semantic_browser import captcha as cap
 from semantic_browser.daemon import paths
@@ -30,7 +32,10 @@ def _split(line: str | list[str]) -> list[str]:
     return list(line) if isinstance(line, list) else shlex.split(line)
 
 
-def _flags(args: list[str], bool_flags: set[str], value_flags: set[str] | None = None) -> tuple[list[str], set[str], dict[str, str]]:
+def _flags(
+    args: list[str], bool_flags: set[str], value_flags: set[str] | None = None, *, strict: bool = False
+) -> tuple[list[str], set[str], dict[str, str]]:
+    """Split flags from positionals. strict=True rejects unknown --options instead of silently treating them as text."""
     pos: list[str] = []
     flags: set[str] = set()
     vals: dict[str, str] = {}
@@ -43,10 +48,50 @@ def _flags(args: list[str], bool_flags: set[str], value_flags: set[str] | None =
         elif a in value_flags and i + 1 < len(args):
             vals[a] = args[i + 1]
             i += 1
+        elif strict and a.startswith("--") and len(a) > 2:
+            known = ", ".join(sorted(bool_flags | value_flags))
+            raise ValueError(f"unknown option {a}. Options here: {known}")
         else:
             pos.append(a)
         i += 1
     return pos, flags, vals
+
+
+def _column_header(lines: list[str], is_header: list[bool], i: int) -> str:
+    """The <th> row(s) above table row `i`, or "" when there is none (never guess: a wrong header is worse than none)."""
+    if i >= len(is_header) or is_header[i] or " | " not in lines[i]:
+        return ""
+    j, gap = i - 1, 0
+    while j >= 0 and not is_header[j]:
+        gap = 0 if " | " in lines[j] else gap + 1
+        if gap > 2 or i - j > 80:
+            return ""
+        j -= 1
+    if j < 0:
+        return ""
+    top = j
+    while top > 0 and is_header[top - 1] and j - top < 3:
+        top -= 1
+    return re.sub(r"\s{2,}", " ", re.sub(r"\[\d+[^\]]*\]", "", " / ".join(lines[top : j + 1]))).strip()
+
+
+_FAIL = ("ERROR", "FAILED", "STALE", "INVALID", "BLOCKED")
+
+
+def _target(words: list[str]) -> str:
+    """`click 12` -> '12'; `click Save settings` (unquoted label) -> 'Save settings'."""
+    first = words[0]
+    return first if first.strip("[]#eE").isdigit() else " ".join(words)
+
+
+def _snippet(line: str, needle: str, width: int = 240) -> str:
+    """Trim a long line to ~width chars centred on the match, so what you searched for is always visible."""
+    if len(line) <= width:
+        return line
+    pos = line.lower().find(needle) if needle else 0
+    start = max(0, min(pos - width // 2, len(line) - width)) if pos > 0 else 0
+    end = min(len(line), start + width)
+    return ("…" if start else "") + line[start:end] + ("…" if end < len(line) else "")
 
 
 _MARKS_JS = r"""(items) => {
@@ -180,7 +225,7 @@ class AgentSession:
         verb, args = argv[0].lower(), argv[1:]
         handler = getattr(self, f"_v_{verb.replace('-', '_')}", None)
         if handler is None:
-            return f"ERROR: unknown verb {verb!r}. Verbs: goto view click type select check press hover scroll find wait back forward reload tabs tab shot captcha close help"
+            return f"ERROR: unknown verb {verb!r}. Verbs: goto view click type select check press hover scroll find wait do back forward reload tabs tab shot captcha close help"
         try:
             out = await handler(args)
         except (ActionExecutionError, BrowserNotReadyError, SemanticBrowserError, RuntimeError, ValueError) as exc:
@@ -203,7 +248,10 @@ class AgentSession:
         return self._text(await self.runtime.navigate(args[0]))
 
     async def _v_view(self, args: list[str]) -> str:
-        pos, flags, vals = _flags(args, {"--full", "--fresh"}, {"--page", "--expand"})
+        pos, flags, vals = _flags(args, {"--full", "--fresh", "--all"}, {"--page", "--expand"}, strict=True)
+        if "--all" in flags:  # show the page behind a blocking overlay too
+            self.runtime.rerender(all_layers=True)
+            return self._cached_text()
         if "--expand" in vals:  # the view itself suggests `view --expand nav` for collapsed navigation/footers
             self.runtime.rerender(expand={vals["--expand"].lower()})
             return self._cached_text()
@@ -232,11 +280,26 @@ class AgentSession:
         def label_of(a: Any) -> str:
             return " ".join((a.label or "").lower().split())
 
+        base = self.runtime.page.url
+
+        def dest(a: Any) -> str:
+            href = str((a.locator_recipe or {}).get("href") or "").strip()
+            return "" if not href or href.lower().startswith("javascript") else urljoin(base, href)
+
         def show(a: Any) -> str:
-            return f"[{a.ref}] {a.label}" + (f" ({a.context})" if getattr(a, "context", None) else "")
+            d = urlsplit(dest(a))
+            raw = str((a.locator_recipe or {}).get("href") or "")
+            if d.netloc:
+                where = f" → {d.path or '/'}{'?' + d.query if d.query else ''}{'#' + d.fragment if d.fragment else ''}"
+            else:
+                where = f" → {raw}" if raw else ""
+            return f"[{a.ref}] {a.label}" + (f" ({a.context})" if getattr(a, "context", None) else "") + where
 
         hits = [a for a in acts if label_of(a) == want] or [a for a in acts if want and want in label_of(a)]
         if len(hits) == 1:
+            return str(hits[0].ref)
+        dests = {dest(a) for a in hits}
+        if len(dests) == 1 and next(iter(dests)):  # nav + footer + hero links to the same page: not ambiguous
             return str(hits[0].ref)
         if not hits:
             raise ValueError(f"no element labelled {text!r} in the current view. Use a [n] number, or `find {text}`.")
@@ -254,7 +317,7 @@ class AgentSession:
         pos, flags, _ = _flags(args, {"--force"})
         if not pos:
             raise ValueError("usage: click N [--force]")
-        return await self._ref_act(pos[0], None, options={"force": "--force" in flags})
+        return await self._ref_act(_target(pos), None, options={"force": "--force" in flags})
 
     async def _v_type(self, args: list[str]) -> str:
         pos, flags, _ = _flags(args, {"--enter", "--append"})
@@ -273,12 +336,12 @@ class AgentSession:
     async def _v_check(self, args: list[str]) -> str:
         if not args:
             raise ValueError("usage: check N")
-        return await self._ref_act(args[0], "toggle")
+        return await self._ref_act(_target(args), "toggle")
 
     async def _v_hover(self, args: list[str]) -> str:
         if not args:
             raise ValueError("usage: hover N")
-        return await self._ref_act(args[0], "hover")
+        return await self._ref_act(_target(args), "hover")
 
     async def _v_press(self, args: list[str]) -> str:
         if not args:
@@ -289,7 +352,41 @@ class AgentSession:
 
     async def _v_scroll(self, args: list[str]) -> str:
         direction = args[0] if args else "down"
-        return self._text(await self.runtime.act(ActionRequest(op="scroll", value=direction)))
+        count = 1
+        if len(args) > 1:
+            if not args[1].isdigit() or not 1 <= int(args[1]) <= 20:
+                raise ValueError("usage: scroll [up|down|top|bottom] [COUNT 1-20]")
+            count = int(args[1])
+        res = await self.runtime.act(ActionRequest(op="scroll", value=direction))
+        for _ in range(count - 1):  # each step is a screenful; only the last view is returned
+            res = await self.runtime.act(ActionRequest(op="scroll", value=direction))
+        return self._text(res)
+
+    async def _v_do(self, args: list[str]) -> str:
+        """`do "type 3 boots" "click 5" view` - several verbs in ONE call (one model turn instead of many).
+
+        Steps run in order and stop at the first failure. Intermediate steps print a one-line outcome; the last step
+        prints its full result/view so the agent sees where it ended up.
+        """
+        if not args:
+            raise ValueError('usage: do "VERB ..." "VERB ..."   (each step is one quoted command; max 12)')
+        if len(args) > 12:
+            raise ValueError("do: at most 12 steps per call")
+        trail: list[str] = []
+        for i, step in enumerate(args, 1):
+            first = _split(step)[:1]
+            if first and first[0].lower() in {"do", "close"}:
+                raise ValueError(f"do: step {i} ({first[0]}) is not allowed inside a sequence")
+            out = await self.run(step)
+            failed = out.lstrip().startswith(_FAIL)
+            if i == len(args) or failed:
+                head = "\n".join(trail)
+                tail = f"{head}\n" if head else ""
+                if failed:
+                    return f"{tail}{i}. {step}\nstopped at step {i} of {len(args)}:\n{out}"
+                return f"{tail}{i}. {step}\n\n{out}" if trail else out
+            trail.append(f"{i}. {step} -> {(out.splitlines() or [''])[0][:160]}")
+        return "\n".join(trail)
 
     async def _v_find(self, args: list[str]) -> str:
         if not args:
@@ -298,13 +395,21 @@ class AgentSession:
         await self.runtime.observe(mode="delta", settle=False)  # always search the live page, never a stale snapshot
         # search the full-page rendering, not just the visible window
         full = self.runtime.rerender(mode="full")
-        hits = [ln for ln in full.all_lines if needle in ln.lower()]
+        lines = full.all_lines
+        idx = [i for i, ln in enumerate(lines) if needle in ln.lower()]
         self.runtime.rerender()  # restore the normal window for later `view --page`
-        if not hits:
-            return f"no match for {' '.join(args)!r} on this page (try `scroll down` if it loads lazily)."
-        body = "\n".join(h[:240] for h in hits[:15])
-        more = f"\n... {len(hits) - 15} more" if len(hits) > 15 else ""
-        return f"{len(hits)} line(s) match {' '.join(args)!r}:\n{body}{more}"
+        label = " ".join(args)
+        if not idx:
+            return f"no match for {label!r} on this page (try `scroll down` if it loads lazily)."
+        shown: list[str] = []
+        for i in idx[:15]:
+            text = _snippet(lines[i], needle)
+            cols = _column_header(lines, full.header_rows, i)
+            if cols:
+                text += f"\n    ↳ columns: {_snippet(cols, '', 160)}"
+            shown.append(text)
+        more = f"\n... {len(idx) - 15} more (be more specific: `find \"longer text\"`)" if len(idx) > 15 else ""
+        return f"{len(idx)} line(s) match {label!r}:\n" + "\n".join(shown) + more
 
     async def _v_wait(self, args: list[str]) -> str:
         if args and args[0] == "text":
@@ -407,7 +512,7 @@ class AgentSession:
         ch: cap.Challenge = current
         if sub == "open":
             msg = await cap.open_checkbox(page, ch)
-            await self.runtime._page.wait_for_timeout(900)
+            await self._settle_challenge(900)
             return await self._after_captcha(msg, ch)
         if sub == "select":
             nums = [int(x) for x in rest if x.strip(",").isdigit() or x.strip(",").lstrip("-").isdigit()] or [
@@ -424,13 +529,34 @@ class AgentSession:
             return msg + "\nNext: `captcha submit`."
         if sub == "submit":
             msg = await cap.submit(page, ch)
-            await self.runtime._page.wait_for_timeout(700)
+            await self._settle_challenge(1600)  # dynamic grids swap the picked tiles for new images ~1-2s after Verify
             return await self._after_captcha(msg, ch)
         if sub == "refresh":
             msg = await cap.refresh(ch)
-            await self.runtime._page.wait_for_timeout(700)
+            await self._settle_challenge(900)
             return await self._after_captcha(msg, ch)
         raise ValueError("usage: captcha [--pdf] | open | select N.. | text ANSWER | submit | refresh")
+
+    async def _settle_challenge(self, min_ms: int, max_ms: int = 6000, still_frames: int = 3) -> None:
+        """Wait at least `min_ms`, then until the viewport has been identical for `still_frames` consecutive frames.
+
+        The picture we hand to the model must be the one a human would see, not a half-faded transition: dynamic
+        grids fetch replacement images ~1-2s after Verify and then fade them in, so one identical pair is not enough.
+        """
+        page = self.runtime._page
+        await page.wait_for_timeout(min_ms)
+        waited, prev, same = min_ms, None, 0
+        while waited < max_ms:
+            try:
+                frame = await page.screenshot(type="jpeg", quality=40)
+            except Exception:
+                return
+            same = same + 1 if frame == prev else 0
+            if same >= still_frames - 1:
+                return
+            prev = frame
+            await page.wait_for_timeout(300)
+            waited += 300
 
     async def _after_captcha(self, did: str, before: cap.Challenge | None = None) -> str:
         page = self.runtime.page
@@ -445,8 +571,10 @@ class AgentSession:
                 verdict = "The provider accepted that step and served a NEW challenge (another round). Solve this one:"
             else:
                 verdict = (
-                    "The same challenge is still showing: the answer was probably wrong or incomplete. Look at the image "
-                    "again, or `captcha refresh` for a new one. The page (error text, if any) is below the challenge."
+                    "The same challenge is still showing. Either the answer was wrong/incomplete, or this is a dynamic grid "
+                    "(\"click verify once there are none left\") that replaced the tiles you picked with new images: look at "
+                    "the NEW image, select any tiles that still match, then submit again. `captcha refresh` gives a different "
+                    "challenge. The page (error text, if any) is below."
                 )
                 return f"{did}.\n{verdict}\n" + grid.describe() + "\n\n--- page now ---\n" + await self._fresh_view()
             return f"{did}.\n{verdict}\n" + grid.describe()

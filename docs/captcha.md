@@ -49,12 +49,18 @@ sb captcha submit        # says one of: new round (new image) | same challenge s
 * Google's **public reCAPTCHA demo**, headless, fresh profile: checkbox found, `open` produced a real 4×4 then 3×3 image grid with its prompt,
   annotated tiles were readable, `select`/`submit` worked, and the second round was detected. Whether Google *accepts* answers depends on
   its risk score for the browser (see below); that was not established.
+* **Read as a real model (1.5):** on the same demo I read the numbered image myself and answered a 3×3 *dynamic* grid ("click verify once there
+  are none left"): `submit` returned a settled image of the *replacement* tiles, and the demo accepted two rounds before escalating to a 4×4. Two
+  fixes came out of this: the image used to be taken mid-fade (it now waits for ~1 s of stillness, 1.6 s minimum after `submit`), and "same
+  challenge still showing" no longer claims the answer was wrong — dynamic grids replace the tiles you picked, so look at the new image and
+  select what still matches. See [the real-model report](benchmarks/2026-10-06-dogfood-real-model.md).
 * hCaptcha, Turnstile, Arkose, DataDome: **not tested** (detection rules exist for the first two; unverified).
 
 ## Honest limits
 
 * Real providers score the *browser*, not just the answer. A headless or freshly-created profile may get endless rounds
   or a hard block; use a headful browser and, where appropriate, a real profile (`--profile` / `--cdp`).
+* Production anti-bot gates (e.g. Reddit's "prove your humanity") are described by `sb captcha` but were deliberately **not** attempted.
 * Press-and-hold, audio and slider/puzzle challenges are detected as `interstitial`/`unknown` and described in text, but
   there is no verb to perform them. Use `shot` and decide whether to hand over to a human.
 * Only use this on sites and accounts you are entitled to automate. Many services forbid automated CAPTCHA completion in

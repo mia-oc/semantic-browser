@@ -141,3 +141,35 @@ def test_private_dir_refuses_group_accessible_dir_it_cannot_fix(tmp_path, monkey
     monkeypatch.setattr(Path, "chmod", lambda self, mode, **kw: None)  # simulate a dir we do not own/cannot fix
     with pytest.raises(PermissionError):
         paths.private_dir(d)
+
+
+def test_daemon_start_failure_reports_the_root_cause_not_a_traceback_head():
+    from semantic_browser.daemon.client import _root_cause
+
+    log = (
+        "Traceback (most recent call last):\n  File \"x.py\", line 1, in <module>\n    boom()\n"
+        "playwright._impl._errors.Error: BrowserType.connect_over_cdp: connect ECONNREFUSED 127.0.0.1:18801\n"
+        "Call log:\n  - <ws preparing> retrieving websocket url from http://127.0.0.1:18801\n"
+    )
+    msg = _root_cause(log)
+    assert "ECONNREFUSED 127.0.0.1:18801" in msg and "Traceback" not in msg
+    assert "remote-debugging-port" in msg  # tells you what to do about it
+    assert _root_cause("") == "(the daemon exited without writing a log)"
+
+
+def test_stale_daemon_is_detected_when_package_files_are_newer_than_its_start(tmp_path):
+    import os
+    import time
+
+    from semantic_browser.daemon import client
+
+    pkg = tmp_path / "pkg"
+    (pkg / "sub").mkdir(parents=True)
+    f = pkg / "sub" / "a.py"
+    f.write_text("x = 1")
+    old = time.time() - 1000
+    os.utime(f, (old, old))
+    assert client._code_mtime(pkg) == old
+    assert client._is_stale({"started": old + 10}, pkg) is False  # daemon started after the last file change
+    assert client._is_stale({"started": old - 10}, pkg) is True   # code changed since: restart it
+    assert client._is_stale({}, pkg) is False                      # an old daemon that cannot say: leave it alone

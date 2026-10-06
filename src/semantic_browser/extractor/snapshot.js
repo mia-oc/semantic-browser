@@ -29,7 +29,8 @@
   const LANDMARK = { nav: 'nav', header: 'header', footer: 'footer', aside: 'aside', main: 'main', form: 'form', dialog: 'dialog', article: 'article', section: 'section' };
   const ROLE_LANDMARK = { navigation: 'nav', banner: 'header', contentinfo: 'footer', complementary: 'aside', main: 'main', dialog: 'dialog', alertdialog: 'dialog', form: 'form', search: 'form' };
   const CLICK_ROLES = new Set(['button', 'link', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'treeitem', 'switch', 'checkbox', 'radio', 'combobox', 'textbox', 'searchbox', 'slider', 'spinbutton', 'gridcell']);
-  const FW_CLICK = ['ng-click', 'data-ng-click', 'ng-dblclick', 'ng-submit', 'on-click', 'v-on:click', '@click', 'x-on:click', 'x-on:submit', 'data-action', 'data-onclick', 'data-click', 'onclick'];
+  const FW_CLICK = ['ng-click', 'data-ng-click', 'ng-dblclick', 'ng-submit', 'on-click', 'v-on:click', '@click', 'x-on:click', 'x-on:submit', 'data-action', 'data-onclick', 'data-click', 'onclick',
+    'data-handler', 'data-toggle', 'data-bs-toggle', 'data-dismiss', 'data-bs-dismiss'];
   const STANDARD = new Set(['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr', 'svg']);
   const AD_HOST = /(doubleclick|googlesyndication|adsystem|adnxs|taboola|outbrain|criteo|amazon-adsystem|adservice|scorecardresearch|facebook\.com\/tr|googletagmanager|connect\.facebook)/i;
   const ICONS = ['search', 'close', 'menu', 'cart', 'basket', 'bag', 'user', 'account', 'login', 'next', 'prev', 'previous', 'back', 'arrow', 'play', 'pause', 'share', 'like', 'heart', 'star', 'filter', 'sort', 'settings', 'cog', 'plus', 'minus', 'add', 'remove', 'delete', 'trash', 'edit', 'download', 'upload', 'home', 'mail', 'email', 'phone', 'info', 'help', 'calendar', 'location', 'pin', 'notification', 'bell', 'chat', 'expand', 'collapse', 'chevron', 'more', 'upvote', 'downvote'];
@@ -44,6 +45,7 @@
   let layerEls = [];
 
   const cstyle = (el) => { try { return getComputedStyle(el); } catch (e) { return null; } };
+  const TH_CACHE = new WeakMap();
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
   const isVisible = (el) => {
     const s = cstyle(el);
@@ -63,6 +65,27 @@
     return Array.from(el.childNodes);
   };
 
+  // Visually-hidden ("sr-only" / off-canvas) boxes. Normally noise (skip links), BUT when an aria-hidden visual
+  // fragment has such a sibling, the sibling is the accessible text and the fragment is the decoration
+  // (Amazon: <span class=offscreen>£5.69</span><span aria-hidden>£5<i hidden>.</i>69</span>) - same rule screen readers use.
+  const srOnly = (el) => {
+    const s = cstyle(el);
+    if (!s || (s.position !== 'absolute' && s.position !== 'fixed')) return false;
+    const r = el.getBoundingClientRect();
+    return (r.width <= 2 && r.height <= 2 && s.overflow !== 'visible') || r.right < -20 || r.bottom < -20 || s.opacity === '0';
+  };
+  const sibs = (el, f) => { const p = el.parentElement; if (!p) return false; for (const c of p.children) if (c !== el && f(c)) return true; return false; };
+  const hasHiddenTwin = (el) => sibs(el, (c) => c.getAttribute('aria-hidden') === 'true' && norm(c.textContent).length > 0);
+  // opacity:0 on-screen text that duplicates an aria-hidden visual sibling (Amazon prices) is the accessible version
+  // ...and GOV.UK/Bootstrap-style radios & checkboxes: a transparent real <input> laid over its styled label
+  const opacityTwin = (el) => {
+    const s = cstyle(el);
+    if (!s || s.opacity !== '0' || s.display === 'none' || s.visibility === 'hidden') return false;
+    if (el.localName === 'input' && (el.type === 'radio' || el.type === 'checkbox')) return true;
+    return (s.position === 'absolute' || s.position === 'fixed') && hasHiddenTwin(el);
+  };
+  const hasSrTwin = (el) => el.getAttribute('aria-hidden') === 'true' && sibs(el, (c) => norm(c.textContent).length > 0 && srOnly(c));
+
   // Visible text of a subtree (bounded) — used for accessible names.
   const textOf = (el, limit, skipSelf) => {
     let out = '';
@@ -73,7 +96,8 @@
       const t = n.localName;
       if (SKIP.has(t) && t !== 'option') return;
       if (n.hasAttribute && n.hasAttribute('hidden')) return;
-      if (n !== el && !isVisible(n)) return;
+      if (n !== el && !isVisible(n) && !opacityTwin(n)) return;
+      if (n !== el && hasSrTwin(n)) return;
       if (t === 'img') { const alt = n.getAttribute('alt'); if (alt) out += ' ' + alt + ' '; return; }
       if (t === 'input' && /^(submit|button|reset)$/.test(n.type)) { out += ' ' + (n.value || '') + ' '; return; }
       const pad = !INLINE.has(t);
@@ -144,6 +168,7 @@
     if (tag === 'a' || tag === 'area') {
       if (el.hasAttribute('href')) return { kind: 'link', op: 'open' };
       if (el.hasAttribute('onclick') || role === 'button') return { kind: 'button', op: 'click' };
+      if (FW_CLICK.some((a) => el.hasAttribute(a)) || /^click$/i.test(el.getAttribute('data-event') || '')) return { kind: 'button', op: 'click', fw: true };
       return null;
     }
     if (tag === 'button' || tag === 'summary') return { kind: role === 'tab' ? 'tab' : 'button', op: 'click' };
@@ -169,7 +194,7 @@
     if (role === 'link') return { kind: 'link', op: 'open' };
     if (role === 'tab') return { kind: 'tab', op: 'click' };
     if (CLICK_ROLES.has(role)) return { kind: role === 'combobox' ? 'combobox' : 'button', op: 'click' };
-    const hasFw = FW_CLICK.some((a) => el.hasAttribute(a));
+    const hasFw = FW_CLICK.some((a) => el.hasAttribute(a)) || /^click$/i.test(el.getAttribute('data-event') || '');
     if (hasFw || (typeof el.onclick === 'function')) return { kind: 'button', op: 'click', fw: true };
     const ti = el.getAttribute('tabindex');
     if (ti !== null && parseInt(ti, 10) >= 0 && tag !== 'body' && tag !== 'html') return { kind: 'button', op: 'click', weak: true };
@@ -246,7 +271,7 @@
       if (tag === 'canvas') { pushFlow(['t', ' [canvas] ']); return; }
       if (tag === 'video' || tag === 'audio') { pushFlow(['t', ' [' + tag + '] ']); return; }
     }
-    if (!isVisible(el)) return;
+    if (!isVisible(el) && !opacityTwin(el)) return;
     const role = (el.getAttribute('role') || '').toLowerCase();
     const cs = cstyle(el);
     const display = cs ? cs.display : 'block';
@@ -254,9 +279,10 @@
     // off-canvas / sr-only suppression (skip links, visually-hidden text)
     if (cs && (cs.position === 'absolute' || cs.position === 'fixed')) {
       const r0 = el.getBoundingClientRect();
-      if (r0.width <= 2 && r0.height <= 2 && cs.overflow !== 'visible') return;
-      if (r0.right < -20 || r0.bottom < -20) return;
+      const hidden = (r0.width <= 2 && r0.height <= 2 && cs.overflow !== 'visible') || r0.right < -20 || r0.bottom < -20;
+      if (hidden && !hasHiddenTwin(el)) return;
     }
+    if (hasSrTwin(el)) return;   // decoration of text we already show via its sr-only twin
 
     if (tag === 'iframe' || tag === 'frame') {
       const r = el.getBoundingClientRect();
@@ -282,6 +308,11 @@
     // framework hosts (<app-header onclick=fn>) that merely delegate clicks for >=2 real controls inside are layout too
     if (cls && cls.fw && !role && !/^(a|button|input|select|textarea|summary|label)$/.test(tag) && el.querySelectorAll &&
         el.querySelectorAll('a[href],button,input,select,textarea,[role=button],[role=link]').length >= 2) cls = null;
+    // <td data-handler=selectDay><a href=#>12</a></td>: a delegating wrapper around ONE control with the same text is not a second control
+    if (cls && cls.fw && !role && !/^(a|button|input|select|textarea|summary|label)$/.test(tag) && el.querySelectorAll) {
+      const inner = el.querySelectorAll('a[href],button,input,select,textarea,[role=button],[role=link]');
+      if (inner.length === 1 && norm(el.textContent) !== '' && norm(el.textContent) === norm(inner[0].textContent)) cls = null;
+    }
     // footnote/citation markers like [7] collide with our [n] refs and are almost never wanted
     if (cls && tag === 'a' && el.parentElement && el.parentElement.localName === 'sup' && /^\[.{1,10}\]$/.test(norm(el.textContent))) return;
     // nested interactive (e.g. icon span inside <a>) shouldn't register separately unless natively interactive
@@ -353,7 +384,12 @@
     // plain container / inline element
     if (isBlock) pushFlow(['b', r ? r.y : 0]);
     if (tag === 'li') pushFlow(['li']);
-    if (tag === 'td' || tag === 'th') pushFlow(['c']);
+    if (tag === 'td' || tag === 'th') {   // 'h' = header cell (lets `find` label columns); 'd' = cell of a data table (has <th>): blanks matter
+      let data = false;
+      const tb = el.closest ? el.closest('table') : null;
+      if (tb) { data = TH_CACHE.get(tb); if (data === undefined) { data = !!tb.querySelector('th'); TH_CACHE.set(tb, data); } }
+      pushFlow(tag === 'th' ? ['c', 'h'] : data ? ['c', 'd'] : ['c']);
+    }
     if (tag === 'br') { pushFlow(FLOW_BREAK); return; }
     if (tag === 'hr') { pushFlow(FLOW_BREAK); return; }
     if (tag === 'img') {
@@ -427,6 +463,9 @@
     if (!h) continue;
     if (h === el || el.contains(h) || (h.contains && h.contains(el)) || (rootOf(h) !== document && (h.getRootNode().host === el || el.contains(h.getRootNode().host)))) continue;
     if (nd.click_proxy) continue;
+    // stretched-link cards: an overlay <a> with the same destination sits on top of the title link - the click still lands there
+    const ha = h.closest ? h.closest('a[href]') : null;
+    if (ha && nd.href && (ha.getAttribute('href') || '') === nd.href) continue;
     nd.covered = true; covered++;
   }
 

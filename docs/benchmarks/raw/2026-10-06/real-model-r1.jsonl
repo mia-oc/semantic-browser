@@ -1,0 +1,110 @@
+{"kind": "step", "task": "t0-smoke", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "example.com"], "ms": 1300, "out_chars": 1047, "exit": 0, "ts": 1791313901.3243}
+{"kind": "verdict", "task": "t0-smoke", "verdict": "success", "note": "smoke", "ts": 1791313901.391001}
+{"kind": "step", "task": "t0-smoke", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 52, "out_chars": 7, "exit": 0, "ts": 1791313901.488096}
+{"kind": "step", "task": "r1-wiki", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://en.wikipedia.org/"], "ms": 960, "out_chars": 5266, "exit": 0, "ts": 1791313909.59443}
+{"kind": "step", "task": "r1-wiki", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "2", "<redacted 12 chars>", "--enter"], "ms": 1026, "out_chars": 5021, "exit": 0, "ts": 1791313916.543385}
+{"kind": "step", "task": "r1-wiki", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "father"], "ms": 229, "out_chars": 2229, "exit": 0, "ts": 1791313925.7564192}
+{"kind": "verdict", "task": "r1-wiki", "verdict": "success", "note": "Born 10 Dec 1815; father George Byron 6th Baron Byron", "ts": 1791313935.793705}
+{"kind": "step", "task": "r1-wiki", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 95, "out_chars": 7, "exit": 0, "ts": 1791313935.919947}
+{"kind": "step", "task": "r2-hn", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "news.ycombinator.com"], "ms": 1614, "out_chars": 5150, "exit": 0, "ts": 1791313937.576177}
+{"kind": "step", "task": "r2-hn", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "17"], "ms": 1511, "out_chars": 5273, "exit": 0, "ts": 1791313943.6924741}
+{"kind": "verdict", "task": "r2-hn", "verdict": "success", "note": "top story Mistral Large 4 (1168 pts, 750 comments); first comment by simonw", "ts": 1791313950.2082088}
+{"kind": "step", "task": "r2-hn", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 79, "out_chars": 7, "exit": 0, "ts": 1791313950.321814}
+{"kind": "step", "task": "r3-gov", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.gov.uk/"], "ms": 1059, "out_chars": 3911, "exit": 0, "ts": 1791313951.4236648}
+{"kind": "step", "task": "r3-gov", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "7", "<redacted 24 chars>", "--enter"], "ms": 624, "out_chars": 2966, "exit": 0, "ts": 1791313955.775946}
+{"kind": "step", "task": "r3-gov", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "102"], "ms": 259, "out_chars": 3441, "exit": 0, "ts": 1791313960.742461}
+{"kind": "step", "task": "r3-gov", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "online"], "ms": 60, "out_chars": 90, "exit": 0, "ts": 1791313960.843134}
+{"kind": "step", "task": "r3-gov", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "£"], "ms": 64, "out_chars": 431, "exit": 0, "ts": 1791313964.821548}
+{"kind": "verdict", "task": "r3-gov", "verdict": "success", "note": "adult standard passport renewal online £102 (paper £115.50)", "ts": 1791313972.482857}
+{"kind": "step", "task": "r3-gov", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 85, "out_chars": 7, "exit": 0, "ts": 1791313972.602318}
+{"kind": "step", "task": "r4-gh", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://github.com/microsoft/playwright"], "ms": 2211, "out_chars": 5395, "exit": 0, "ts": 1791313974.8513348}
+{"kind": "step", "task": "r4-gh", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Releases"], "ms": 80, "out_chars": 65, "exit": 0, "ts": 1791313981.122117}
+{"kind": "step", "task": "r4-gh", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "218"], "ms": 1441, "out_chars": 5278, "exit": 0, "ts": 1791313986.371166}
+{"kind": "verdict", "task": "r4-gh", "verdict": "success", "note": "latest release v1.63.0, released Sep 4 by yury-s", "ts": 1791313991.033228}
+{"kind": "step", "task": "r4-gh", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 127, "out_chars": 7, "exit": 0, "ts": 1791313991.203309}
+{"kind": "step", "task": "r5-bbc", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.bbc.co.uk/sport"], "ms": 2342, "out_chars": 5130, "exit": 0, "ts": 1791313993.587095}
+{"kind": "step", "task": "r5-bbc", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "football"], "ms": 94, "out_chars": 821, "exit": 0, "ts": 1791314002.1965911}
+{"kind": "step", "task": "r5-bbc", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "47"], "ms": 686, "out_chars": 5261, "exit": 0, "ts": 1791314007.2697542}
+{"kind": "verdict", "task": "r5-bbc", "verdict": "success", "note": "Live. Coufal's own goal gives England lead vs Czech Republic", "ts": 1791314014.549421}
+{"kind": "step", "task": "r5-bbc", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 73, "out_chars": 7, "exit": 0, "ts": 1791314014.648088}
+{"kind": "step", "task": "r6-amz", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.amazon.co.uk/"], "ms": 4182, "out_chars": 5250, "exit": 0, "ts": 1791314018.858399}
+{"kind": "step", "task": "r6-amz", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "9"], "ms": 2186, "out_chars": 5335, "exit": 0, "ts": 1791314027.636148}
+{"kind": "step", "task": "r6-amz", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "16", "<redacted 11 chars>", "--enter"], "ms": 1736, "out_chars": 5236, "exit": 0, "ts": 1791314029.4027112}
+{"kind": "verdict", "task": "r6-amz", "verdict": "partial", "note": "first organic: Anker 2-pack USB-C cable; price shown as £569 (decimal dropped), inferred £5.69 from £2.85/count", "ts": 1791314049.395169}
+{"kind": "step", "task": "r6-amz", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 102, "out_chars": 7, "exit": 0, "ts": 1791314049.529369}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.theguardian.com/uk"], "ms": 1351, "out_chars": 1892, "exit": 0, "ts": 1791314050.923615}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "448"], "ms": 704, "out_chars": 1855, "exit": 0, "ts": 1791314059.124374}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "460"], "ms": 1980, "out_chars": 5086, "exit": 0, "ts": 1791314066.473925}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "football"], "ms": 118, "out_chars": 1185, "exit": 0, "ts": 1791314072.885772}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Sport"], "ms": 100, "out_chars": 673, "exit": 0, "ts": 1791314077.1692648}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--expand", "nav"], "ms": 34, "out_chars": 5067, "exit": 0, "ts": 1791314077.227286}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "17"], "ms": 4550, "out_chars": 1312, "exit": 0, "ts": 1791314086.5656}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Football"], "ms": 68, "out_chars": 77, "exit": 0, "ts": 1791314086.675113}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view"], "ms": 897, "out_chars": 1178, "exit": 0, "ts": 1791314091.477623}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "682"], "ms": 205, "out_chars": 5313, "exit": 0, "ts": 1791314101.4268951}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Football"], "ms": 70, "out_chars": 1292, "exit": 0, "ts": 1791314101.52668}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "480"], "ms": 4330, "out_chars": 1322, "exit": 0, "ts": 1791314108.7043781}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--all"], "ms": 161, "out_chars": 1181, "exit": 0, "ts": 1791314113.724952}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "911"], "ms": 243, "out_chars": 5283, "exit": 0, "ts": 1791314118.906276}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view"], "ms": 173, "out_chars": 5077, "exit": 0, "ts": 1791314119.1241732}
+{"kind": "verdict", "task": "r7-guardian", "verdict": "success", "note": "top football headline: Football live England v Czechia – Nations League updates (8 steps; 2 overlays)", "ts": 1791314126.562222}
+{"kind": "step", "task": "r7-guardian", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 83, "out_chars": 7, "exit": 0, "ts": 1791314126.668478}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://httpbin.org/forms/post"], "ms": 1158, "out_chars": 544, "exit": 0, "ts": 1791314127.8534122}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "1", "<redacted 11 chars>"], "ms": 162, "out_chars": 572, "exit": 0, "ts": 1791314133.769846}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "2", "<redacted 11 chars>"], "ms": 130, "out_chars": 582, "exit": 0, "ts": 1791314133.926646}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "3", "<redacted 16 chars>"], "ms": 124, "out_chars": 618, "exit": 0, "ts": 1791314134.0765162}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["check", "6"], "ms": 554, "out_chars": 581, "exit": 0, "ts": 1791314134.655614}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["check", "7"], "ms": 530, "out_chars": 586, "exit": 0, "ts": 1791314135.223316}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["check", "9"], "ms": 523, "out_chars": 588, "exit": 0, "ts": 1791314135.782857}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "11", "<redacted 5 chars>"], "ms": 177, "out_chars": 640, "exit": 0, "ts": 1791314135.995827}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["type", "12", "<redacted 17 chars>"], "ms": 128, "out_chars": 663, "exit": 0, "ts": 1791314136.151812}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "13"], "ms": 246, "out_chars": 541, "exit": 0, "ts": 1791314141.739878}
+{"kind": "verdict", "task": "r8-form", "verdict": "success", "note": "server echo confirmed all fields (large, bacon+onion, 18:30)", "ts": 1791314153.7018812}
+{"kind": "step", "task": "r8-form", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 76, "out_chars": 7, "exit": 0, "ts": 1791314153.799998}
+{"kind": "step", "task": "r9-datepicker", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://jqueryui.com/datepicker/"], "ms": 2071, "out_chars": 1832, "exit": 0, "ts": 1791314155.895594}
+{"kind": "step", "task": "r9-datepicker", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "94"], "ms": 161, "out_chars": 2177, "exit": 0, "ts": 1791314159.171256}
+{"kind": "step", "task": "r9-datepicker", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "October 2026"], "ms": 45, "out_chars": 45, "exit": 0, "ts": 1791314166.22222}
+{"kind": "step", "task": "r9-datepicker", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--page", "2"], "ms": 34, "out_chars": 2064, "exit": 0, "ts": 1791314166.288233}
+{"kind": "step", "task": "r9-datepicker", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "109"], "ms": 560, "out_chars": 1827, "exit": 0, "ts": 1791314172.870687}
+{"kind": "step", "task": "r9-datepicker", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "datepicker"], "ms": 46, "out_chars": 626, "exit": 0, "ts": 1791314172.9505699}
+{"kind": "verdict", "task": "r9-datepicker", "verdict": "success", "note": "value 10/15/2026; but Prev/Next had no refs and blank cells dropped", "ts": 1791314180.7830899}
+{"kind": "step", "task": "r9-datepicker", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 59, "out_chars": 7, "exit": 0, "ts": 1791314180.865519}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://infinite-scroll.com/demo/full-page/"], "ms": 1981, "out_chars": 1647, "exit": 0, "ts": 1791314182.871546}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 511, "out_chars": 747, "exit": 0, "ts": 1791314187.472738}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 508, "out_chars": 545, "exit": 0, "ts": 1791314188.017984}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 1347, "out_chars": 1499, "exit": 0, "ts": 1791314189.4007602}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "## 4a"], "ms": 37, "out_chars": 74, "exit": 0, "ts": 1791314189.464669}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "4a"], "ms": 37, "out_chars": 71, "exit": 0, "ts": 1791314189.52471}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 527, "out_chars": 1372, "exit": 0, "ts": 1791314194.3971572}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 530, "out_chars": 1276, "exit": 0, "ts": 1791314194.9584582}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 529, "out_chars": 825, "exit": 0, "ts": 1791314195.517982}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 959, "out_chars": 1996, "exit": 0, "ts": 1791314196.5096672}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 551, "out_chars": 1343, "exit": 0, "ts": 1791314197.088661}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "down"], "ms": 545, "out_chars": 1315, "exit": 0, "ts": 1791314197.662422}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "4a"], "ms": 46, "out_chars": 71, "exit": 0, "ts": 1791314197.737173}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "bottom"], "ms": 1046, "out_chars": 2659, "exit": 0, "ts": 1791314205.202039}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "bottom"], "ms": 955, "out_chars": 3307, "exit": 0, "ts": 1791314206.183497}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["scroll", "bottom"], "ms": 547, "out_chars": 2740, "exit": 0, "ts": 1791314206.755872}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "4a"], "ms": 56, "out_chars": 59, "exit": 0, "ts": 1791314206.838277}
+{"kind": "verdict", "task": "r10-scroll", "verdict": "success", "note": "4a = Huebee: 1-click color picker (13 steps; scroll bottom would need 4)", "ts": 1791314216.5654159}
+{"kind": "step", "task": "r10-scroll", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 127, "out_chars": 7, "exit": 0, "ts": 1791314216.740365}
+{"kind": "step", "task": "r11-pp", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.paddypower.com/football"], "ms": 242, "out_chars": 644, "exit": 1, "ts": 1791314217.014869}
+{"kind": "step", "task": "r11-pp", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Featured Matches"], "ms": 240, "out_chars": 644, "exit": 1, "ts": 1791314217.2791429}
+{"kind": "step", "task": "r11-pp", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.paddypower.com/football"], "ms": 2339, "out_chars": 5253, "exit": 0, "ts": 1791314247.283711}
+{"kind": "step", "task": "r11-pp", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Featured Matches"], "ms": 80, "out_chars": 56, "exit": 0, "ts": 1791314247.393195}
+{"kind": "step", "task": "r11-pp", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--page", "2"], "ms": 37, "out_chars": 5021, "exit": 0, "ts": 1791314247.4581602}
+{"kind": "step", "task": "r11-pp", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--full"], "ms": 33, "out_chars": 12025, "exit": 0, "ts": 1791314259.113704}
+{"kind": "verdict", "task": "r11-pp", "verdict": "success", "note": "England v Czechia live 1-0 odds 1/16, 14/1, 55/1 (read-only)", "ts": 1791314267.417799}
+{"kind": "step", "task": "r11-pp", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 83, "out_chars": 7, "exit": 0, "ts": 1791314267.525495}
+{"kind": "step", "task": "r12-gmail", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://mail.google.com/mail/u/0/#inbox"], "ms": 6174, "out_chars": 5181, "exit": 0, "ts": 1791314273.7257888}
+{"kind": "step", "task": "r12-gmail", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "unread"], "ms": 178, "out_chars": 1850, "exit": 0, "ts": 1791314273.9420412}
+{"kind": "verdict", "task": "r12-gmail", "verdict": "success", "note": "inbox reachable, unread count visible (counts only)", "ts": 1791314273.970266}
+{"kind": "step", "task": "r12-gmail", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 128, "out_chars": 7, "exit": 0, "ts": 1791314274.123005}
+{"kind": "step", "task": "r13-reddit", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://old.reddit.com/r/programming/"], "ms": 1689, "out_chars": 431, "exit": 0, "ts": 1791314303.371697}
+{"kind": "step", "task": "r13-reddit", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 54, "out_chars": 7, "exit": 0, "ts": 1791314307.6717298}
+{"kind": "step", "task": "r13-reddit-headful", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://old.reddit.com/r/programming/"], "ms": 6688, "out_chars": 1099, "exit": 0, "ts": 1791314314.385893}
+{"kind": "step", "task": "r13-reddit-headful", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 139, "out_chars": 7, "exit": 0, "ts": 1791314314.5573618}
+{"kind": "step", "task": "r13-reddit-headful", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.reddit.com/r/programming/"], "ms": 4453, "out_chars": 576, "exit": 0, "ts": 1791314327.598079}
+{"kind": "verdict", "task": "r13-reddit-headful", "verdict": "partial", "note": "headless: blocked by network security; headful: old.reddit login wall; checking www", "ts": 1791314327.638108}
+{"kind": "verdict", "task": "r13-reddit-headful", "verdict": "fail", "note": "headless blocked outright; headful hits reCAPTCHA 'prove your humanity' - not attempted (site policy)", "ts": 1791314336.618739}
+{"kind": "step", "task": "r13-reddit-headful", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["close"], "ms": 77, "out_chars": 7, "exit": 0, "ts": 1791314336.7221708}

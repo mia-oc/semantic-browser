@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.5.0
+
+First release since 1.3.2: 1.4.0 (below) was cut on the repository but never published to PyPI, so 1.5.0 contains everything in it plus the
+changes here. These came from driving the tool as a real model on live sites (see `docs/benchmarks/2026-10-06-dogfood-real-model.md`).
+
+### Added
+- `do "STEP" "STEP" ...`: run up to 12 verbs in one call (stops at the first failure; intermediate steps print one line, the last prints the full
+  view). A whole 8-step GOV.UK wizard is one call. `scroll down N`.
+- `view --all` shows the page behind a blocking overlay; unknown `view` options are now rejected instead of silently ignored.
+- `find` is centred on the match, gives `↳ columns:` from real `<th>` header rows (never guessed), is no longer blind while an overlay is up, and says
+  when results are capped.
+- Unquoted multi-word labels (`click Save settings`), same-destination duplicate labels resolve to the first (nav + footer links), and ambiguous labels
+  now show where each candidate goes (`→ /sport`, `→ /uk/sport`). Unlabeled links show their destination (`(unlabeled → /dp/B07...)`).
+- Blank cells in data tables keep their column (`· | · | 1 | 2`); plain layout tables are unchanged.
+- Stale-daemon detection: `sb` restarts a session whose code is older than the installed package (e.g. after `pip install -U`) and says so.
+- `scripts/publish.sh` (dry run by default; `--upload` reads `.env`), `.env.example`, `scripts/dogfood/sbj.py` (journal a real model's runs; typed text is redacted).
+
+### Fixed
+- **Wrong prices**: Amazon-style `<span class=a-offscreen>£5.69</span><span aria-hidden>£5<i hidden>.</i>69</span>` rendered as `£569`. Text that is
+  the accessible twin of an `aria-hidden` visual fragment is now used (off-screen, 1px-clipped or `opacity:0`), the decoration is dropped.
+- **Radios/checkboxes with no ref** on GOV.UK-style forms (transparent `<input>` over its label) and their label printed twice.
+- Delegated-handler widgets (`<a data-handler=next data-event=click>`, `data-toggle`, `data-bs-toggle`...), e.g. jQuery UI datepicker Prev/Next; a
+  delegating `<td>` around one link no longer yields two refs.
+- Overlay dismiss hint suggested "Continue"/"Continue with Phone Number"/paid options; it now ranks close/reject/short-accept first, never suggests
+  sign-in/subscribe/pay, and says "no obvious dismiss control" (listing options and `Escape`) when there isn't one.
+- False `covered` on stretched-link cards; repeated same-href links folded.
+- A click whose only effect was `document.title` was reported as "no visible change" (and paid an extra wait); the title change is now reported.
+- CAPTCHA: the image after `submit` could be captured mid-fade, and a dynamic grid replacing your tiles was reported as "probably wrong".
+  The image is now taken once the page has been still for ~1 s and the message explains dynamic grids.
+- Daemon start failures now print the root-cause line (and the usual fix) instead of the head of a stale traceback.
+- CI: `pip-audit` failed on the runner's old `setuptools`; the workflow upgrades it first.
+
+### Removed
+- OpenClaw-era harness scripts and configs (`actionset_benchmark.py`, `task_harness.py`, `validate_paddy_power.py`, the March-2026 journals); benchmark
+  docs no longer reference them.
+
 ## 1.4.0
 
 ### Added

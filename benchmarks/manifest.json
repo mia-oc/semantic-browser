@@ -1,24 +1,61 @@
 {
-  "version": 1,
+  "version": 2,
   "results": [
     {
-      "id": "reference-run-2026-03-12",
-      "date_utc": "2026-03-12T00:00:00Z",
-      "commit": "unversioned-local",
-      "task_pack": "shared-25-task-pack",
-      "task_count": 25,
-      "planner": "reference-harness",
+      "id": "dogfood-2026-10-06",
+      "date_utc": "2026-10-06T18:30:00Z",
+      "commit": "see git tag v1.4.0 (fork) / this repository history",
+      "task_pack": "local-hard-patterns-9 + real-sites-8",
+      "task_count": 17,
+      "planner": "scripted oracle (no LLM); see docs/benchmarks/2026-10-06-dogfood-v1.4.md",
       "environment": {
+        "os": "macOS 24.6 arm64",
+        "python": "3.12.12",
+        "playwright": "1.58.0",
         "browser": "chromium",
         "mode": "headless"
       },
       "summary": {
-        "semantic_browser_success_rate": 1.0,
-        "openclaw_success_rate": 0.72,
-        "standard_success_rate": 0.24
+        "local_success": {
+          "sb_1_3_2": "12/27",
+          "playwright_aria": "21/27",
+          "sb_1_4": "27/27"
+        },
+        "real_success": {
+          "sb_1_3_2": "14/16",
+          "playwright_aria": "11/16",
+          "sb_1_4": "16/16"
+        }
       },
       "reports": [
-        "corpus-report.json"
+        "docs/benchmarks/2026-10-06-dogfood-v1.4.md",
+        "docs/benchmarks/raw/2026-10-06/local.jsonl",
+        "docs/benchmarks/raw/2026-10-06/real.jsonl"
+      ]
+    },
+    {
+      "id": "dogfood-real-model-2026-10-06",
+      "date_utc": "2026-10-06T20:00:00Z",
+      "commit": "release tag v1.5.0",
+      "task_pack": "real-sites-13 (round 1) / 10+captcha (round 2) / 7 (round 3)",
+      "task_count": 7,
+      "planner": "Claude Sonnet 5.5 (Cursor agent), one command per call; journaled with scripts/dogfood/sbj.py",
+      "environment": {
+        "os": "macOS 24.6 arm64",
+        "python": "3.12.12",
+        "playwright": "1.58.0",
+        "browser": "chromium",
+        "mode": "headless (mia profile attached over CDP for gated sites)"
+      },
+      "summary": {
+        "round1_v1_4_0": "11/13 completed, median 4 calls",
+        "round3_v1_5_0": "7/7 completed, median 1 call"
+      },
+      "reports": [
+        "docs/benchmarks/2026-10-06-dogfood-real-model.md",
+        "docs/benchmarks/raw/2026-10-06/real-model-r1.jsonl",
+        "docs/benchmarks/raw/2026-10-06/real-model-r2.jsonl",
+        "docs/benchmarks/raw/2026-10-06/real-model-r3.jsonl"
       ]
     }
   ]

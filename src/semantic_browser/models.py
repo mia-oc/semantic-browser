@@ -106,6 +106,11 @@ class ActionDescriptor(BaseModel):
     primary: bool = False
     confidence: float = 0.8
     locator_recipe: dict[str, Any] = Field(default_factory=dict)
+    # v1.4: short model-facing handle ("7"), element kind, and disambiguating context for duplicate labels
+    ref: int | None = None
+    kind: str | None = None
+    context: str | None = None
+    value: str | None = None
 
 
 class ObservationMetrics(BaseModel):
@@ -212,6 +217,7 @@ class StepResult(BaseModel):
     request: ActionRequest
     status: StepStatus
     message: str | None = None
+    outcome: str | None = None  # one-line human/LLM readable summary of what the action did
     execution: ExecutionResult
     observation: Observation
     delta: ObservationDelta | None = None

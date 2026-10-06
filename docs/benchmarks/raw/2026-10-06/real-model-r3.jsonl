@@ -1,0 +1,19 @@
+{"kind": "step", "task": "f1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.amazon.co.uk/s?k=usb+c+cable", "find \"5.69\""], "ms": 6043, "out_chars": 293, "exit": 0, "ts": 1791316271.14802}
+{"kind": "verdict", "task": "f1", "verdict": "success", "note": "price £5.69 / RRP £7.99 with correct decimals in 1 call", "ts": 1791316271.217493}
+{"kind": "step", "task": "f3", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.gov.uk/check-uk-visa/y", "click \"Reject additional cookies\"", "select \"What’s your nationality as shown on your passport or travel document?\" \"Japan\"", "click Continue", "check No", "click Continue", "check \"Tourism or visiting family and friends\"", "click Continue"], "ms": 5431, "out_chars": 5005, "exit": 0, "ts": 1791316277.135805}
+{"kind": "verdict", "task": "f3", "verdict": "success", "note": "whole 4-question wizard in one do call", "ts": 1791316277.2005582}
+{"kind": "step", "task": "f2", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.theguardian.com/uk"], "ms": 3148, "out_chars": 1888, "exit": 0, "ts": 1791316286.7111669}
+{"kind": "step", "task": "f2", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click 460", "click \"Print subscriptions\""], "ms": 3969, "out_chars": 2370, "exit": 0, "ts": 1791316290.728097}
+{"kind": "step", "task": "f2", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.theguardian.com/uk/sport"], "ms": 565, "out_chars": 1850, "exit": 0, "ts": 1791316291.328314}
+{"kind": "verdict", "task": "f2", "verdict": "success", "note": "overlay hint correct (Accept all / Collapse banner), same-name links list destinations", "ts": 1791316291.396205}
+{"kind": "step", "task": "f4", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://jqueryui.com/datepicker/", "click 94", "click Next", "click Next", "find \"25 |\""], "ms": 6346, "out_chars": 841, "exit": 0, "ts": 1791316297.996949}
+{"kind": "step", "task": "f4", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click 121", "find \"Date:\""], "ms": 697, "out_chars": 191, "exit": 0, "ts": 1791316298.792089}
+{"kind": "verdict", "task": "f4", "verdict": "success", "note": "Dec 25 2026 picked in 2 calls", "ts": 1791316298.8635252}
+{"kind": "step", "task": "f2b", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.theguardian.com/uk"], "ms": 3797, "out_chars": 1888, "exit": 0, "ts": 1791316310.6161861}
+{"kind": "step", "task": "f2b", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "[461"], "ms": 177, "out_chars": 84, "exit": 0, "ts": 1791316311.094848}
+{"kind": "step", "task": "f2b", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "461"], "ms": 2754, "out_chars": 5227, "exit": 0, "ts": 1791316313.896194}
+{"kind": "verdict", "task": "f2b", "verdict": "success", "note": "followed the dismiss hint literally: overlay cleared", "ts": 1791316314.22692}
+{"kind": "step", "task": "f5", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)", "find \"Brazil |\""], "ms": 4306, "out_chars": 419, "exit": 0, "ts": 1791316324.111607}
+{"kind": "verdict", "task": "f5", "verdict": "success", "note": "row + correct column headers in one call", "ts": 1791316324.151097}
+{"kind": "step", "task": "f6", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.paddypower.com/english-premier-league", "wait 2000", "find \"Man Utd\""], "ms": 5142, "out_chars": 345, "exit": 0, "ts": 1791316329.518444}
+{"kind": "verdict", "task": "f6", "verdict": "success", "note": "EPL odds read in one call (read-only)", "ts": 1791316329.5841}

@@ -1,0 +1,27 @@
+  wikipedia_search           sb-1.4-b2500     OK    1074ms 
+  wikipedia_search           sb-1.4-b2500     OK    1006ms 
+  hn_comments                sb-1.4-b2500     OK    2039ms 
+  hn_comments                sb-1.4-b2500     OK    1898ms 
+  govuk_search               sb-1.4-b2500     OK     915ms 
+  govuk_search               sb-1.4-b2500     OK     851ms 
+  github_issues              sb-1.4-b2500     OK    1397ms 
+  github_issues              sb-1.4-b2500     OK    1365ms 
+  bbc_sport_football         sb-1.4-b2500     OK    1963ms 
+  bbc_sport_football         sb-1.4-b2500     OK    1684ms 
+  ddg_search                 sb-1.4-b2500     OK    1203ms 
+  ddg_search                 sb-1.4-b2500     OK    1182ms 
+  nhs_search                 sb-1.4-b2500     OK    1645ms 
+  nhs_search                 sb-1.4-b2500     OK    1771ms 
+  amazon_search              sb-1.4-b2500     OK    2603ms 
+  amazon_search              sb-1.4-b2500     OK    2756ms 
+
+scenario                   impl                ok  ms(med) steps tok(med)  saw  fail
+amazon_search              sb-1.4-b2500     2/2       2680     2     1310 2/2  
+bbc_sport_football         sb-1.4-b2500     2/2       1824     3     1978 2/2  
+ddg_search                 sb-1.4-b2500     2/2       1192     2     1294 2/2  
+github_issues              sb-1.4-b2500     2/2       1381     2     1334 2/2  
+govuk_search               sb-1.4-b2500     2/2        883     3     1948 2/2  
+hn_comments                sb-1.4-b2500     2/2       1968     2     1314 2/2  
+nhs_search                 sb-1.4-b2500     2/2       1708     3     1809 2/2  
+wikipedia_search           sb-1.4-b2500     2/2       1040     2     1305 2/2  
+TOTAL sb-1.4-b2500: success 16/16  median_ms=1521  median_tokens=1326

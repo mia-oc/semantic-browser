@@ -110,4 +110,8 @@ async def resolve_locator(page, action: ActionDescriptor):
         if loc:
             return loc
 
-    return page.locator("body")
+    from semantic_browser.errors import ActionExecutionError
+
+    raise ActionExecutionError(
+        f"Could not locate element for action {action.id!r} (label={name!r}); the page may have changed. Re-observe."
+    )

@@ -1,0 +1,39 @@
+  shop_duplicates            sb-1.3.2         FAIL   2628ms wrong_outcome:title='basket:Red Kettle'
+  shop_duplicates            sb-1.3.2         FAIL   2576ms wrong_outcome:title='basket:Red Kettle'
+  shop_duplicates            sb-1.3.2         FAIL   2561ms wrong_outcome:title='basket:Red Kettle'
+  cookie_overlay             sb-1.3.2         OK    4269ms 
+  cookie_overlay             sb-1.3.2         OK    4258ms 
+  cookie_overlay             sb-1.3.2         OK    4293ms 
+  shadow_login               sb-1.3.2         FAIL    815ms no_match:Username
+  shadow_login               sb-1.3.2         FAIL    808ms no_match:Username
+  shadow_login               sb-1.3.2         FAIL    802ms no_match:Username
+  iframe_payment             sb-1.3.2         FAIL    812ms no_match:Card number
+  iframe_payment             sb-1.3.2         FAIL    810ms no_match:Card number
+  iframe_payment             sb-1.3.2         FAIL    811ms no_match:Card number
+  custom_dropdown_date       sb-1.3.2         FAIL   4275ms no_match:^17$
+  custom_dropdown_date       sb-1.3.2         FAIL   4250ms no_match:^17$
+  custom_dropdown_date       sb-1.3.2         FAIL   4263ms no_match:^17$
+  spa_settings               sb-1.3.2         OK    5905ms 
+  spa_settings               sb-1.3.2         OK    5855ms 
+  spa_settings               sb-1.3.2         OK    5849ms 
+  search_read_price          sb-1.3.2         OK    4136ms 
+  search_read_price          sb-1.3.2         OK    4114ms 
+  search_read_price          sb-1.3.2         OK    4065ms 
+  lazy_feed_item35           sb-1.3.2         FAIL    807ms no_match:Open item 35
+  lazy_feed_item35           sb-1.3.2         FAIL    816ms no_match:Open item 35
+  lazy_feed_item35           sb-1.3.2         FAIL    814ms no_match:Open item 35
+  hover_menu                 sb-1.3.2         OK    4306ms 
+  hover_menu                 sb-1.3.2         OK    4306ms 
+  hover_menu                 sb-1.3.2         OK    4287ms 
+
+scenario                   impl                ok  ms(med) steps tok(med)  saw  fail
+cookie_overlay             sb-1.3.2         3/3       4269     3      187 3/3  
+custom_dropdown_date       sb-1.3.2         0/3       4263     3      222 3/3  no_match:^17$
+hover_menu                 sb-1.3.2         3/3       4306     3      134 3/3  
+iframe_payment             sb-1.3.2         0/3        811     1       32 3/3  no_match:Card number
+lazy_feed_item35           sb-1.3.2         0/3        814     1      233 3/3  no_match:Open item 35
+search_read_price          sb-1.3.2         3/3       4114     3      204 0/3  
+shadow_login               sb-1.3.2         0/3        808     1       33 3/3  no_match:Username
+shop_duplicates            sb-1.3.2         0/3       2576     2      224 3/3  wrong_outcome:title='basket:Red Kettle'
+spa_settings               sb-1.3.2         3/3       5855     4      368 3/3  
+TOTAL sb-1.3.2: success 12/27  median_ms=4114  median_tokens=204

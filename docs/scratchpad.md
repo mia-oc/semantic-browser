@@ -28,3 +28,42 @@
 - Many modern SPAs have `role="dialog"` elements in the DOM that are small panels, not blocking modals.
 - The betslip on PP has `role="dialog"` but is a small side panel, not a page-blocking overlay.
 - Fix: check that dialog elements are visible, in viewport, and cover >30% of the screen before flagging as a modal blocker.
+
+### v1.4 dogfood lessons (2026-10-06)
+
+- **A test can encode a bug.** `test_fallback_to_body_when_no_recipe` asserted the very behaviour that made clicks "succeed" on `<body>`.
+  When a review finding contradicts an existing test, change the test and say why in its docstring.
+- **URL-glob request blocking is unsafe.** `*.png?*` matched Wikipedia's `load.php?...` CSS/JS and broke the page (caught by the real-site
+  benchmark, not by unit tests). Block by CDP resource type (`Fetch.enable` with `resourceType`) and allow-list captcha providers.
+- **"Busy indicator" heuristics must require motion.** Matching `[class*=loading]` made GitHub wait 3.5 s forever; requiring a running CSS
+  animation / `aria-busy` / `progressbar` cut it to 94 ms. Always benchmark a heuristic on real sites, not just the fixture it was written for.
+- **Ref numbers must be monotonic per session.** Resetting to 1 on every document let `click 3` from a previous page hit a different
+  element on the next one. Never reuse a number.
+- **Do not override `HOME` in tests.** Playwright finds its browsers via `~/Library/Caches/ms-playwright`; the fixture silently skipped all 16
+  integration tests. Look at the *skipped* count, not just "passed". Use `SB_HOME` for output dirs.
+- **CDP attach picks an existing tab.** Attaching to a live, logged-in profile must open its own tab and close only that one.
+- **AF_UNIX paths max out at ~104 bytes on macOS.** Long `$HOME`/`SB_HOME` need a short fallback dir (tested).
+- **`.venv/bin/pip` pointed at Python 3.14 while tests run on 3.12.** Use `.venv/bin/python -m pip`.
+- **Benchmark oracles can be wrong too.** `^Football$` failed because duplicate labels get a context suffix; check whether the product or the
+  oracle is at fault before "fixing" either. Same for fixture bugs (unquoted SVG attributes lost the red fill).
+- **Do not run shells with `-x`/xtrace.** It echoed an exported secret from `~/.zshenv` into the log. Debug with `echo`/`set -e` instead.
+- Playwright returns big structured objects slowly; `JSON.stringify` in the page + `json.loads` was ~3x faster for the snapshot.
+- Raw Playwright is *fast* (~200 ms) but hands the model 5–120 k tokens per step; the product is tokens-to-decision, not browser speed.
+
+### v1.5 real-model dogfood lessons (2026-10-06)
+
+- **Drive the tool as the real model, not a scripted oracle.** The oracle chose locators from the same text it was graded on, so it could not
+  notice a *wrong* price (`£569`), controls with no ref (GOV.UK radios) or a hint pointing at "Continue". Only reading the output as a model did.
+- **A wrong answer is worse than a missing one.** `find` printed the "World" total row as the column header once; the fix is "only real `<th>` rows,
+  otherwise say nothing". Same for dismiss hints: say "no obvious dismiss control" rather than guess.
+- **Probe the live DOM before theorising.** My first Amazon fix (twin text is off-canvas/1px) was wrong: the real accessible text is `opacity:0`
+  *on screen*. Dumping `outerHTML` + computed style (`/tmp` probe) found it in one step. Reproduce the real markup in the fixture, then fix.
+- **Long-lived daemons run old code.** Twice I "tested" a fix against a daemon started before the edit. Now the client restarts stale daemons;
+  until then `sb stop --all` before re-testing.
+- **Refs are per session.** I typed a ref number from a previous run into a new session and landed on the wrong control (privacy manager page).
+  Documented; the hint line is the thing to follow.
+- **Timing of dynamic captchas:** a single "two identical frames" check can match *before* the replacement images arrive; require ~1 s of stillness.
+- **Don't tag-hunt at the sites that block you.** Reddit (all modes) and HN (rate limit) were IP-level; reporting plainly beat engineering around it.
+- **zsh/macOS:** `sed -i` needs `sed -i ''`; a long `echo ======` is parsed as a command in zsh (use `echo "-----"`); don't pipe tool output through
+  `head` and then conclude the page is short (I did, once, on Paddy Power).
+- **Chained `str.replace` edits can garble a line** (`after_title after_title`): run the tests immediately after each scripted edit.

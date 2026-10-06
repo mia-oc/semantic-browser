@@ -1,0 +1,39 @@
+  shop_duplicates            sb-1.4           OK     281ms 
+  shop_duplicates            sb-1.4           OK     248ms 
+  shop_duplicates            sb-1.4           OK     262ms 
+  cookie_overlay             sb-1.4           OK     354ms 
+  cookie_overlay             sb-1.4           OK     346ms 
+  cookie_overlay             sb-1.4           OK     343ms 
+  shadow_login               sb-1.4           OK     436ms 
+  shadow_login               sb-1.4           OK     462ms 
+  shadow_login               sb-1.4           OK     425ms 
+  iframe_payment             sb-1.4           OK     345ms 
+  iframe_payment             sb-1.4           OK     342ms 
+  iframe_payment             sb-1.4           OK     338ms 
+  custom_dropdown_date       sb-1.4           OK     955ms 
+  custom_dropdown_date       sb-1.4           OK     949ms 
+  custom_dropdown_date       sb-1.4           OK     952ms 
+  spa_settings               sb-1.4           OK    2236ms 
+  spa_settings               sb-1.4           OK    2217ms 
+  spa_settings               sb-1.4           OK    2241ms 
+  search_read_price          sb-1.4           OK     673ms 
+  search_read_price          sb-1.4           OK     653ms 
+  search_read_price          sb-1.4           OK     659ms 
+  lazy_feed_item35           sb-1.4           OK     465ms 
+  lazy_feed_item35           sb-1.4           OK     468ms 
+  lazy_feed_item35           sb-1.4           OK     466ms 
+  hover_menu                 sb-1.4           OK     356ms 
+  hover_menu                 sb-1.4           OK     341ms 
+  hover_menu                 sb-1.4           OK     345ms 
+
+scenario                   impl                ok  ms(med) steps tok(med)  saw  fail
+cookie_overlay             sb-1.4           3/3        346     3      138 3/3  
+custom_dropdown_date       sb-1.4           3/3        952     5      660 3/3  
+hover_menu                 sb-1.4           3/3        345     3       74 3/3  
+iframe_payment             sb-1.4           3/3        342     3      117 3/3  
+lazy_feed_item35           sb-1.4           3/3        466     4      782 3/3  
+search_read_price          sb-1.4           3/3        659     3      123 3/3  
+shadow_login               sb-1.4           3/3        436     4      170 3/3  
+shop_duplicates            sb-1.4           3/3        262     2      188 3/3  
+spa_settings               sb-1.4           3/3       2236     4      159 3/3  
+TOTAL sb-1.4: success 27/27  median_ms=436  median_tokens=159

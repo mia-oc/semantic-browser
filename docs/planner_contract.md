@@ -16,7 +16,32 @@ The runtime produces an **observation** (a structured text "room"). The planner 
 
 Each observation contains a `planner` field of type `PlannerView`. The most important field is `room_text` — a compact, plain-text description of the current page state. This is what you feed into the LLM context.
 
-### Room Text Format
+### Page view format (v1.4 default, `extraction.engine = "v2"`)
+
+Since v1.4 `room_text` is a **page view**: the page's readable content in reading order with every interactive
+element inline as a short number. There are no separate action lists to cross-reference.
+
+```
+@ Catalogue search — http://shop.example/search   [screen 1/1]
+# Catalogue
+[1 input:search "Search catalogue"="anvil"] [2 button]Search
+- [3]Anvil Classic £49.99 In stock
+- [5]Anvil Mini £24.99 In stock
+… more below (~900 tokens) — `scroll down` or `view --page 2`
+```
+
+* Reply with the **number** (`"5"`, `"[5]"`, `"e5"` all work) as `ActionRequest(action_id="5")`, plus `value=` for
+  inputs/selects. `PlannerAction.id` and `ActionDescriptor.ref` carry the same number.
+* `[n covered]` = another element is on top of it. `! BLOCKING OVERLAY … dismiss with [n]` = handle that layer first.
+* A trailing `… more below` means the view is windowed; use the `more` action (`ActionRequest(action_id="more")`),
+  `ActionRequest(op="scroll", value="down")`, or `runtime.rerender(page=2)`.
+* After `act()`, `StepResult.outcome` is a one-line summary of what happened (`-> now at …`, `overlay dismissed`,
+  `page changed (+3/-1 lines): …`, `no visible change on the page`). Read it before re-reading the view.
+* Failures are explicit: stale or unknown numbers are rejected, never retargeted (`status` = `stale`/`invalid`).
+* Full CLI/verb reference: [agent_cli.md](agent_cli.md). Opt out with `RuntimeConfig(extraction={"engine": "legacy"})`
+  to get the v1.3 room text below.
+
+### Legacy room text format (`extraction.engine = "legacy"`)
 
 ```
 @ Page Title (domain.com)

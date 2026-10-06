@@ -1,0 +1,19 @@
+... httpx
+... pw-load
+... pw-dcl
+... sb
+... sb-lite-media
+... sb-lite-max
+
+url                                                    httpx         pw-domc         pw-load              sb     sb-lite-max   sb-lite-media
+example.com/                                    20ms    144t     9ms    262t    12ms    262t   100ms    262t    95ms    262t    99ms    262t
+en.wikipedia.org/wiki/Alan_Turing               36ms 325749t   236ms  85451t   233ms  85451t   353ms   1275t   453ms   1275t   371ms   1275t
+news.ycombinator.com/                          157ms   8696t   192ms  10230t   381ms  10230t   287ms   1294t   286ms   1294t   280ms   1294t
+www.bbc.co.uk/news                              22ms 256217t   158ms  12368t   299ms  12628t   444ms   1285t   516ms   1285t   450ms   1285t
+github.com/microsoft/playwright                261ms 106138t   470ms  10851t   246ms  10851t   345ms   1360t   364ms   1360t   347ms   1360t
+www.gov.uk/                                     20ms  21378t    20ms   3098t    23ms   3098t   113ms   1009t   291ms   1009t   260ms   1009t
+www.nhs.uk/                                     35ms   7964t    24ms   1898t    22ms   1898t   123ms    702t   118ms    702t   140ms    702t
+duckduckgo.com/                                 32ms  56306t    76ms   1089t    74ms   1089t   225ms   1292t   243ms   1292t   238ms   1292t
+--------------------------------------------------------------------------------------------------------------------------------------------
+MEDIAN (all urls)                               36ms  38842t   173ms   5470t   212ms   5373t   303ms   1280t   336ms   1285t   345ms   1280t
+(ms = wall time to a usable result; t = tokens (chars/4) the agent must read)

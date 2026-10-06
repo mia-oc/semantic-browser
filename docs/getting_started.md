@@ -34,13 +34,27 @@ pip install "semantic-browser[full]"
 
 ```bash
 semantic-browser version
-# semantic-browser 1.3.2
+# semantic-browser 1.5.0
 
 semantic-browser doctor
 # ✓ Python 3.11+
 # ✓ Playwright installed
 # ✓ Browser binary found
 ```
+
+## Fastest Start: the `sb` CLI (v1.4)
+
+```bash
+sb goto news.ycombinator.com      # first call starts a background Chromium (headful by default)
+sb click 12                       # act on the [12] you see in the printed view
+sb find "comments"                # search the whole page
+sb stop
+```
+
+Each command prints what happened plus the new page view. The browser stays alive between commands. Full verb list,
+view syntax and options: **[agent_cli.md](agent_cli.md)**; CAPTCHA workflow: **[captcha.md](captcha.md)**.
+The sections below cover the older `portal`/Python/HTTP interfaces; their `room_text` uses the v1.4 page-view format
+unless `extraction.engine="legacy"` (see [planner_contract.md](planner_contract.md)).
 
 ## First Run: Interactive Portal
 

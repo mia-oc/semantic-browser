@@ -1,0 +1,88 @@
+{"kind": "step", "task": "amz1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.amazon.co.uk/s?k=usb+c+cable"], "ms": 5972, "out_chars": 5264, "exit": 0, "ts": 1791314876.293637}
+{"kind": "step", "task": "amz1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.amazon.co.uk/s?k=usb+c+cable"], "ms": 4359, "out_chars": 5220, "exit": 0, "ts": 1791314940.036726}
+{"kind": "step", "task": "amz1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "5.69"], "ms": 153, "out_chars": 96, "exit": 0, "ts": 1791314946.2848482}
+{"kind": "step", "task": "amz1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "scroll down 3"], "ms": 1035, "out_chars": 5308, "exit": 0, "ts": 1791314947.3485482}
+{"kind": "verdict", "task": "amz1", "verdict": "success", "note": "first organic result priced £5.69 (£2.85/count), RRP £7.99; decimals correct; find works", "ts": 1791314947.377915}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.theguardian.com/uk"], "ms": 3385, "out_chars": 1891, "exit": 0, "ts": 1791314956.533129}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "[460"], "ms": 118, "out_chars": 84, "exit": 0, "ts": 1791314960.453962}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click 460"], "ms": 2173, "out_chars": 5077, "exit": 0, "ts": 1791314962.6558762}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--expand", "nav"], "ms": 40, "out_chars": 5058, "exit": 0, "ts": 1791314969.541247}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click Sport", "find Premier League"], "ms": 36, "out_chars": 5020, "exit": 0, "ts": 1791314972.007128}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click Sport", "find Premier League"], "ms": 37, "out_chars": 5020, "exit": 0, "ts": 1791314989.9713511}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.theguardian.com/uk", "click 460"], "ms": 5852, "out_chars": 5264, "exit": 0, "ts": 1791315001.767992}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click Sport", "find Premier League"], "ms": 51, "out_chars": 5020, "exit": 0, "ts": 1791315001.857903}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.theguardian.com/uk", "click 460"], "ms": 6068, "out_chars": 5264, "exit": 0, "ts": 1791315057.35453}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "Sport"], "ms": 37, "out_chars": 5011, "exit": 1, "ts": 1791315057.42689}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "17"], "ms": 4859, "out_chars": 1192, "exit": 0, "ts": 1791315069.6469061}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Premier League"], "ms": 122, "out_chars": 102, "exit": 0, "ts": 1791315069.949732}
+{"kind": "verdict", "task": "gu1", "verdict": "success", "note": "consent dismissed with the suggested control; Sport reached; find works", "ts": 1791315070.044522}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view"], "ms": 319, "out_chars": 1058, "exit": 0, "ts": 1791315073.904748}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "[682"], "ms": 106, "out_chars": 52, "exit": 0, "ts": 1791315078.119906}
+{"kind": "step", "task": "gu1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "682"], "ms": 408, "out_chars": 5194, "exit": 0, "ts": 1791315078.557921}
+{"kind": "step", "task": "wiki1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"], "ms": 2603, "out_chars": 5363, "exit": 0, "ts": 1791315087.314007}
+{"kind": "step", "task": "wiki1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Japan"], "ms": 129, "out_chars": 1018, "exit": 0, "ts": 1791315087.475452}
+{"kind": "step", "task": "wiki1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"], "ms": 4092, "out_chars": 5363, "exit": 0, "ts": 1791315190.971162}
+{"kind": "step", "task": "wiki1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Japan |"], "ms": 147, "out_chars": 183, "exit": 0, "ts": 1791315191.1542568}
+{"kind": "step", "task": "wiki1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Brazil"], "ms": 150, "out_chars": 426, "exit": 0, "ts": 1791315191.3350961}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://jqueryui.com/datepicker/"], "ms": 2365, "out_chars": 1832, "exit": 0, "ts": 1791315201.276154}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "94"], "ms": 191, "out_chars": 2193, "exit": 0, "ts": 1791315204.303711}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view"], "ms": 145, "out_chars": 2080, "exit": 0, "ts": 1791315208.068346}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://jqueryui.com/datepicker/", "click datepicker"], "ms": 2459, "out_chars": 2036, "exit": 0, "ts": 1791315332.711981}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "94"], "ms": 199, "out_chars": 2711, "exit": 0, "ts": 1791315336.887897}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view"], "ms": 159, "out_chars": 2504, "exit": 0, "ts": 1791315337.0868568}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://jqueryui.com/datepicker/"], "ms": 3826, "out_chars": 1832, "exit": 0, "ts": 1791315358.6843798}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "94"], "ms": 362, "out_chars": 2277, "exit": 0, "ts": 1791315359.115656}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click Next", "click Next"], "ms": 1136, "out_chars": 2540, "exit": 0, "ts": 1791315360.308819}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "25 |"], "ms": 66, "out_chars": 140, "exit": 0, "ts": 1791315363.668129}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["click", "121"], "ms": 1063, "out_chars": 1826, "exit": 0, "ts": 1791315368.371114}
+{"kind": "step", "task": "dp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Date:"], "ms": 49, "out_chars": 68, "exit": 0, "ts": 1791315368.454613}
+{"kind": "verdict", "task": "dp1", "verdict": "success", "note": "navigated Oct->Dec 2026 via Prev/Next label targets; picked 25 (find showed Fr column header); value verified", "ts": 1791315368.482807}
+{"kind": "step", "task": "gov1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.gov.uk/check-uk-visa/y"], "ms": 2467, "out_chars": 1441, "exit": 0, "ts": 1791315375.0026371}
+{"kind": "step", "task": "gov1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click 2", "select 7 \"Japan\"", "click \"Continue\""], "ms": 638, "out_chars": 1408, "exit": 0, "ts": 1791315379.047596}
+{"kind": "step", "task": "gov1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://www.gov.uk/check-uk-visa/y", "click \"Reject additional cookies\"", "select 7 \"Japan\"", "click \"Continue\""], "ms": 3157, "out_chars": 1661, "exit": 0, "ts": 1791315471.118284}
+{"kind": "step", "task": "gov1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "check 52", "click \"Continue\""], "ms": 846, "out_chars": 1661, "exit": 0, "ts": 1791315475.1692631}
+{"kind": "step", "task": "gov1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "check 97", "click \"Continue\""], "ms": 859, "out_chars": 3917, "exit": 0, "ts": 1791315478.62143}
+{"kind": "verdict", "task": "gov1", "verdict": "success", "note": "Japan, tourism: needs ETA or Standard Visitor visa. Radios had no refs before fix (opacity:0 inputs); now fine. 4 calls using do.", "ts": 1791315482.0307672}
+{"kind": "step", "task": "hn1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://news.ycombinator.com"], "ms": 3297, "out_chars": 5175, "exit": 0, "ts": 1791315485.5182889}
+{"kind": "step", "task": "hn1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "goto https://news.ycombinator.com", "click \"comments\""], "ms": 3983, "out_chars": 309, "exit": 0, "ts": 1791315576.886293}
+{"kind": "step", "task": "hn1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "comments"], "ms": 49, "out_chars": 77, "exit": 0, "ts": 1791315576.97046}
+{"kind": "step", "task": "hn1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view"], "ms": 754, "out_chars": 77, "exit": 0, "ts": 1791315581.54815}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.paddypower.com/football"], "ms": 2584, "out_chars": 5299, "exit": 0, "ts": 1791315596.259805}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Premier League"], "ms": 95, "out_chars": 815, "exit": 0, "ts": 1791315599.8322911}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Football"], "ms": 84, "out_chars": 844, "exit": 0, "ts": 1791315599.945655}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["do", "click 186"], "ms": 1306, "out_chars": 4353, "exit": 0, "ts": 1791315603.902258}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["wait", "2500"], "ms": 2748, "out_chars": 4217, "exit": 0, "ts": 1791315610.440581}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", " v "], "ms": 118, "out_chars": 72, "exit": 0, "ts": 1791315610.586133}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["find", "Sat"], "ms": 126, "out_chars": 44, "exit": 0, "ts": 1791315610.741445}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--page", "2"], "ms": 40, "out_chars": 4197, "exit": 0, "ts": 1791315614.5861802}
+{"kind": "step", "task": "pp1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["view", "--full"], "ms": 40, "out_chars": 4197, "exit": 0, "ts": 1791315619.8200908}
+{"kind": "verdict", "task": "pp1", "verdict": "success", "note": "EPL fixtures + odds read in 3 calls (goto, find, click+wait); read-only; Man Utd 4/6 draw 3/1 Spurs 10/3", "ts": 1791315632.057906}
+{"kind": "step", "task": "rd1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.reddit.com/r/programming/"], "ms": 3449, "out_chars": 560, "exit": 0, "ts": 1791315635.65423}
+{"kind": "step", "task": "rd2", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.reddit.com/r/programming/"], "ms": 3317, "out_chars": 560, "exit": 0, "ts": 1791315642.66594}
+{"kind": "step", "task": "rd3", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.reddit.com/r/programming/"], "ms": 1427, "out_chars": 560, "exit": 0, "ts": 1791315648.582171}
+{"kind": "verdict", "task": "rd1", "verdict": "fail", "note": "Reddit serves its human-verification gate to this IP in headless, headful AND the logged-in mia Chrome; tool reported it plainly; not attempted (production anti-bot)", "ts": 1791315655.0940921}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.google.com/recaptcha/api2/demo"], "ms": 2518, "out_chars": 552, "exit": 0, "ts": 1791315657.639848}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha"], "ms": 601, "out_chars": 222, "exit": 0, "ts": 1791315658.281831}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "open"], "ms": 1499, "out_chars": 370, "exit": 0, "ts": 1791315663.0104902}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "select", "2", "6", "9"], "ms": 104, "out_chars": 142, "exit": 0, "ts": 1791315668.492243}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "submit"], "ms": 1061, "out_chars": 1577, "exit": 0, "ts": 1791315669.586109}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha"], "ms": 133, "out_chars": 316, "exit": 0, "ts": 1791315681.012764}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.google.com/recaptcha/api2/demo"], "ms": 2519, "out_chars": 552, "exit": 0, "ts": 1791315793.068856}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "open"], "ms": 2449, "out_chars": 375, "exit": 0, "ts": 1791315795.545515}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "select", "1", "4", "5"], "ms": 138, "out_chars": 142, "exit": 0, "ts": 1791315802.7687821}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "submit"], "ms": 5049, "out_chars": 1751, "exit": 0, "ts": 1791315807.8497741}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["goto", "https://www.google.com/recaptcha/api2/demo"], "ms": 2233, "out_chars": 552, "exit": 0, "ts": 1791315836.373929}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "open"], "ms": 2750, "out_chars": 379, "exit": 0, "ts": 1791315839.157757}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "select", "4", "8", "9"], "ms": 90, "out_chars": 142, "exit": 0, "ts": 1791315845.283395}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "submit"], "ms": 7418, "out_chars": 1759, "exit": 0, "ts": 1791315852.731179}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "select", "9"], "ms": 56, "out_chars": 136, "exit": 0, "ts": 1791315859.5410292}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "submit"], "ms": 2596, "out_chars": 426, "exit": 0, "ts": 1791315862.168138}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "select", "3", "6", "7"], "ms": 103, "out_chars": 142, "exit": 0, "ts": 1791315870.169044}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "submit"], "ms": 7198, "out_chars": 1741, "exit": 0, "ts": 1791315877.398767}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "select", "7"], "ms": 53, "out_chars": 136, "exit": 0, "ts": 1791315883.768298}
+{"kind": "step", "task": "cap1", "model": "claude-sonnet-5.5 (Cursor agent)", "argv": ["captcha", "submit"], "ms": 7609, "out_chars": 420, "exit": 0, "ts": 1791315891.413215}
+{"kind": "verdict", "task": "cap1", "verdict": "partial", "note": "3 rounds accepted (bus x2, hydrant) incl. dynamic grid + 4x4 detection; found+fixed: image captured mid-fade and misleading 'wrong answer' text", "ts": 1791315899.35653}
+{"kind": "verdict", "task": "wiki1", "verdict": "success", "note": "Japan row found with correct IMF/WB/UN column header via find (after fixing a wrong 'World' header)", "ts": 1791315905.1290722}
+{"kind": "verdict", "task": "hn1", "verdict": "fail", "note": "news.ycombinator.com returned 'Sorry' (rate limit after repeated runs); not a tool fault", "ts": 1791315905.155235}
+{"kind": "verdict", "task": "rd2", "verdict": "fail", "note": "same Reddit human-verification gate, headful", "ts": 1791315905.182605}
+{"kind": "verdict", "task": "rd3", "verdict": "fail", "note": "same gate via logged-in mia Chrome => IP-level block", "ts": 1791315905.207175}

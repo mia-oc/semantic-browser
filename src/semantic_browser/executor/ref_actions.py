@@ -71,9 +71,10 @@ async def resolve_handle(refs: RefTable, ref: int, *, proxy: bool = True) -> tup
 
 async def _click(el: Any, entry: RefEntry, options: dict[str, Any]) -> str:
     force = bool(options.get("force"))
+    button = "right" if options.get("button") == "right" else "left"
     try:
-        await el.click(timeout=int(options.get("timeout_ms", 2500)), force=force)
-        return "clicked"
+        await el.click(timeout=int(options.get("timeout_ms", 2500)), force=force, button=button)
+        return "right-clicked" if button == "right" else "clicked"
     except Exception as exc:
         msg = str(exc)
         if "intercepts pointer events" in msg or "receives the click" in msg:
@@ -124,6 +125,34 @@ async def _fill(el: Any, entry: RefEntry, request: ActionRequest, action: Action
     return "filled", {"submitted": False}
 
 
+async def _drag(refs: RefTable, el: Any, entry: RefEntry, request: ActionRequest) -> tuple[str, str, dict[str, Any]]:
+    """Mouse-driven drag from `el` to the element whose ref is request.value (works for HTML5 drag-and-drop and pointer-based sliders)."""
+    raw = str(request.value or "").strip("[]#eE")
+    if not raw.isdigit():
+        raise ActionExecutionError("usage: drag FROM TO  (two [n] refs from the view)")
+    dest_entry, dest = await resolve_handle(refs, int(raw), proxy=False)
+    page = entry.frame.page
+    for h in (el, dest):
+        try:
+            await h.scroll_into_view_if_needed(timeout=2000)
+        except Exception:
+            pass
+    a, b = await el.bounding_box(), await dest.bounding_box()
+    if not a or not b:
+        raise ActionExecutionError(f"drag failed: [{entry.ref}] or [{dest_entry.ref}] has no visible box. Scroll it into view first.")
+    ax, ay = a["x"] + a["width"] / 2, a["y"] + a["height"] / 2
+    bx, by = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+    try:
+        await page.mouse.move(ax, ay)
+        await page.mouse.down()
+        await page.mouse.move(ax + (2 if bx >= ax else -2), ay + (2 if by >= ay else -2), steps=2)  # starts the drag gesture
+        await page.mouse.move(bx, by, steps=12)
+        await page.mouse.up()
+    except Exception as exc:
+        raise ActionExecutionError(f"drag failed: {_first_line(exc)}") from exc
+    return f"dragged [{entry.ref}] onto [{dest_entry.ref}]", "state_change", {}
+
+
 async def execute_ref_action(page: Any, refs: RefTable, action: ActionDescriptor, request: ActionRequest) -> tuple[str, str, dict[str, Any]]:
     """Returns (message, effect_hint, evidence)."""
     ref = action.ref
@@ -168,8 +197,18 @@ async def execute_ref_action(page: Any, refs: RefTable, action: ActionDescriptor
             await el.hover(timeout=3000)
             return "hovered", "state_change", {}
         if op == "upload":
-            await el.set_input_files(str(request.value), timeout=5000)
-            return "file attached", "state_change", {}
+            files = [str(v) for v in request.value] if isinstance(request.value, (list, tuple)) else ([str(request.value)] if request.value else [])
+            if entry.kind != "file":
+                raise ActionExecutionError(f"[{ref}] {entry.name!r} is not a file input; `upload` only works on `file` controls in the view.")
+            if not files:
+                raise ActionExecutionError(f"[{ref}] {entry.name!r} is a file chooser: use `upload {ref} /path/to/file` (several paths allowed).")
+            await el.set_input_files(files, timeout=5000)
+            return (f"{len(files)} files attached" if len(files) > 1 else "file attached"), "state_change", {}
+        if op == "dblclick":
+            await el.dblclick(timeout=int(options.get("timeout_ms", 2500)), force=bool(options.get("force")))
+            return "double-clicked", "state_change", {}
+        if op == "drag":
+            return await _drag(refs, el, entry, request)
         if op == "scroll_into_view":
             await el.scroll_into_view_if_needed(timeout=3000)
             return "scrolled", "none", {}

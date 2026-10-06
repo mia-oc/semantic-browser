@@ -32,6 +32,7 @@
   const FW_CLICK = ['ng-click', 'data-ng-click', 'ng-dblclick', 'ng-submit', 'on-click', 'v-on:click', '@click', 'x-on:click', 'x-on:submit', 'data-action', 'data-onclick', 'data-click', 'onclick',
     'data-handler', 'data-toggle', 'data-bs-toggle', 'data-dismiss', 'data-bs-dismiss'];
   const STANDARD = new Set(['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hgroup', 'hr', 'html', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'slot', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr', 'svg']);
+  const AD_TITLE = /(^|[\s_-])(3rd party ad|third[- ]party ad|advertisement|ad content|ad unit|ad slot|google_ads|sponsored content)([\s_-]|$)/i;
   const AD_HOST = /(doubleclick|googlesyndication|adsystem|adnxs|taboola|outbrain|criteo|amazon-adsystem|adservice|scorecardresearch|facebook\.com\/tr|googletagmanager|connect\.facebook)/i;
   const ICONS = ['search', 'close', 'menu', 'cart', 'basket', 'bag', 'user', 'account', 'login', 'next', 'prev', 'previous', 'back', 'arrow', 'play', 'pause', 'share', 'like', 'heart', 'star', 'filter', 'sort', 'settings', 'cog', 'plus', 'minus', 'add', 'remove', 'delete', 'trash', 'edit', 'download', 'upload', 'home', 'mail', 'email', 'phone', 'info', 'help', 'calendar', 'location', 'pin', 'notification', 'bell', 'chat', 'expand', 'collapse', 'chevron', 'more', 'upvote', 'downvote'];
 
@@ -128,6 +129,18 @@
     return '';
   };
 
+  // the text (or short inline element, or an unassociated sibling <label>) right after a checkbox/radio: that is what a person reads as its label
+  const bareLabel = (el) => {
+    let s = el.nextSibling;
+    while (s && s.nodeType === 3 && !s.data.trim()) s = s.nextSibling;
+    if (!s) return '';
+    if (s.nodeType === 3) { const t = norm(s.data); return t.length <= 80 ? t : ''; }
+    if (s.nodeType === 1 && /^(span|b|i|em|strong|small|font|u|abbr|label)$/.test(s.localName) && !(s.querySelector && s.querySelector('a,button,input,select,textarea'))) {
+      const t = norm(s.textContent || ''); return t.length <= 80 ? t : '';
+    }
+    return '';
+  };
+
   const nameFor = (el, tag, role) => {
     let n = el.getAttribute('aria-label');
     if (n && norm(n)) return norm(n).slice(0, 160);
@@ -138,6 +151,7 @@
       if (/^(submit|button|reset)$/.test(type)) { const v = el.value || el.getAttribute('value'); if (v) return norm(v).slice(0, 160); }
       if (type === 'image') { const a = el.getAttribute('alt') || el.getAttribute('title'); if (a) return norm(a); }
       if (el.labels && el.labels.length) { const t = norm(Array.from(el.labels).map((l) => textOf(l, 100, false)).join(' ')); if (t) return t.slice(0, 160); }
+      if (type === 'checkbox' || type === 'radio') { const bl = bareLabel(el); if (bl) return bl; }   // <input type=radio name=snack>Cheese<br>
       const ph = el.getAttribute('placeholder'); if (ph) return norm(ph).slice(0, 160);
       const ti = el.getAttribute('title'); if (ti) return norm(ti).slice(0, 160);
       const nm = el.getAttribute('name') || el.id; if (nm) return norm(nm.replace(/[_-]+/g, ' ')).slice(0, 80);
@@ -196,6 +210,11 @@
     if (CLICK_ROLES.has(role)) return { kind: role === 'combobox' ? 'combobox' : 'button', op: 'click' };
     const hasFw = FW_CLICK.some((a) => el.hasAttribute(a)) || /^click$/i.test(el.getAttribute('data-event') || '');
     if (hasFw || (typeof el.onclick === 'function')) return { kind: 'button', op: 'click', fw: true };
+    // drag sources and drop targets: draggable="true", inline drop handlers, or the conventional class/id names
+    if (el.getAttribute('draggable') === 'true' || el.hasAttribute('ondrop') || el.hasAttribute('ondragover')
+        || /(^|[\s_-])(droppable|dropzone|drop-zone|drop-target|draggable|sortable)([\s_-]|$)/i.test((el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : ''))) {
+      return { kind: 'button', op: 'click', weak: true };
+    }
     const ti = el.getAttribute('tabindex');
     if (ti !== null && parseInt(ti, 10) >= 0 && tag !== 'body' && tag !== 'html') return { kind: 'button', op: 'click', weak: true };
     if (tag.indexOf('-') > 0 && !STANDARD.has(tag)) {
@@ -243,6 +262,11 @@
       const so = el.selectedOptions && el.selectedOptions[0];
       node.value = so ? norm(so.text).slice(0, 60) : '';
     }
+    if (cls && cls.kind === 'slider') {
+      node.value = String(el.value !== undefined ? el.value : (el.getAttribute('aria-valuenow') || '')).slice(0, 20);
+      node.min = String(el.min !== undefined && el.min !== '' ? el.min : (el.getAttribute('aria-valuemin') || '')).slice(0, 20);
+      node.max = String(el.max !== undefined && el.max !== '' ? el.max : (el.getAttribute('aria-valuemax') || '')).slice(0, 20);
+    }
     if (cls && cls.kind === 'link') { const h = el.getAttribute('href') || ''; node.href = h.slice(0, 200); }
     nodes.push(node); elOf.push(el);
     if (cls && name) { const k = cls.op + '|' + name; labelCount.set(k, (labelCount.get(k) || 0) + 1); }
@@ -287,7 +311,7 @@
     if (tag === 'iframe' || tag === 'frame') {
       const r = el.getBoundingClientRect();
       const src = el.getAttribute('src') || '';
-      if (r.width < 30 || r.height < 30 || AD_HOST.test(src)) return;
+      if (r.width < 30 || r.height < 30 || AD_HOST.test(src) || AD_TITLE.test((el.getAttribute('title') || '') + ' ' + (el.getAttribute('name') || '') + ' ' + (el.id || ''))) return;
       const fid = idFor(el);
       frames.push({ ref: fid, src: src.slice(0, 200), title: el.getAttribute('title') || el.getAttribute('name') || '', x: r.x + SX, y: r.y + SY, w: r.width, h: r.height, idx: frames.length });
       pushFlow(['b', r.y + SY]);
@@ -443,6 +467,26 @@
       const area = (Math.max(0, Math.min(r.right, VW) - Math.max(r.left, 0)) * Math.max(0, Math.min(r.bottom, VH) - Math.max(r.top, 0))) / (VW * VH);
       if (c >= 2 && area >= 0.15) out.push(f);
     }
+    // explicit modals are overlays whatever their size: <dialog>.showModal() (inert page behind it) and aria-modal="true",
+    // including ones inside shadow roots (a search box in a header web component covers ~5% of the viewport)
+    const seen = new Set(out);
+    const scan = (root, depth) => {
+      let nodes2;
+      try { nodes2 = root.querySelectorAll('dialog[open],[aria-modal="true"]'); } catch (e) { return; }
+      for (const d of nodes2) {
+        if (seen.has(d)) continue;
+        let modal = d.getAttribute('aria-modal') === 'true';
+        try { if (d.localName === 'dialog' && d.matches(':modal')) modal = true; } catch (e) { /* :modal unsupported */ }
+        if (!modal || !isVisible(d)) continue;
+        const r = d.getBoundingClientRect();
+        if (r.width < 20 || r.height < 12) continue;
+        seen.add(d); out.push(d);
+      }
+      if (depth > 3) return;
+      let n = 0;
+      for (const h of root.querySelectorAll('*')) { if (h.shadowRoot) scan(h.shadowRoot, depth + 1); if (++n > 20000) break; }
+    };
+    scan(document, 0);
     return out;
   };
   try { layerEls = detectLayers(); layerSet = new Set(layerEls); } catch (e) { layerEls = []; }
@@ -480,9 +524,28 @@
         const h = c.querySelector('h1,h2,h3,h4,h5,h6,[role=heading],strong,b');
         let txt = h ? textOf(h, 60, false) : '';
         if (!txt || txt === label) {
-          txt = textOf(c, 90, false);
-          if (label) txt = txt.split(label).join(' ');
-          txt = norm(txt);
+          txt = '';
+          if (t !== 'tr') { // a card without a heading: its first own-text block is the name ("Sauce Backpack"), not the whole blurb
+            const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+            for (let n = w.nextNode(); n; n = w.nextNode()) {
+              const s = norm(n.nodeValue || '');
+              const p = n.parentElement;
+              const bt = p && p.closest('button,[role=button]:not(a),script,style');
+              if (s.length < 3 || s === label || (bt && c.contains(bt))) continue;  // button labels inside the card; a title link may itself be <a role=button>
+              txt = s.slice(0, 50); break;
+            }
+          }
+          if (!txt) {
+            txt = textOf(c, 90, false);
+            if (label) txt = txt.split(label).join(' ');
+            txt = norm(txt);
+          }
+          { // "Sauce Backpack Sauce Backpack carry..." (image alt + title link): drop the immediate repeat
+            const w = txt.split(' ');
+            for (let k = 1; k <= Math.floor(w.length / 2); k++) {
+              if (w.slice(0, k).join(' ') === w.slice(k, 2 * k).join(' ')) { txt = w.slice(k).join(' '); break; }
+            }
+          }
           if (t === 'tr' && !txt) { const prev = c.previousElementSibling; if (prev) txt = textOf(prev, 60, false); }
         }
         return txt.slice(0, 50);

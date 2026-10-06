@@ -55,6 +55,15 @@ Status legend: `[x]` done · `[ ]` open
 - [x] Round 4 live tasks (GitHub, form, DuckDuckGo, Wikipedia ×2, catalogue, BBC, PyPI): fixed collapsed-header inputs, `find` ranking/context, gate flag.
 - [x] Version 1.6.0; publish via `scripts/publish.sh --upload`.
 
+## Phase 7 — Wide dogfood + competitor comparison (v1.7)
+- [x] Timing journal for hand-driven runs: `scripts/dogfood/tj.py` (`tj TOOL TASK words…`, `--done`, `--report`); works for `sb`, `agent-browser`, `@playwright/cli`, `browse`.
+- [x] ~35 live sites/tasks across the four tools; every failure analysed (>=5 hypotheses in the scratchpad), fixed test-first, re-run.
+      [`benchmarks/2026-10-06-competitors-v1.7.md`](benchmarks/2026-10-06-competitors-v1.7.md) (single run per task: no README claim; protocol asks for 3).
+- [x] New verbs: `upload`, `drag`, `dblclick`, `click --right`; slider values; HTML5 DnD detection; bare/sibling checkbox labels; shadow-DOM modals; ad-frame filter; footer status text kept.
+- [x] Navigation: DOMContentLoaded grace + `_unstick` for hung blocking resources (50-100 s `goto` -> a few seconds).
+- [x] CAPTCHA: canvas kind with coordinate ruler, `captcha click/drag`, REJECTED/ACCEPTED from the page's own text; demos completed: reCAPTCHA, hCaptcha, Turnstile (testing key), captcha.com text.
+- [x] Version 1.7.0; publish via `scripts/publish.sh --upload`.
+
 ## Follow-ups (not started; see benchmark report "Known limitations")
 - Brief mode: print only changed lines after non-navigating actions.
 - Fold repeated sidebar chrome after in-site navigation (Paddy Power repeats ~50 menu links before the content).
@@ -64,7 +73,9 @@ Status legend: `[x]` done · `[ ]` open
 - Skip the grace re-settle for `check`/toggle when the element's own line changed.
 - Recognise a page's inner scroll container in `[screen n/m]` (Paddy Power reports 1/1).
 - Review remaining legacy-engine issues: `_extract_nav_labels` precedence, `blockers.py` modal rect key.
-- Press-and-hold / slider / audio CAPTCHA verbs; hCaptcha/Turnstile verification.
+- Press-and-hold / audio CAPTCHA verbs; Arkose/GeeTest demos.
+- Re-run the 1.7 comparison 3x with medians so numbers can go in the README (protocol gate).
+- eBay returns an error page to headless search; investigate whether headful/`--profile` changes it.
 
 ## Non-negotiables
 - Backwards compatible Python API (`observe/act/navigate`, `ActionRequest`, legacy `act-*` IDs).

@@ -1,4 +1,4 @@
-# `sb` — the agent CLI (v1.6)
+# `sb` — the agent CLI (v1.7)
 
 > Giving this to an AI? Start with **[agent_guide.md](agent_guide.md)** (`sb guide`): the short playbook. This page is the reference.
 
@@ -36,6 +36,8 @@ filled and submitted [1] 'Search catalogue' page changed (+4/-1 lines): …
 | `[7]Docs` | link; `click 7` follows it |
 | `[7 button]Save` | button |
 | `[3 input "Email"="a@b.c"]` | text input with its current value (`input:password`, `input:search` …) |
+| `[5 slider "Volume"="7" 0..10]` | range input with its current value and bounds; `type 5 7` |
+| `[8 file "CV"]` | file input; `upload 8 /path` (clicking it is an error that says so) |
 | `[5 select "Size"="M" {S\|M\|L}]` | `<select>` with its options; `select 5 "L"` |
 | `[6 checkbox ✓]Agree` | checkbox/radio/switch; `check 6` toggles |
 | `[9 covered]` | something else is on top of it; clicking will say what. Dismiss the overlay first |
@@ -63,7 +65,10 @@ where each goes (`3 elements match 'Sport': [17] Sport → /sport; [105] Sport �
 |------|--------------|
 | `goto URL` | Navigate (adds `https://` if no scheme). |
 | `view [--page N] [--full] [--all] [--expand KIND]` | Fresh view. `--page` walks the windowed view without touching the browser; `--full` is the whole page; `--all` shows the page behind a blocking overlay; `--expand nav` unfolds a collapsed landmark. Unknown options are an error. |
-| `click N [--force]` | Click `[N]`. If the element is covered you get `blocked: … covered by <tag> "text"`. |
+| `click N [--force] [--right]` | Click `[N]`. If the element is covered you get `blocked: … covered by <tag> "text"`. `--right` opens the context menu. |
+| `dblclick N` | Double-click `[N]`. |
+| `drag FROM TO` | Drag `[FROM]` onto `[TO]` (HTML5 drag-and-drop and mouse-driven sortables; 12 intermediate mouse moves). |
+| `upload N PATH [PATH…]` | Set files on a file input `[N]`. Refuses key/credential paths (`~/.ssh`, `.env`, `*.pem` …) and files over the size cap. |
 | `type N "text" [--enter] [--append]` | Fill an input (finds the real `<input>` inside wrappers/custom elements). `--enter` submits. |
 | `select N "label"` | Choose an option; on custom (div) dropdowns it opens them and the next view lists the options. |
 | `check N` | Toggle a checkbox/radio/switch; verifies the state really changed (works for visually hidden inputs via their label). |
@@ -76,7 +81,7 @@ where each goes (`3 elements match 'Sport': [17] Sport → /sport; [105] Sport �
 | `back` `forward` `reload` | History. |
 | `tabs` / `tab N` | Popups are adopted automatically ("opened in a new tab; now viewing it"); use these to switch. |
 | `shot [--marks] [--full] [PATH]` | PNG screenshot. `--marks` draws a box + number on every ref in the viewport. |
-| `captcha …` | See [captcha.md](captcha.md). |
+| `captcha …` | `captcha`, `open`, `select`, `text`, `click X,Y`, `drag X,Y X,Y`, `submit`, `refresh`. See [captcha.md](captcha.md). |
 | `guide [--skill]` | Print the agent playbook (works with no browser running). `--skill` wraps it as a SKILL.md. |
 | `close` | End the session. |
 

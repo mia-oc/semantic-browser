@@ -6,7 +6,7 @@ from semantic_browser.errors import ActionNotFoundError, ActionStaleError
 from semantic_browser.models import ActionDescriptor, ActionRequest, Observation
 
 #: Ops a caller may force onto a numeric ref regardless of the element's default op.
-_REF_OP_OVERRIDES = {"hover", "press", "click", "scroll_into_view"}
+_REF_OP_OVERRIDES = {"hover", "press", "click", "scroll_into_view", "upload", "dblclick", "drag"}
 
 
 def _as_ref(action_id: str) -> int | None:

@@ -1,9 +1,10 @@
 """CAPTCHA assist: turn a visual challenge into something a vision model can answer, then act on the answer.
 
 Pipeline (all driven through the `captcha` verb):
-  detect   -> provider (recaptcha / hcaptcha / turnstile / cloudflare / generic) + kind (checkbox / grid / text / wait)
+  detect   -> provider (recaptcha / hcaptcha / turnstile / cloudflare / generic) + kind (checkbox / grid / canvas / text / wait)
   annotate -> numbered badges injected into the challenge frame, a tight screenshot (PNG) and optionally a PDF
-  answer   -> `captcha select 1 5 9`, `captcha text abc`, `captcha open`, `captcha submit`, `captcha refresh`
+  answer   -> `captcha select 1 5 9`, `captcha text abc`, `captcha open`, `captcha submit`, `captcha refresh`,
+              `captcha drag X,Y X,Y` / `captcha click X,Y ...` (canvas puzzles; X,Y are pixels of the image, a ruler is drawn on it)
 
 This module never tries to *solve* a challenge itself; it only makes the challenge legible to a (vision) model that the
 caller already trusts, and performs the clicks that model asks for.
@@ -38,6 +39,7 @@ _GRID_SELECTORS = {
 _PROMPT_SELECTORS = {
     "recaptcha": [".rc-imageselect-desc-no-canonical", ".rc-imageselect-desc", ".rc-imageselect-instructions"],
     "hcaptcha": [".prompt-text", ".challenge-prompt"],
+    "canvas": [".prompt-text", ".challenge-prompt", ".captcha-prompt", "[class*=prompt-text i]"],
 }
 _CHECKBOX_SELECTORS = {
     "recaptcha": ["#recaptcha-anchor", ".recaptcha-checkbox"],
@@ -45,7 +47,7 @@ _CHECKBOX_SELECTORS = {
     "turnstile": ["input[type=checkbox]", "[role=checkbox]", "label"],
 }
 _RELOAD_SELECTORS = ["#recaptcha-reload-button", ".refresh-button", ".refresh", "[aria-label*='reload' i]", "[aria-label*='refresh' i]", "[title*='refresh' i]"]
-_SUBMIT_RE = re.compile(r"^\s*(verify|submit|next|confirm|done|continue|check|skip)\b", re.I)
+_SUBMIT_RE = re.compile(r"^\s*(verify|validate|submit|next|confirm|done|continue|check|skip|send|proceed|ok|go|sign in|log in|login)\b", re.I)
 
 _FIND_TILES_JS = r"""(opts) => {
   const old = document.getElementById('__sb_cap_marks'); if (old) old.remove();
@@ -130,6 +132,72 @@ _FIND_TILES_JS = r"""(opts) => {
   return { tiles: out, rows: rows.length, cols, prompt, clip };
 }"""
 
+
+_FIND_CANVAS_JS = r"""(opts) => {
+  const old = document.getElementById('__sb_cap_marks'); if (old) old.remove();
+  const vis = (e) => {
+    const r = e.getBoundingClientRect(); const s = getComputedStyle(e);
+    return r.width >= 120 && r.height >= 80 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
+  };
+  const cvs = [...document.querySelectorAll('canvas')].filter(vis).sort((a, b) => b.getBoundingClientRect().width * b.getBoundingClientRect().height - a.getBoundingClientRect().width * a.getBoundingClientRect().height);
+  if (!cvs.length) return null;
+  const c = cvs[0], cr = c.getBoundingClientRect();
+  const inFrame = window.top !== window;
+  if (!inFrame && !opts.force) {   // in the main page a canvas only counts when it is named like a challenge
+    let n = c, hit = false;
+    for (let i = 0; n && i < 4; i++, n = n.parentElement) if (/captcha|puzzle|slider|challenge|verify/i.test((n.id || '') + ' ' + (n.className && n.className.toString ? n.className.toString() : '') + ' ' + (n.getAttribute('aria-label') || ''))) hit = true;
+    if (!hit) return null;
+  }
+  let prompt = '', pel = null;
+  for (const sel of opts.promptSelectors) { const p = document.querySelector(sel); if (p && p.innerText.trim()) { pel = p; prompt = p.innerText.trim().replace(/\s+/g, ' '); break; } }
+  if (!prompt) {
+    for (const p of document.querySelectorAll('[class*=prompt i],[class*=instruction i],[id*=prompt i],[id*=instruction i],h1,h2,h3,[role=heading]')) {
+      const t = (p.innerText || '').trim().replace(/\s+/g, ' ');
+      const r = p.getBoundingClientRect();
+      if (t && t.length <= 220 && r.width > 0 && r.height > 0 && !p.contains(c)) { pel = p; prompt = t; break; }
+    }
+  }
+  let x = 0, y = 0, w = innerWidth, h = innerHeight;
+  if (!inFrame) {
+    let box = c, up = c.parentElement;
+    for (let i = 0; up && i < 3 && up !== document.body; i++, up = up.parentElement) {
+      const r = up.getBoundingClientRect();
+      if (r.width > 700 || r.height > 800) break;
+      box = up; if (pel && up.contains(pel)) break;
+    }
+    const r = box.getBoundingClientRect();
+    const pad = 6;
+    x = Math.max(0, r.left - pad); y = Math.max(0, r.top - pad);
+    w = Math.min(innerWidth, r.right + pad) - x; h = Math.min(innerHeight, r.bottom + pad) - y;
+  }
+  // coordinate ruler: faint lines every 50px, numbered every 100px, measured from the top-left of the captured image
+  const layer = document.createElement('div');
+  layer.id = '__sb_cap_marks';
+  layer.style.cssText = 'position:fixed;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;z-index:2147483647;pointer-events:none;overflow:hidden';
+  const add = (css, text) => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;' + css; if (text) d.textContent = text; layer.appendChild(d); };
+  for (let gx = 0; gx <= w; gx += 50) add('left:' + gx + 'px;top:0;width:1px;height:100%;background:rgba(255,0,255,' + (gx % 100 ? 0.25 : 0.55) + ')');
+  for (let gy = 0; gy <= h; gy += 50) add('top:' + gy + 'px;left:0;height:1px;width:100%;background:rgba(255,0,255,' + (gy % 100 ? 0.25 : 0.55) + ')');
+  const lab = 'font:bold 10px/10px Arial,sans-serif;color:#fff;background:rgba(160,0,160,.85);padding:1px 2px;';
+  for (let gx = 0; gx <= w; gx += 100) for (let gy = 0; gy <= h; gy += 100) add('left:' + (gx + 2) + 'px;top:' + (gy + 2) + 'px;' + lab, gx + ',' + gy);
+  document.documentElement.appendChild(layer);
+  return { prompt, clip: { x, y, w, h }, canvas: { x: cr.left, y: cr.top, w: cr.width, h: cr.height } };
+}"""
+
+_ERROR_JS = r"""() => {
+  const re = /(please )?try again|incorrect|wrong (answer|selection)|verification failed|invalid (answer|response|captcha)|did not match|didn't match/i;
+  for (const e of document.querySelectorAll('div,span,p,label,[role=alert],[aria-live]')) {
+    if (e.children.length > 2) continue;
+    const t = (e.innerText || '').trim().replace(/\s+/g, ' ');
+    if (!t || t.length > 80 || !re.test(t)) continue;
+    const r = e.getBoundingClientRect();
+    let shown = r.width > 2 && r.height > 2 && r.right > 0 && r.bottom > 0 && r.left < innerWidth && r.top < innerHeight;
+    try { shown = shown && e.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }); } catch (err) { /* older engines */ }
+    for (let n = e; shown && n && n.nodeType === 1; n = n.parentElement) { const st = getComputedStyle(n); if (+st.opacity < 0.2 || st.transform.startsWith('matrix(0,')) shown = false; }
+    if (shown) return t;
+  }
+  return '';
+}"""
+
 _CLEAR_MARKS_JS = """() => { const m = document.getElementById('__sb_cap_marks'); if (m) m.remove();
   document.querySelectorAll('[data-sb-tile]').forEach(e => e.removeAttribute('data-sb-tile')); }"""
 
@@ -142,7 +210,8 @@ _GENERIC_JS = r"""() => {
   // only text-like fields: a submit button whose id merely says "recaptcha-demo-submit" is not an answer box
   const inp = [...document.querySelectorAll('input')].find(e => vis(e) && /^(text|search|tel|number|)$/i.test(e.getAttribute('type') || '') &&
     /captcha/i.test((e.name || '') + (e.id || '') + (e.placeholder || '') + (e.getAttribute('aria-label') || '')));
-  return { interstitial, title, hasImage: !!img, hasInput: !!inp };
+  const cv = [...document.querySelectorAll('canvas')].some(e => { const r = e.getBoundingClientRect(); return r.width >= 120 && r.height >= 80 && /captcha|puzzle|slider|challenge/i.test((e.id||'')+' '+(e.className||'')+' '+((e.parentElement&&(e.parentElement.id+' '+e.parentElement.className))||'')); });
+  return { interstitial, title, hasImage: !!img, hasInput: !!inp, hasCanvas: cv };
 }"""
 
 
@@ -164,6 +233,9 @@ class Challenge:
     image_path: str | None = None
     pdf_path: str | None = None
     notes: list[str] = field(default_factory=list)
+    origin: tuple[float, float] | None = None  # page position (CSS px) of the image's top-left corner: kind=canvas only
+    size: tuple[float, float] | None = None  # image size in px
+    error: str = ""  # the widget's own failure text ("Please try again.") when it is showing one
 
     def describe(self) -> str:
         if self.kind == "none":
@@ -174,6 +246,8 @@ class Challenge:
         lines = [head]
         if self.prompt:
             lines.append(f'Prompt: "{self.prompt}"')
+        if self.error:
+            lines.append(f'Widget message: "{self.error}"')
         if self.image_path:
             lines.append(f"Image: {self.image_path}")
         if self.pdf_path:
@@ -186,6 +260,11 @@ class Challenge:
 def _next_step(ch: Challenge) -> str:
     if ch.kind == "grid":
         return "Next: look at the image (tiles numbered left->right, top->bottom), then `captcha select N N N`, then `captcha submit`."
+    if ch.kind == "canvas":
+        return (
+            "Next: look at the image; the magenta ruler gives pixel positions (X,Y from its top-left). Drag puzzle: `captcha drag X,Y X,Y` "
+            "(from, to). Click puzzle: `captcha click X,Y [X,Y ...]`. Then `captcha submit` if the widget has a Verify button."
+        )
     if ch.kind == "checkbox":
         return "Next: `captcha open` to tick the checkbox, then run `captcha` again to see whether an image challenge appeared."
     if ch.kind == "text":
@@ -242,14 +321,24 @@ async def detect(page: Any) -> list[Challenge]:
                 prov = next((c.provider for c in found if c.frame is frame), "generic")
                 found.append(Challenge(provider=prov, kind="grid", frame=frame))
                 break
+    if g.get("hasCanvas") and not any(c.kind in {"grid", "canvas"} for c in found):
+        found.append(Challenge(provider="generic", kind="canvas", frame=page.main_frame))
     if g.get("interstitial") and not found:
         found.append(Challenge(provider="cloudflare" if "moment" in (g.get("title") or "").lower() else "generic", kind="interstitial", frame=page.main_frame))
-    order = {"grid": 0, "text": 1, "checkbox": 2, "interstitial": 3}
+    order = {"grid": 0, "canvas": 0, "text": 1, "checkbox": 2, "interstitial": 3}
     found.sort(key=lambda c: order.get(c.kind, 9))
     # a visible grid supersedes the checkbox of the same provider
     if any(c.kind == "grid" for c in found):
         found = [c for c in found if c.kind != "checkbox" or not any(o.kind == "grid" and o.provider == c.provider for o in found)]
     return found
+
+
+async def _probe_canvas(frame: Any, provider: str, *, force: bool = False) -> dict[str, Any] | None:
+    try:
+        res = await frame.evaluate(_FIND_CANVAS_JS, {"promptSelectors": _PROMPT_SELECTORS.get(provider, []) + _PROMPT_SELECTORS["canvas"], "force": force})
+    except Exception:
+        return None
+    return res if isinstance(res, dict) else None
 
 
 async def _probe_tiles(frame: Any, provider: str) -> dict[str, Any]:
@@ -296,9 +385,19 @@ async def annotate(page: Any, ch: Challenge, *, pdf: bool = False, out_dir: Path
         c = probe.get("clip")
         if c:
             clip_abs = {"x": offset["x"] + c["x"], "y": offset["y"] + c["y"], "width": c["w"], "height": c["h"]}
+        elif not ch.tiles:  # a "grid" frame without tiles (hCaptcha drag / click puzzles) draws on a <canvas>
+            ch.kind = "canvas"
+    if ch.kind == "canvas":
+        cprobe = await _probe_canvas(ch.frame, ch.provider, force=ch.provider != "generic")
+        if cprobe is None:
+            ch.notes.append("(no canvas found in the challenge; the whole frame is shown without a ruler)")
+        else:
+            ch.prompt = cprobe.get("prompt") or ch.prompt
+            c = cprobe["clip"]
+            clip_abs = {"x": offset["x"] + c["x"], "y": offset["y"] + c["y"], "width": c["w"], "height": c["h"]}
     elif ch.kind == "text":
         clip_abs = await _text_captcha_clip(page, ch) or clip_abs
-    shot_kwargs: dict[str, Any] = {"type": "png"}
+    shot_kwargs: dict[str, Any] = {"type": "png", "scale": "css"}  # one image pixel per CSS pixel: the ruler's numbers are the click coordinates
     if clip_abs and clip_abs["width"] > 10 and clip_abs["height"] > 10:
         vp = page.viewport_size or {"width": 1280, "height": 800}
         x = max(0.0, clip_abs["x"])
@@ -308,6 +407,11 @@ async def annotate(page: Any, ch: Challenge, *, pdf: bool = False, out_dir: Path
             "width": max(10.0, min(clip_abs["width"], vp["width"] - x)),
             "height": max(10.0, min(clip_abs["height"], vp["height"] - y)),
         }
+    if ch.kind in {"grid", "canvas", "text"}:
+        try:
+            ch.error = str(await ch.frame.evaluate(_ERROR_JS) or "")[:80]
+        except Exception:
+            ch.error = ""
     path = out / f"captcha-{stamp}-{ch.provider}-{ch.kind}.png"
     try:
         png = await page.screenshot(**shot_kwargs)
@@ -317,14 +421,17 @@ async def annotate(page: Any, ch: Challenge, *, pdf: bool = False, out_dir: Path
         ch.notes.append("(could not crop to the challenge; image is the whole viewport)")
     path.write_bytes(png)
     ch.image_path = str(path)
+    if ch.kind == "canvas":
+        sc = shot_kwargs.get("clip") or {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
+        ch.origin, ch.size = (float(sc["x"]), float(sc["y"])), (float(sc["width"]), float(sc["height"]))
     if pdf:
         jpg = await page.screenshot(**{**shot_kwargs, "type": "jpeg", "quality": 85})
         w, h = _jpeg_size(jpg)
         pdf_path = path.with_suffix(".pdf")
         pdf_path.write_bytes(jpeg_to_pdf(jpg, w, h, caption=ch.prompt or f"{ch.provider} {ch.kind}"))
         ch.pdf_path = str(pdf_path)
-    # remove badges so the live page is left untouched
-    if ch.kind == "grid":
+    # remove badges / ruler so the live page is left untouched
+    if ch.kind in {"grid", "canvas"}:
         try:
             await ch.frame.evaluate("() => { const m = document.getElementById('__sb_cap_marks'); if (m) m.remove(); }")
         except Exception:
@@ -391,6 +498,52 @@ async def select_tiles(ch: Challenge, numbers: list[int]) -> str:
     return msg
 
 
+_POINT_RE = re.compile(r"^\d+(?:\.\d+)?$")
+
+
+def parse_points(words: list[str]) -> list[tuple[float, float]]:
+    """`50,90`, `(50,90)`, `x=50,y=90`, `50 90`, `50,90;60,70` -> [(50.0, 90.0), ...]; anything else is an error, never a guess."""
+    text = re.sub(r"[xyXY]\s*=", "", " ".join(words)).replace(";", " ").replace("(", " ").replace(")", " ")
+    toks = [t for t in re.split(r"[\s,]+", text) if t]
+    if len(toks) < 2 or len(toks) % 2 or not all(_POINT_RE.match(t) for t in toks):
+        raise ValueError("expected pixel positions from the image's ruler, like `120,80` (several allowed: `120,80 200,40`)")
+    nums = [float(t) for t in toks]
+    return list(zip(nums[0::2], nums[1::2], strict=True))
+
+
+def to_page(ch: Challenge, pt: tuple[float, float]) -> tuple[float, float]:
+    """Image pixel -> page CSS pixel for a canvas challenge, refusing positions outside the captured image."""
+    if ch.kind != "canvas" or ch.origin is None or ch.size is None:
+        raise RuntimeError("no coordinate challenge is active; run `captcha` on a page that shows a drag or click puzzle first")
+    x, y = pt
+    w, h = ch.size
+    if x < 0 or y < 0 or x > w or y > h:
+        raise ValueError(f"({x:g},{y:g}) is outside the challenge image ({w:g}x{h:g}); use the numbers on the image's ruler")
+    return ch.origin[0] + x, ch.origin[1] + y
+
+
+async def drag_points(page: Any, ch: Challenge, start: tuple[float, float], end: tuple[float, float]) -> str:
+    (x1, y1), (x2, y2) = to_page(ch, start), to_page(ch, end)
+    await page.mouse.move(x1, y1)
+    await page.mouse.down()
+    steps = 24
+    for i in range(1, steps + 1):  # a plain straight path in small steps: puzzle widgets need intermediate mouse moves
+        await page.mouse.move(x1 + (x2 - x1) * i / steps, y1 + (y2 - y1) * i / steps)
+        await page.wait_for_timeout(12)
+    await page.mouse.up()
+    return f"dragged from ({start[0]:g},{start[1]:g}) to ({end[0]:g},{end[1]:g})"
+
+
+async def click_points(page: Any, ch: Challenge, points: list[tuple[float, float]]) -> str:
+    for pt in points:  # validate every point before touching the page
+        to_page(ch, pt)
+    for pt in points:
+        x, y = to_page(ch, pt)
+        await page.mouse.click(x, y)
+        await page.wait_for_timeout(180)
+    return "clicked " + " ".join(f"({x:g},{y:g})" for x, y in points)
+
+
 async def type_text(page: Any, ch: Challenge, text: str) -> str:
     frame = ch.frame or page.main_frame
     handle = await frame.evaluate_handle(
@@ -409,7 +562,7 @@ async def type_text(page: Any, ch: Challenge, text: str) -> str:
 
 async def submit(page: Any, ch: Challenge) -> str:
     frame = ch.frame or page.main_frame
-    for sel in ("#recaptcha-verify-button", ".button-submit", "button[type=submit]", "input[type=submit]", "[role=button]", "button"):
+    for sel in ("#recaptcha-verify-button", ".button-submit", "button[type=submit]", "input[type=submit]", "input[type=button]", "[role=button]", "button"):
         try:
             loc = frame.locator(sel)
             n = min(await loc.count(), 12)
@@ -417,7 +570,7 @@ async def submit(page: Any, ch: Challenge) -> str:
                 cand = loc.nth(i)
                 if not await cand.is_visible():
                     continue
-                label = (await cand.inner_text()) if sel != "input[type=submit]" else (await cand.get_attribute("value") or "")
+                label = (await cand.inner_text()) if not sel.startswith("input[") else (await cand.get_attribute("value") or "")
                 if sel in {"#recaptcha-verify-button", ".button-submit"} or _SUBMIT_RE.match(label or ""):
                     await cand.click(timeout=2500)
                     return f"clicked {label.strip() or sel!r}"

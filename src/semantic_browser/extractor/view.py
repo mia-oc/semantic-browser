@@ -96,6 +96,9 @@ def _unlabeled(node: dict[str, Any]) -> str:
     return f"(unlabeled → {path[:60]})"
 
 
+_BOILERPLATE_RE = re.compile(r"©|\(c\)|copyright|all rights|privacy|cookie|terms", re.I)
+
+
 def format_element(node: dict[str, Any], *, collapsed: bool = False) -> str:
     ref = node.get("ref")
     kind = node.get("kind") or "button"
@@ -105,8 +108,13 @@ def format_element(node: dict[str, Any], *, collapsed: bool = False) -> str:
         flags += " disabled"
     if node.get("covered"):
         flags += " covered"
+    ctx = " ".join(str(node.get("ctx") or "").split())
+    if ctx and kind in ("link", "button", "menuitem", "tab", "checkbox", "radio", "switch", "input", "select"):
+        label_c = label + " — " + (ctx if len(ctx) <= 40 else ctx[:39] + "…")  # which of several identical labels this is
+    else:
+        label_c = label
     if kind == "link" or (collapsed and kind in ("button", "menuitem", "tab")):
-        return f"[{ref}{flags}]{label}"  # fillable controls keep their full form even inside a collapsed landmark
+        return f"[{ref}{flags}]{label_c}"  # fillable controls keep their full form even inside a collapsed landmark
     if kind == "input":
         val = node.get("value") or ""
         t = node.get("type") or ""
@@ -117,12 +125,18 @@ def format_element(node: dict[str, Any], *, collapsed: bool = False) -> str:
         opts = node.get("options") or []
         shown = "|".join(opts[:8]) + ("|…" if len(opts) > 8 else "")
         return f'[{ref} select{flags} "{label}"="{node.get("value", "")}" {{{shown}}}]'
+    if kind == "slider":
+        val, lo, hi = node.get("value") or "", node.get("min") or "", node.get("max") or ""
+        rng = f" {lo}..{hi}" if lo != "" and hi != "" else ""
+        return f'[{ref} slider{flags} "{label}"' + (f'="{val}"' if val != "" else "") + f"{rng}]"
+    if kind == "file":
+        return f'[{ref} file{flags} "{label}"]'
     if kind in ("checkbox", "radio", "switch"):
         mark = " ✓" if node.get("checked") else ""
-        return f"[{ref} {kind}{mark}{flags}]{label}"
+        return f"[{ref} {kind}{mark}{flags}]{label_c}"
     if kind == "combobox" and node.get("expanded") is not None:
         return f"[{ref} combobox{flags} {'open' if node.get('expanded') == 'true' else 'closed'}]{label}"
-    return f"[{ref} {kind}{flags}]{label}"
+    return f"[{ref} {kind}{flags}]{label_c}"
 
 
 def _norm_label(s: str) -> str:
@@ -150,6 +164,7 @@ class _Builder:
         self._toggle = ""  # label of the checkbox/radio/switch emitted last on this line
         self._prev_cell = False  # previous token was a cell start, i.e. that cell was empty
         self._recent_links: list[tuple[str, str]] = []  # (href, name) of the last few links, to fold exact repeats
+        self.collapsed_text: list[str] = []  # lines hidden by landmark collapsing: not shown, but `find` still searches them
 
     # -- line assembly ------------------------------------------------------------------------------
     def _joined(self) -> str:
@@ -228,7 +243,12 @@ class _Builder:
         if kind == "layer":
             self.layer_depth = max(0, self.layer_depth - 1)
             return
-        inner = self.lines[start:]
+        whole = self.lines[start:]
+        if not whole:
+            return
+        # an overlay nested in a landmark (a search modal inside <header>) must keep its own lines: only the rest collapses
+        overlay_lines = [ln for ln in whole if ln.in_layer]
+        inner = [ln for ln in whole if not ln.in_layer] if overlay_lines else whole
         if not inner:
             return
         elems = [e for ln in inner for e in ln.elems]
@@ -252,11 +272,19 @@ class _Builder:
             keep = keep[: max(0, limit - len(extra))] + extra
         shown = [elems[i] for i in keep]
         more = len(elems) - len(shown)
-        text = f"{kind}: " + " ".join(shown) + (f" … (+{more} more: view --expand {kind})" if more > 0 else "")
+        notes: list[str] = []  # live data inside a collapsed region ("1 item left", "Showing 1-10 of 94") must survive; boilerplate need not
+        for ln in inner:
+            t = ln.text.strip()
+            if not ln.elems and ln.kind == "text" and re.search(r"\d", t) and len(t) <= 70 and not _BOILERPLATE_RE.search(t) and t not in notes:
+                notes.append(t)
+        lead = (" · ".join(notes[:3]) + " | ") if notes else ""
+        text = f"{kind}: " + lead + " ".join(shown) + (f" … (+{more} more: view --expand {kind})" if more > 0 else "")
         y = inner[0].y
         in_layer = inner[0].in_layer
+        self.collapsed_text.extend(ln.text for ln in inner if ln.text.strip())
         del self.lines[start:]
         self.lines.append(_Line(text=text, y=y, refs=[refs[i] for i in keep if i < len(refs)], elems=shown, kind="collapsed", in_layer=in_layer))
+        self.lines.extend(overlay_lines)
 
     # -- consume tokens ------------------------------------------------------------------------------
     def consume(self, flow: list[list[Any]]) -> None:
@@ -367,6 +395,18 @@ def _gate_hint(snap: PageSnapshot, lines: list[str]) -> str | None:
     )
 
 
+def _prune_context(nodes_by_ref: dict[int, dict[str, Any]]) -> None:
+    """Duplicate-label context ("Add to cart — Anvil") is noise for links that all go to the same place (image + title link)."""
+    groups: dict[tuple[str, str], list[int]] = {}
+    for ref, n in nodes_by_ref.items():
+        if n.get("ctx") and n.get("kind") == "link":
+            groups.setdefault((str(n.get("kind")), str(n.get("name"))), []).append(ref)
+    for refs in groups.values():
+        if len({str(nodes_by_ref[r].get("href") or "") for r in refs}) <= 1:
+            for r in refs:
+                nodes_by_ref[r] = {k: v for k, v in nodes_by_ref[r].items() if k != "ctx"}
+
+
 def render_view(
     snap: PageSnapshot,
     *,
@@ -376,6 +416,7 @@ def render_view(
 ) -> RenderedView:
     opts = options or ViewOptions()
     nodes_by_ref = {int(n["ref"]): n for n in snap.nodes if n.get("ref") is not None}
+    _prune_context(nodes_by_ref)
     b = _Builder(nodes_by_ref, opts)
     b.consume(snap.flow)
     lines = b.finalize()
@@ -394,6 +435,8 @@ def render_view(
 
     header_rows = [ln.header for ln in lines]
     all_lines = [ln.text for ln in lines]  # whole page, even behind an overlay: `find` must not go blind
+    all_lines += b.collapsed_text            # ...and even inside collapsed nav/footer regions
+    header_rows += [False] * len(b.collapsed_text)
     gate = _gate_hint(snap, all_lines)
     if gate:
         head.append(gate)

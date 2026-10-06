@@ -1,4 +1,4 @@
-# System Architecture (v1.5)
+# System Architecture (v1.7)
 
 ```
  AI agent / shell                          Python caller                      HTTP caller
@@ -51,6 +51,17 @@
   `aria-hidden` visual sibling (prices), in which case the twin is shown and the decoration dropped (`srOnly`/`hasHiddenTwin`/`hasSrTwin`/`opacityTwin`).
   Transparent radios/checkboxes are controls. Table cells carry `h` (header) / `d` (data-table) markers so the view can keep blank cells and `find` can
   show `↳ columns:` from real `<th>` rows only.
+* Navigation (1.7): `goto` settles on DOMContentLoaded plus a grace window (`dcl_grace_ms`, 5 s); resources still stalled after that (blocking
+  scripts/stylesheets) are retried one by one and then skipped (`runtime.py::_unstick`, fed by `NetTracker.stalled_blocking` in `extractor/settle.py`), so one hung third-party script cannot hold a page for a minute.
+* Controls beyond click/type (1.7): `executor/ref_actions.py` has `upload` (list of files; `agent.py::_upload_paths` refuses credential-looking
+  paths and >100 MB), `dblclick`, right-click, and `_drag` (mouse down, 2 px nudge, 12-step move, up; also fires HTML5 DnD). The extractor tags sliders
+  (`value/min/max`), file inputs, and draggable/droppable elements (`weak` click candidates). Ref ops callers may force are listed in `validation._REF_OP_OVERRIDES`.
+* Label policy (1.7): checkbox/radio names come from `bareLabel` (an adjacent short text node or inline element, then the sibling `<label>`) before
+  placeholder/name; password nodes keep their label with the value cleared. `detectLayers` finds `dialog[open]:modal`/`[aria-modal]` including inside open
+  shadow roots; overlay lines are never collapsed into a header, and collapsed footers keep numeric status notes ("1 item left") and stay searchable by `find`.
+* CAPTCHA (1.7): `captcha.py` kinds are checkbox / grid / canvas / text / interstitial. For canvas puzzles a magenta coordinate ruler (page CSS px, `scale: "css"`
+  screenshot, so image px = page px via `Challenge.origin`/`size`) is injected into the challenge frame, captured, and removed. `captcha click/drag` map image points to page
+  points. `_after_captcha` (agent.py) reports REJECTED/ACCEPTED from the widget's visible error text (`_ERROR_JS`, checks visibility, opacity and transforms) or the page's own verdict text, never from "the challenge went away" alone.
 * `do` is a verb-layer feature (`agent.py`): it re-enters `AgentSession.run` per step and stops at the first failure prefix; the daemon still sees one request.
 * The daemon's `__ping__` reply carries its start time; the thin client compares it with the newest package source mtime and restarts a stale daemon.
 * Snapshot JS returns a JSON **string** (structured returns cost ~3× in Playwright serialisation).
@@ -64,5 +75,6 @@
 | Change how the page prints | `extractor/view.py` (`_Builder`) |
 | Add a verb | `agent.py` (`_v_<name>`) + `verbs_help.py` + `guide.py` (+ `docs/agent_guide.md` copy) + `tests/integration/test_v14_local_sites.py`; `tests/unit/test_agent_guide.py` fails if the guide or help miss it |
 | Change what agents are told | `guide.py` only, then refresh the block in `docs/agent_guide.md` (a test enforces they match) |
+| Add a control verb | `executor/ref_actions.py` + `executor/actions.py` allowlist + `validation._REF_OP_OVERRIDES` + `agent.py` (`_v_<name>`) + the verb checklist above |
 | Add a CAPTCHA provider | `_PROVIDER_FRAMES` / selector tables in `captcha.py` |
 | Tune waiting | `SettleConfig` (`quiet_ms`, `net_quiet_ms`, `grace_ms`, caps) |

@@ -13,6 +13,9 @@ class SettleConfig(BaseModel):
     net_quiet_ms: int = 100  # no in-flight document/xhr/fetch/script for this long
     action_cap_ms: int = 2500
     navigation_cap_ms: int = 5000
+    # a navigation returns once the response is committed and DOMContentLoaded fired, or this long after commit
+    # (blocking scripts that never arrive must not hold the agent hostage; what has rendered is shown)
+    dcl_grace_ms: int = 5000
     observe_cap_ms: int = 800
     # when an action visibly changed nothing, wait this long for late (timer/debounce driven) rendering
     grace_ms: int = 350

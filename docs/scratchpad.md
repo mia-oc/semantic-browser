@@ -79,3 +79,26 @@
 - **A short `find` hit needs its neighbour** (bare price, date); whole-word hits first beats page order when the query is a short token.
 - **Docs for agents are code:** test them (verbs covered, size cap, no secrets/paths, docs copy equals source) or they drift like the verb list did.
 - **zsh does not word-split `$VAR`:** use a shell function (`sbx() { sb --session r4 "$@"; }`) rather than `SB="sb --session r4"`.
+
+### v1.7 wide-dogfood lessons (2026-10-06)
+
+- **Read every output before logging a verdict.** I logged an `agent-browser` success on GOV.UK that was a silent no-op on a stale ref; the journal
+  now carries a CORRECTION row. Competitors printing `✓ Done` without checking the page is the trap `sb` must never fall into (it verifies and says STALE/no change).
+- **A hung third-party script is the site's problem, not a reason to wait 60 s.** `goto` on a page with a stalled blocking `<script>` took 50-100 s.
+  Hypotheses: slow network, our settle loop, the load event never firing, a Playwright wait mode, a stalled blocking resource. Only the last fit
+  (probe: `document.readyState` stayed `loading`). Fix: DOMContentLoaded grace, then retry stalled resources individually, then skip.
+- **Editing code restarts the daemon and resets every live session.** Never patch mid-way through a live multi-step flow; finish or note the state first.
+- **"The challenge went away" is not "the answer was accepted".** hCaptcha showed "Please try again." while we reported success. Read the widget's
+  visible message; but check visibility (`checkVisibility`, opacity, ancestor transforms) or hidden decoy error nodes produce false rejects.
+- **Collapsing for tokens lost real content twice.** A footer's "1 item left!" and an overlay nested in a collapsed `<header>` (MDN's shadow-DOM
+  search dialog). Rule: collapse links, keep numeric status text and anything that is an overlay; keep collapsed text searchable.
+- **Detect overlays by size, not by class names.** A visible `dialog[open]:modal`/`aria-modal` of at least 20x12 px counts, including inside open shadow roots.
+- **Escape clears a `type=search` input before it closes the dialog around it.** Press it twice in tests; do not "fix" the product.
+- **A label is often a bare sibling text node.** TodoMVC and plain `<input> Cheese` forms: take the adjacent short text, then the sibling `<label>`.
+- **Canvas CAPTCHAs have no DOM to number.** Give the model a ruler in the same pixel space as the click (CSS-scale screenshot), not tile badges.
+- **Do not let a status reply lie about what you did.** `waited wait 'Wait'` / `scroll 'Scroll down'` noise came from synthetic labels in the outcome line; removed.
+- **Scripted string replaces can silently mangle a long line** (again): a `str.replace` on a one-line fixture duplicated `var ok=` and ate the
+  closing quote, which only surfaced as a collection-time SyntaxError. Re-read the edited line and run the tests right after.
+- **Load flakiness is real:** with ~57 Chromium processes alive from dogfooding, hung-script integration tests failed once; they pass alone. Close
+  dogfood sessions (`sb stop --all`, `agent-browser close --all`, `playwright-cli close-all`) before the final run.
+- **Honest benchmarking:** single runs, aggregates that include pre-fix runs, and a one-task `browse` sample are labelled as such and not quoted in the README.

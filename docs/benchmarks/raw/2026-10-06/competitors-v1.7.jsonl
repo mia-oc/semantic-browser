@@ -1,0 +1,439 @@
+{"kind": "step", "ts": 1791318242.586905, "tool": "sb", "task": "wiki", "cmd": "goto https://en.wikipedia.org/wiki/Eiffel_Tower", "ms": 1465, "chars": 5204, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318242.725767, "tool": "sb", "task": "wiki", "cmd": "find Height", "ms": 106, "chars": 2213, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318243.872065, "tool": "ab", "task": "wiki", "cmd": "open https://en.wikipedia.org/wiki/Eiffel_Tower", "ms": 1118, "chars": 105, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318244.028449, "tool": "ab", "task": "wiki", "cmd": "read", "ms": 114, "chars": 96222, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318255.76237, "tool": "pw", "task": "wiki", "cmd": "open https://en.wikipedia.org/wiki/Eiffel_Tower", "ms": 1146, "chars": 322, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318256.108753, "tool": "pw", "task": "wiki", "cmd": "find Height", "ms": 314, "chars": 12414, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318257.230069, "tool": "bse", "task": "wiki", "cmd": "open https://en.wikipedia.org/wiki/Eiffel_Tower", "ms": 1092, "chars": 58, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318257.550153, "tool": "bse", "task": "wiki", "cmd": "--help", "ms": 286, "chars": 4894, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318264.901972, "tool": "bse", "task": "wiki", "cmd": "get text", "ms": 184, "chars": 61, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318265.4448829, "tool": "bse", "task": "wiki", "cmd": "snapshot", "ms": 516, "chars": 2366617, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318265.536441, "tool": "sb", "task": "wiki", "cmd": "(stop)", "ms": 65, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318265.734638, "tool": "ab", "task": "wiki", "cmd": "(stop)", "ms": 168, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318265.968769, "tool": "pw", "task": "wiki", "cmd": "(stop)", "ms": 206, "chars": 26, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318266.185705, "tool": "bse", "task": "wiki", "cmd": "(stop)", "ms": 190, "chars": 42, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791318266.21438, "tool": "sb", "task": "wiki", "verdict": "success", "note": "330 m via find, 2 calls"}
+{"kind": "done", "ts": 1791318266.2399518, "tool": "ab", "task": "wiki", "verdict": "success", "note": "read dumps whole page"}
+{"kind": "done", "ts": 1791318266.265098, "tool": "pw", "task": "wiki", "verdict": "success", "note": "find returns YAML subtrees"}
+{"kind": "done", "ts": 1791318266.290421, "tool": "bse", "task": "wiki", "verdict": "success", "note": "get text dumps page"}
+{"kind": "step", "ts": 1791318285.410851, "tool": "pw", "task": "wiki", "cmd": "open https://en.wikipedia.org/wiki/Eiffel_Tower", "ms": 1053, "chars": 322, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318285.6941419, "tool": "pw", "task": "wiki", "cmd": "find metres tall", "ms": 256, "chars": 47, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318285.911488, "tool": "pw", "task": "wiki", "cmd": "(stop)", "ms": 191, "chars": 26, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791318285.939001, "tool": "pw", "task": "wiki", "verdict": "success", "note": "first find 'Height' missed the answer (headers only); needed a 2nd find 'metres tall'"}
+{"kind": "step", "ts": 1791318296.458986, "tool": "pw", "task": "wiki", "cmd": "open https://en.wikipedia.org/wiki/Eiffel_Tower", "ms": 1117, "chars": 322, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318296.7831922, "tool": "pw", "task": "wiki", "cmd": "find 330", "ms": 286, "chars": 8328, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318297.008459, "tool": "pw", "task": "wiki", "cmd": "(stop)", "ms": 198, "chars": 26, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791318303.161921, "tool": "pw", "task": "wiki", "verdict": "partial", "note": "found only by searching the answer itself (find '330'); find 'Height' returned headers"}
+{"kind": "done", "ts": 1791318303.186445, "tool": "ab", "task": "wiki", "verdict": "partial", "note": "read works but 24k tokens (whole page); no find"}
+{"kind": "done", "ts": 1791318315.915562, "tool": "ab", "task": "wiki", "verdict": "success", "note": "read returns the answer, but the whole page (~24k tokens)"}
+{"kind": "step", "ts": 1791318317.082922, "tool": "bse", "task": "wiki", "cmd": "open https://en.wikipedia.org/wiki/Eiffel_Tower", "ms": 1138, "chars": 58, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318317.3831701, "tool": "bse", "task": "wiki", "cmd": "get text #mw-content-text", "ms": 262, "chars": 104740, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318318.530806, "tool": "bse", "task": "wiki", "cmd": "get markdown", "ms": 1120, "chars": 583423, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318318.746089, "tool": "bse", "task": "wiki", "cmd": "(stop)", "ms": 189, "chars": 42, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791318327.288052, "tool": "bse", "task": "wiki", "verdict": "success", "note": "answer present but only via whole-page dumps (>=145k tokens); no find/narrow read"}
+{"kind": "step", "ts": 1791318328.9975638, "tool": "sb", "task": "hn", "cmd": "goto https://news.ycombinator.com/", "ms": 1683, "chars": 5167, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318330.76838, "tool": "ab", "task": "hn", "cmd": "open https://news.ycombinator.com/", "ms": 1736, "chars": 79, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318330.89448, "tool": "ab", "task": "hn", "cmd": "snapshot -i", "ms": 87, "chars": 13577, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318332.516209, "tool": "pw", "task": "hn", "cmd": "open https://news.ycombinator.com/", "ms": 1594, "chars": 281, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318332.7274501, "tool": "pw", "task": "hn", "cmd": "snapshot", "ms": 184, "chars": 47989, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318337.611431, "tool": "ab", "task": "hn", "cmd": "read", "ms": 64, "chars": 4049, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318337.889292, "tool": "sb", "task": "hn", "cmd": "(stop)", "ms": 62, "chars": 14, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318338.092652, "tool": "ab", "task": "hn", "cmd": "(stop)", "ms": 174, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318338.307132, "tool": "pw", "task": "hn", "cmd": "(stop)", "ms": 189, "chars": 24, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791318342.641315, "tool": "sb", "task": "hn", "verdict": "success", "note": "Mistral Large 4, 1297 points; 1 call"}
+{"kind": "done", "ts": 1791318342.6655512, "tool": "ab", "task": "hn", "verdict": "success", "note": "needed snapshot -i then read (2 calls)"}
+{"kind": "done", "ts": 1791318342.6891441, "tool": "pw", "task": "hn", "verdict": "success", "note": "snapshot ~12k tokens, answer inside"}
+{"kind": "step", "ts": 1791318343.732859, "tool": "sb", "task": "form", "cmd": "goto https://httpbin.org/forms/post", "ms": 1019, "chars": 491, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318345.783932, "tool": "sb", "task": "form", "cmd": "do type \"Customer name\" \"Matt\" check Medium check Bacon check \"Extra Cheese\" type \"Delivery instructions\" \"ring twice\" click \"Submit order\"", "ms": 2018, "chars": 1135, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318355.452235, "tool": "ab", "task": "form", "cmd": "open https://httpbin.org/forms/post", "ms": 868, "chars": 69, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318355.547041, "tool": "ab", "task": "form", "cmd": "snapshot -i", "ms": 59, "chars": 627, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318356.5784068, "tool": "pw", "task": "form", "cmd": "open https://httpbin.org/forms/post", "ms": 1005, "chars": 259, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318356.7919319, "tool": "pw", "task": "form", "cmd": "snapshot", "ms": 184, "chars": 1801, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318372.2685618, "tool": "ab", "task": "form", "cmd": "fill @e2 Matt", "ms": 69, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318372.3596082, "tool": "ab", "task": "form", "cmd": "click @e6", "ms": 57, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318372.4424598, "tool": "ab", "task": "form", "cmd": "check @e8", "ms": 54, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318372.52261, "tool": "ab", "task": "form", "cmd": "check @e9", "ms": 51, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318372.5966, "tool": "ab", "task": "form", "cmd": "fill @e12 ring-twice", "ms": 47, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318372.675783, "tool": "ab", "task": "form", "cmd": "click @e1", "ms": 53, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318372.9267972, "tool": "ab", "task": "form", "cmd": "read", "ms": 222, "chars": 1398, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318381.402804, "tool": "pw", "task": "form", "cmd": "fill e5 Matt", "ms": 253, "chars": 108, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318381.611439, "tool": "pw", "task": "form", "cmd": "check e19", "ms": 181, "chars": 93, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318381.810737, "tool": "pw", "task": "form", "cmd": "check e27", "ms": 172, "chars": 95, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318382.020303, "tool": "pw", "task": "form", "cmd": "check e30", "ms": 181, "chars": 102, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318382.214211, "tool": "pw", "task": "form", "cmd": "fill e42 ring-twice", "ms": 167, "chars": 122, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318383.099537, "tool": "pw", "task": "form", "cmd": "click e44", "ms": 858, "chars": 223, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318383.2993321, "tool": "pw", "task": "form", "cmd": "snapshot", "ms": 163, "chars": 1540, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791318389.67624, "tool": "sb", "task": "form", "verdict": "success", "note": "6 steps in 1 do, server received correct values"}
+{"kind": "done", "ts": 1791318389.702616, "tool": "ab", "task": "form", "verdict": "success", "note": "6 action calls (~50ms each, terse), verified with read"}
+{"kind": "done", "ts": 1791318389.7318242, "tool": "pw", "task": "form", "verdict": "success", "note": "6 action calls + snapshot verify"}
+{"kind": "step", "ts": 1791318389.8219252, "tool": "sb", "task": "form", "cmd": "(stop)", "ms": 63, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318390.021816, "tool": "ab", "task": "form", "cmd": "(stop)", "ms": 170, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318390.2381508, "tool": "pw", "task": "form", "cmd": "(stop)", "ms": 189, "chars": 26, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318441.16768, "tool": "sb", "task": "dyn-prefix", "cmd": "goto https://the-internet.herokuapp.com/dynamic_loading/2", "ms": 50901, "chars": 383, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318472.883857, "tool": "ab", "task": "dyn", "cmd": "open https://the-internet.herokuapp.com/dynamic_loading/2", "ms": 26352, "chars": 83, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318504.31201, "tool": "pw", "task": "dyn", "cmd": "open https://the-internet.herokuapp.com/dynamic_loading/2", "ms": 31375, "chars": 455, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318554.651278, "tool": "sb", "task": "dyn-prefix", "cmd": "goto https://the-internet.herokuapp.com/dynamic_loading/2", "ms": 50297, "chars": 383, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318767.210973, "tool": "sb", "task": "dyn-prefix", "cmd": "(stop)", "ms": 76, "chars": 15, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791318767.261566, "tool": "sb", "task": "dyn-prefix", "verdict": "fail", "note": "goto took 50s: hung blocking scripts on the site; fixed in runtime (DCL grace)"}
+{"kind": "step", "ts": 1791318774.0945191, "tool": "sb", "task": "dyn", "cmd": "goto https://the-internet.herokuapp.com/dynamic_loading/2", "ms": 6806, "chars": 353, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318882.4018729, "tool": "sb", "task": "dyn", "cmd": "(stop)", "ms": 74, "chars": 15, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318889.230714, "tool": "sb", "task": "dyn", "cmd": "goto https://the-internet.herokuapp.com/dynamic_loading/2", "ms": 6797, "chars": 506, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318898.095258, "tool": "sb", "task": "dyn", "cmd": "do click Start wait text \"Hello World!\" 8000", "ms": 8828, "chars": 399, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318956.131412, "tool": "sb", "task": "dyn", "cmd": "view", "ms": 164, "chars": 243, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318956.680831, "tool": "sb", "task": "dyn", "cmd": "click Start", "ms": 517, "chars": 294, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791318962.9008, "tool": "sb", "task": "dyn", "cmd": "view", "ms": 160, "chars": 243, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319021.388643, "tool": "sb", "task": "dyn", "cmd": "(stop)", "ms": 66, "chars": 15, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319033.699927, "tool": "sb", "task": "dyn", "cmd": "goto https://the-internet.herokuapp.com/dynamic_loading/2", "ms": 12278, "chars": 473, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319039.025861, "tool": "sb", "task": "dyn", "cmd": "do click Start wait text \"Hello World!\" 9000", "ms": 5285, "chars": 390, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319048.56398, "tool": "ab", "task": "dyn", "cmd": "snapshot -i", "ms": 91, "chars": 235, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319052.6482408, "tool": "ab", "task": "dyn", "cmd": "wait 4000", "ms": 4056, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319052.75188, "tool": "ab", "task": "dyn", "cmd": "snapshot -i", "ms": 62, "chars": 235, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319052.995309, "tool": "pw", "task": "dyn", "cmd": "snapshot", "ms": 212, "chars": 881, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319058.549057, "tool": "ab", "task": "dyn", "cmd": "click @e4", "ms": 76, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319083.675047, "tool": "ab", "task": "dyn", "cmd": "wait --text Hello World!", "ms": 25098, "chars": 31, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319083.8031418, "tool": "ab", "task": "dyn", "cmd": "get text #finish", "ms": 64, "chars": 111, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319085.5720372, "tool": "pw", "task": "dyn", "cmd": "click e5", "ms": 1736, "chars": 565, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319093.473475, "tool": "ab", "task": "dyn", "cmd": "get text #finish", "ms": 69, "chars": 111, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319093.565516, "tool": "ab", "task": "dyn", "cmd": "snapshot -i", "ms": 61, "chars": 235, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319123.814184, "tool": "pw", "task": "dyn", "cmd": "go-back", "ms": 30217, "chars": 50, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319124.078196, "tool": "pw", "task": "dyn", "cmd": "find Start", "ms": 206, "chars": 632, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319129.568737, "tool": "ab", "task": "dyn", "cmd": "click @e4", "ms": 67, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319154.700685, "tool": "ab", "task": "dyn", "cmd": "wait --text Hello World!", "ms": 25092, "chars": 31, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319154.825983, "tool": "ab", "task": "dyn", "cmd": "snapshot -i", "ms": 65, "chars": 235, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319154.9179678, "tool": "ab", "task": "dyn", "cmd": "read", "ms": 58, "chars": 124, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319156.188596, "tool": "pw", "task": "dyn", "cmd": "click f2e11", "ms": 1240, "chars": 394, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319162.457012, "tool": "pw", "task": "dyn", "cmd": "find Hello", "ms": 196, "chars": 409, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791319172.166759, "tool": "sb", "task": "dyn", "verdict": "success", "note": "after DCL-grace + retry fix: Hello World in 2 calls (goto 12s); before fix 50s"}
+{"kind": "done", "ts": 1791319172.192391, "tool": "ab", "task": "dyn", "verdict": "fail", "note": "open timed out at 26s; Start click had no effect, Hello World never appeared"}
+{"kind": "done", "ts": 1791319172.218101, "tool": "pw", "task": "dyn", "verdict": "success", "note": "patient: 31s to load, then click + find; 1 slip of mine (clicked wrong ref) not counted as failure"}
+{"kind": "step", "ts": 1791319172.31183, "tool": "sb", "task": "dyn", "cmd": "(stop)", "ms": 67, "chars": 15, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319172.519021, "tool": "ab", "task": "dyn", "cmd": "(stop)", "ms": 178, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319172.831525, "tool": "pw", "task": "dyn", "cmd": "(stop)", "ms": 285, "chars": 25, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319174.666626, "tool": "sb", "task": "shop-prefix", "cmd": "goto https://www.saucedemo.com/", "ms": 1808, "chars": 388, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319180.3864162, "tool": "sb", "task": "shop-prefix", "cmd": "find password", "ms": 41, "chars": 97, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319180.885786, "tool": "sb", "task": "shop-prefix", "cmd": "do type Username standard_user type Password [typed] --enter view", "ms": 469, "chars": 2265, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319192.52495, "tool": "sb", "task": "shop-prefix", "cmd": "view", "ms": 152, "chars": 1897, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319198.471835, "tool": "sb", "task": "shop-prefix", "cmd": "click Add to cart", "ms": 38, "chars": 2706, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319386.967082, "tool": "sb", "task": "shop-prefix", "cmd": "(stop)", "ms": 86, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791319387.0218618, "tool": "sb", "task": "shop-prefix", "verdict": "partial", "note": "six identical Add to cart buttons; view lacked which product (ctx not rendered): fixed"}
+{"kind": "step", "ts": 1791319388.792347, "tool": "sb", "task": "shop", "cmd": "goto https://www.saucedemo.com/", "ms": 1742, "chars": 388, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319389.1754088, "tool": "sb", "task": "shop", "cmd": "do type Username standard_user type Password [typed] --enter", "ms": 345, "chars": 3029, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319407.32409, "tool": "sb", "task": "shop", "cmd": "(stop)", "ms": 63, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319409.0330229, "tool": "sb", "task": "shop", "cmd": "goto https://www.saucedemo.com/", "ms": 1675, "chars": 388, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319409.404926, "tool": "sb", "task": "shop", "cmd": "do type Username standard_user type Password [typed] --enter", "ms": 338, "chars": 2513, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319414.849302, "tool": "sb", "task": "shop", "cmd": "find Add to cart", "ms": 51, "chars": 427, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319415.152076, "tool": "sb", "task": "shop", "cmd": "do click \"Add to cart — Sauce Labs Backpack\" click \"Add to cart — Sauce Labs Bolt T-Shirt\" click \"Cart\"", "ms": 268, "chars": 3187, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319435.601532, "tool": "sb", "task": "shop", "cmd": "(stop)", "ms": 94, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319438.7586691, "tool": "sb", "task": "shop", "cmd": "goto https://www.saucedemo.com/", "ms": 3103, "chars": 388, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319439.1937568, "tool": "sb", "task": "shop", "cmd": "do type Username standard_user type Password [typed] --enter", "ms": 382, "chars": 2513, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319439.2636921, "tool": "sb", "task": "shop", "cmd": "find Add to cart", "ms": 39, "chars": 427, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319505.1565702, "tool": "sb", "task": "shop", "cmd": "(stop)", "ms": 63, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319506.525941, "tool": "sb", "task": "shop", "cmd": "goto https://www.saucedemo.com/", "ms": 1337, "chars": 388, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319506.893528, "tool": "sb", "task": "shop", "cmd": "do type Username standard_user type Password [typed] --enter", "ms": 322, "chars": 2513, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319506.961903, "tool": "sb", "task": "shop", "cmd": "find Add to cart", "ms": 37, "chars": 427, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319542.9323368, "tool": "sb", "task": "shop", "cmd": "(stop)", "ms": 80, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319544.342598, "tool": "sb", "task": "shop", "cmd": "goto https://www.saucedemo.com/", "ms": 1377, "chars": 388, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319544.9482272, "tool": "sb", "task": "shop", "cmd": "do type Username standard_user type Password [typed] --enter click \"Add to cart — Sauce Labs Backpack\" click \"Add to cart — Sauce Labs Bolt T-Shirt\" click Cart", "ms": 568, "chars": 3231, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319550.582222, "tool": "sb", "task": "shop", "cmd": "do click Cart", "ms": 43, "chars": 2535, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319550.7574022, "tool": "sb", "task": "shop", "cmd": "view", "ms": 145, "chars": 2044, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319575.053154, "tool": "sb", "task": "shop", "cmd": "(stop)", "ms": 59, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319576.4701362, "tool": "sb", "task": "shop", "cmd": "goto https://www.saucedemo.com/", "ms": 1385, "chars": 388, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319577.1764338, "tool": "sb", "task": "shop", "cmd": "do type Username standard_user type Password [typed] --enter click \"Add to cart — Sauce Labs Backpack\" click \"Add to cart — Sauce Labs Bolt T-Shirt\" click Cart", "ms": 665, "chars": 1476, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319582.8543, "tool": "ab", "task": "shop", "cmd": "open https://www.saucedemo.com/", "ms": 1426, "chars": 74, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319582.97793, "tool": "ab", "task": "shop", "cmd": "snapshot -i", "ms": 77, "chars": 346, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319584.100126, "tool": "pw", "task": "shop", "cmd": "open https://www.saucedemo.com/", "ms": 1083, "chars": 275, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319584.32707, "tool": "pw", "task": "shop", "cmd": "snapshot", "ms": 196, "chars": 748, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319589.446441, "tool": "ab", "task": "shop", "cmd": "read", "ms": 54, "chars": 175, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319589.543359, "tool": "ab", "task": "shop", "cmd": "fill @e5 standard_user", "ms": 67, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319589.6440818, "tool": "ab", "task": "shop", "cmd": "fill @e6 [typed]", "ms": 64, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319589.766591, "tool": "ab", "task": "shop", "cmd": "click @e4", "ms": 90, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319589.874155, "tool": "ab", "task": "shop", "cmd": "snapshot -i", "ms": 72, "chars": 1514, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319594.644435, "tool": "ab", "task": "shop", "cmd": "click @e17", "ms": 56, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319594.730269, "tool": "ab", "task": "shop", "cmd": "click @e21", "ms": 55, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319604.088162, "tool": "ab", "task": "shop", "cmd": "click @e17", "ms": 59, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319604.17354, "tool": "ab", "task": "shop", "cmd": "click @e21", "ms": 54, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319604.260242, "tool": "ab", "task": "shop", "cmd": "click @e8", "ms": 56, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319604.342258, "tool": "ab", "task": "shop", "cmd": "read", "ms": 53, "chars": 1477, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319604.590996, "tool": "pw", "task": "shop", "cmd": "fill e11 standard_user", "ms": 221, "chars": 299, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319604.8023849, "tool": "pw", "task": "shop", "cmd": "fill e13 [typed]", "ms": 180, "chars": 101, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319606.089076, "tool": "pw", "task": "shop", "cmd": "click e15", "ms": 1257, "chars": 287, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319613.9471, "tool": "ab", "task": "shop", "cmd": "snapshot -i", "ms": 61, "chars": 1514, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319614.031583, "tool": "ab", "task": "shop", "cmd": "get url", "ms": 53, "chars": 41, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319618.161487, "tool": "ab", "task": "shop", "cmd": "click @e17", "ms": 62, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319618.2513652, "tool": "ab", "task": "shop", "cmd": "click @e21", "ms": 56, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319618.339367, "tool": "ab", "task": "shop", "cmd": "snapshot -i", "ms": 58, "chars": 1514, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319623.281323, "tool": "ab", "task": "shop", "cmd": "snapshot -i", "ms": 64, "chars": 1514, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319623.368868, "tool": "ab", "task": "shop", "cmd": "eval document.querySelector('.shopping_cart_badge')?.textContent || 'no badge'", "ms": 54, "chars": 11, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791319661.98855, "tool": "ab", "task": "shop", "verdict": "fail", "note": "login ok, but 4 'click' attempts on Add to cart (ref, css, --human) all said Done with no effect (cart stayed empty): silent false success"}
+{"kind": "step", "ts": 1791319662.191137, "tool": "ab", "task": "shop", "cmd": "(stop)", "ms": 174, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319662.4120681, "tool": "pw", "task": "shop", "cmd": "snapshot", "ms": 189, "chars": 5838, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319672.534187, "tool": "pw", "task": "shop", "cmd": "click e54", "ms": 724, "chars": 306, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319673.287267, "tool": "pw", "task": "shop", "cmd": "click e78", "ms": 714, "chars": 310, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319673.515467, "tool": "pw", "task": "shop", "cmd": "click e32", "ms": 188, "chars": 93, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319673.7205, "tool": "pw", "task": "shop", "cmd": "find Backpack", "ms": 175, "chars": 758, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319673.9241621, "tool": "pw", "task": "shop", "cmd": "find Bolt", "ms": 174, "chars": 1067, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319678.42701, "tool": "pw", "task": "shop", "cmd": "find Cart,", "ms": 236, "chars": 444, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319684.1425111, "tool": "pw", "task": "shop", "cmd": "click e127", "ms": 712, "chars": 288, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319684.3723898, "tool": "pw", "task": "shop", "cmd": "find Remove", "ms": 186, "chars": 1331, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319684.5768268, "tool": "pw", "task": "shop", "cmd": "find inventory_item_name|Sauce Labs", "ms": 173, "chars": 66, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319684.712548, "tool": "sb", "task": "shop", "cmd": "(stop)", "ms": 65, "chars": 16, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319684.967083, "tool": "pw", "task": "shop", "cmd": "(stop)", "ms": 222, "chars": 26, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791319684.9951758, "tool": "sb", "task": "shop", "verdict": "success", "note": "login + 2 adds + cart in 2 calls; product named on each Add button"}
+{"kind": "done", "ts": 1791319685.022135, "tool": "pw", "task": "shop", "verdict": "success", "note": "login, 2 adds, cart; needed re-snapshot for stale ref"}
+{"kind": "step", "ts": 1791319704.5970519, "tool": "sb", "task": "frames", "cmd": "goto https://the-internet.herokuapp.com/iframe", "ms": 7444, "chars": 355, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319720.6794748, "tool": "sb", "task": "webform", "cmd": "goto https://www.selenium.dev/selenium/web/web-form.html", "ms": 1044, "chars": 798, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319766.373043, "tool": "sb", "task": "webform", "cmd": "(stop)", "ms": 57, "chars": 19, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319767.261018, "tool": "sb", "task": "webform", "cmd": "goto https://www.selenium.dev/selenium/web/web-form.html", "ms": 854, "chars": 778, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319768.654531, "tool": "sb", "task": "webform", "cmd": "do type \"Text input\" hello type Textarea \"two words\" select \"Dropdown (select)\" Two check \"Default checkbox\" type \"Date picker\" 10/06/2026 click Submit", "ms": 1357, "chars": 1396, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319768.835634, "tool": "sb", "task": "webform", "cmd": "goto https://www.selenium.dev/selenium/web/web-form.html", "ms": 139, "chars": 787, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319768.916492, "tool": "sb", "task": "webform", "cmd": "help", "ms": 40, "chars": 2021, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319778.944024, "tool": "sb", "task": "webform", "cmd": "do type \"Example range\" 7", "ms": 140, "chars": 712, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319779.126781, "tool": "sb", "task": "webform", "cmd": "view", "ms": 149, "chars": 653, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319779.2093198, "tool": "sb", "task": "webform", "cmd": "click 29", "ms": 45, "chars": 742, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791319779.3860202, "tool": "sb", "task": "webform", "cmd": "type 29 /tmp/dogfood7/ab-shop.png", "ms": 141, "chars": 686, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320057.487537, "tool": "sb", "task": "dnd", "cmd": "goto https://www.selenium.dev/selenium/web/droppableItems.html", "ms": 1085, "chars": 369, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320060.576107, "tool": "sb", "task": "dnd", "cmd": "drag 1 2", "ms": 344, "chars": 512, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320062.965153, "tool": "ab", "task": "dnd", "cmd": "open https://www.selenium.dev/selenium/web/droppableItems.html", "ms": 2352, "chars": 130, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320063.0981271, "tool": "ab", "task": "dnd", "cmd": "snapshot -i", "ms": 86, "chars": 26, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320068.495884, "tool": "ab", "task": "dnd", "cmd": "snapshot", "ms": 85, "chars": 207, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320068.7872388, "tool": "ab", "task": "dnd", "cmd": "drag #draggable #droppable", "ms": 250, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320068.889463, "tool": "ab", "task": "dnd", "cmd": "read", "ms": 68, "chars": 130, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320070.6723788, "tool": "pw", "task": "dnd", "cmd": "open https://www.selenium.dev/selenium/web/droppableItems.html", "ms": 1748, "chars": 361, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320070.995703, "tool": "pw", "task": "dnd", "cmd": "snapshot", "ms": 273, "chars": 494, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320076.6757429, "tool": "pw", "task": "dnd", "cmd": "drag e4 e6", "ms": 1453, "chars": 353, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320076.930316, "tool": "pw", "task": "dnd", "cmd": "snapshot", "ms": 215, "chars": 421, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320086.279476, "tool": "sb", "task": "dnd", "verdict": "success", "note": "drag 1 2 -> Dropped!, 1 s total incl. goto; new verb"}
+{"kind": "done", "ts": 1791320086.310563, "tool": "ab", "task": "dnd", "verdict": "partial", "note": "snapshot -i: 'no interactive elements'; drag worked only with CSS ids I guessed (#draggable #droppable)"}
+{"kind": "done", "ts": 1791320086.340246, "tool": "pw", "task": "dnd", "verdict": "success", "note": "drag e4 e6 worked (1.5 s); full snapshot needed to find refs"}
+{"kind": "done", "ts": 1791320086.370464, "tool": "sb", "task": "webform", "verdict": "success", "note": "text/textarea/select/checkbox/date typed, submitted -> 'Received!'; slider value invisible (fixed in 1.7)"}
+{"kind": "step", "ts": 1791320086.855747, "tool": "ab", "task": "dnd", "cmd": "(stop)", "ms": 453, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320087.17964, "tool": "pw", "task": "dnd", "cmd": "(stop)", "ms": 292, "chars": 25, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320088.456195, "tool": "sb", "task": "up", "cmd": "goto https://www.selenium.dev/selenium/web/upload.html", "ms": 1243, "chars": 293, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320091.767682, "tool": "sb", "task": "up", "cmd": "do upload 1 /tmp/dogfood7/note.txt click Go!", "ms": 323, "chars": 389, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320091.861699, "tool": "sb", "task": "up", "cmd": "find hello", "ms": 58, "chars": 74, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320097.459347, "tool": "sb", "task": "up", "verdict": "success", "note": "upload 1 file + Go!: filename reached form"}
+{"kind": "step", "ts": 1791320104.598422, "tool": "sb", "task": "shadow", "cmd": "goto https://www.selenium.dev/selenium/web/shadowRootPage.html", "ms": 1173, "chars": 297, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320113.711415, "tool": "sb", "task": "ifr", "cmd": "goto https://www.selenium.dev/selenium/web/iframes.html", "ms": 1099, "chars": 2072, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320114.027335, "tool": "sb", "task": "ifr", "cmd": "goto https://www.selenium.dev/selenium/web/click_tests/html5_boolean_attributes.html", "ms": 283, "chars": 753, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320179.3986309, "tool": "sb", "task": "ifr", "cmd": "goto https://www.selenium.dev/selenium/web/iframes.html", "ms": 1505, "chars": 2012, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320186.428651, "tool": "sb", "task": "todo", "cmd": "goto https://todomvc.com/examples/react/dist/", "ms": 1552, "chars": 403, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320189.136749, "tool": "sb", "task": "todo", "cmd": "do type 11 \"buy milk\" --enter type 11 \"write tests\" --enter type 11 \"ship 1.7\" --enter", "ms": 434, "chars": 938, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320213.494001, "tool": "sb", "task": "todo", "cmd": "view", "ms": 1095, "chars": 201, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320217.899461, "tool": "sb", "task": "todo", "cmd": "goto https://todomvc.com/examples/react/dist/", "ms": 633, "chars": 403, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320219.119713, "tool": "sb", "task": "todo", "cmd": "do type 11 \"buy milk\" --enter type 11 \"write tests\" --enter type 11 \"ship 1.7\" --enter", "ms": 1173, "chars": 876, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320219.491776, "tool": "sb", "task": "todo", "cmd": "do check \"write tests\" click Active", "ms": 328, "chars": 733, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320226.2663512, "tool": "sb", "task": "todo", "cmd": "find left", "ms": 62, "chars": 73, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320226.359549, "tool": "sb", "task": "todo", "cmd": "view --expand footer", "ms": 41, "chars": 503, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320238.011283, "tool": "sb", "task": "todo", "cmd": "view --full", "ms": 44, "chars": 428, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320238.081047, "tool": "sb", "task": "todo", "cmd": "view --all", "ms": 37, "chars": 428, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320238.185444, "tool": "sb", "task": "todo", "cmd": "find item", "ms": 72, "chars": 73, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320309.5458078, "tool": "sb", "task": "todo", "cmd": "goto https://todomvc.com/examples/react/dist/", "ms": 1730, "chars": 512, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320310.131086, "tool": "sb", "task": "todo", "cmd": "do type 11 \"buy milk\" --enter type 11 \"write tests\" --enter type 11 \"ship 1.7\" --enter check \"write tests\"", "ms": 551, "chars": 1295, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320310.207894, "tool": "sb", "task": "todo", "cmd": "find Double-click", "ms": 43, "chars": 60, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320316.22281, "tool": "ab", "task": "todo", "cmd": "open https://todomvc.com/examples/react/dist/", "ms": 1883, "chars": 93, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320316.4187799, "tool": "ab", "task": "todo", "cmd": "snapshot -i", "ms": 139, "chars": 727, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320319.0795321, "tool": "ab", "task": "todo", "cmd": "fill @e11 buy milk", "ms": 65, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320319.219369, "tool": "ab", "task": "todo", "cmd": "press Enter", "ms": 95, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320319.316421, "tool": "ab", "task": "todo", "cmd": "fill @e11 write tests", "ms": 57, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320319.4085681, "tool": "ab", "task": "todo", "cmd": "press Enter", "ms": 60, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320319.4970229, "tool": "ab", "task": "todo", "cmd": "fill @e11 ship 1.7", "ms": 56, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320319.589579, "tool": "ab", "task": "todo", "cmd": "press Enter", "ms": 60, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320319.6890152, "tool": "ab", "task": "todo", "cmd": "snapshot -i", "ms": 65, "chars": 1011, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320324.93604, "tool": "ab", "task": "todo", "cmd": "check @e22", "ms": 110, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320325.05909, "tool": "ab", "task": "todo", "cmd": "snapshot -i", "ms": 77, "chars": 1084, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320331.7533529, "tool": "ab", "task": "todo", "verdict": "success", "note": "3 todos + tick; checkboxes unlabeled, relied on DOM order (e22 = 2nd) ; 'N items left' only inside a container name"}
+{"kind": "step", "ts": 1791320333.5442822, "tool": "pw", "task": "todo", "cmd": "open https://todomvc.com/examples/react/dist/", "ms": 1670, "chars": 340, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320333.8273878, "tool": "pw", "task": "todo", "cmd": "snapshot", "ms": 244, "chars": 3080, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320339.8542552, "tool": "pw", "task": "todo", "cmd": "fill e38 buy milk", "ms": 259, "chars": 89, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320340.671434, "tool": "pw", "task": "todo", "cmd": "press Enter", "ms": 776, "chars": 285, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320340.947957, "tool": "pw", "task": "todo", "cmd": "fill e38 write tests", "ms": 238, "chars": 92, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320341.729047, "tool": "pw", "task": "todo", "cmd": "press Enter", "ms": 745, "chars": 285, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320341.962136, "tool": "pw", "task": "todo", "cmd": "fill e38 ship 1.7", "ms": 193, "chars": 89, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320342.693743, "tool": "pw", "task": "todo", "cmd": "press Enter", "ms": 698, "chars": 285, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320342.926233, "tool": "pw", "task": "todo", "cmd": "snapshot", "ms": 197, "chars": 4036, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320347.086167, "tool": "pw", "task": "todo", "cmd": "check e62", "ms": 336, "chars": 143, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320347.456874, "tool": "pw", "task": "todo", "cmd": "snapshot", "ms": 324, "chars": 4132, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320353.255805, "tool": "pw", "task": "todo", "cmd": "check e62", "ms": 245, "chars": 143, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320356.616131, "tool": "pw", "task": "todo", "cmd": "snapshot", "ms": 204, "chars": 4132, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320364.381075, "tool": "pw", "task": "todo", "cmd": "snapshot", "ms": 252, "chars": 4132, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320364.6076832, "tool": "pw", "task": "todo", "cmd": "snapshot", "ms": 194, "chars": 4132, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320369.58975, "tool": "pw", "task": "todo", "cmd": "snapshot", "ms": 254, "chars": 4132, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320374.8426619, "tool": "pw", "task": "todo", "verdict": "success", "note": "3 todos + tick; checkboxes unlabeled but YAML nests label text beside them; 3.1k-token snapshots"}
+{"kind": "done", "ts": 1791320374.8746612, "tool": "sb", "task": "todo", "verdict": "success", "note": "after 2 fixes (sibling-label, footer status kept): all labels right, '2 items left!' visible"}
+{"kind": "step", "ts": 1791320375.3048441, "tool": "ab", "task": "todo", "cmd": "(stop)", "ms": 397, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320375.618776, "tool": "pw", "task": "todo", "cmd": "(stop)", "ms": 282, "chars": 26, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320378.2440479, "tool": "sb", "task": "qs", "cmd": "goto https://quotes.toscrape.com/scroll", "ms": 2593, "chars": 1664, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320388.675669, "tool": "sb", "task": "qs", "cmd": "do scroll bottom wait 1200 scroll bottom wait 1200 scroll bottom wait 1200", "ms": 5633, "chars": 2611, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320388.761895, "tool": "sb", "task": "qs", "cmd": "find Tags:", "ms": 44, "chars": 633, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320388.841579, "tool": "sb", "task": "qs", "cmd": "find by Mark Twain", "ms": 47, "chars": 126, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320436.504203, "tool": "sb", "task": "ql", "cmd": "goto https://quotes.toscrape.com/login", "ms": 1471, "chars": 334, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320436.849969, "tool": "sb", "task": "ql", "cmd": "do type Username admin type Password admin click Login", "ms": 310, "chars": 628, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320443.462781, "tool": "sb", "task": "ql", "cmd": "view", "ms": 159, "chars": 242, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320451.464227, "tool": "sb", "task": "ql", "cmd": "click Login", "ms": 41, "chars": 336, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320452.000802, "tool": "sb", "task": "ql", "cmd": "click 5", "ms": 501, "chars": 3112, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320459.578469, "tool": "sb", "task": "ql", "verdict": "success", "note": "login in 2 calls; ambiguous 'Login' (nav link vs button) gave a clear error"}
+{"kind": "step", "ts": 1791320461.341425, "tool": "sb", "task": "wokstoscra", "cmd": "goto https://books.toscrape.com/", "ms": 1724, "chars": 3131, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320462.574097, "tool": "sb", "task": "wvelopermo", "cmd": "goto https://developer.mozilla.org/en-US/", "ms": 1189, "chars": 4587, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320464.236802, "tool": "sb", "task": "wwbbccoukn", "cmd": "goto https://www.bbc.co.uk/news", "ms": 1626, "chars": 5207, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320471.766251, "tool": "sb", "task": "mdn", "cmd": "click Search the site", "ms": 665, "chars": 111, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320475.705423, "tool": "sb", "task": "mdn", "cmd": "goto https://developer.mozilla.org/en-US/", "ms": 658, "chars": 4587, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320475.948874, "tool": "sb", "task": "mdn", "cmd": "do click \"Search the site\"", "ms": 211, "chars": 4930, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320483.177854, "tool": "sb", "task": "mdn", "cmd": "view", "ms": 177, "chars": 4639, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320483.371009, "tool": "sb", "task": "mdn", "cmd": "shot --marks /tmp/dogfood7/mdn.png", "ms": 160, "chars": 92, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320526.6640158, "tool": "sb", "task": "mdn", "cmd": "view", "ms": 174, "chars": 4639, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320526.739029, "tool": "sb", "task": "mdn", "cmd": "view --all", "ms": 41, "chars": 4639, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320652.346692, "tool": "sb", "task": "mdn", "cmd": "goto https://developer.mozilla.org/en-US/", "ms": 1648, "chars": 4695, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320652.715272, "tool": "sb", "task": "mdn", "cmd": "do click \"Search the site\" type Search flatMap", "ms": 268, "chars": 563, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320689.382287, "tool": "sb", "task": "mdn", "cmd": "goto https://developer.mozilla.org/en-US/", "ms": 1658, "chars": 4695, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320690.199312, "tool": "sb", "task": "mdn", "cmd": "do click \"Search the site\" type Search flatMap --enter", "ms": 779, "chars": 5306, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320698.439221, "tool": "ab", "task": "mdn", "cmd": "open https://developer.mozilla.org/en-US/", "ms": 1981, "chars": 87, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320698.591656, "tool": "ab", "task": "mdn", "cmd": "snapshot -i", "ms": 111, "chars": 4691, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320701.418644, "tool": "ab", "task": "mdn", "cmd": "click @e40", "ms": 112, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320701.57796, "tool": "ab", "task": "mdn", "cmd": "snapshot -i", "ms": 90, "chars": 85, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320705.8265421, "tool": "ab", "task": "mdn", "cmd": "fill @e103 flatMap", "ms": 112, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320705.983336, "tool": "ab", "task": "mdn", "cmd": "press Enter", "ms": 108, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320707.620409, "tool": "ab", "task": "mdn", "cmd": "get url", "ms": 72, "chars": 95, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320707.714742, "tool": "ab", "task": "mdn", "cmd": "get title", "ms": 61, "chars": 45, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320712.800621, "tool": "pw", "task": "mdn", "cmd": "open https://developer.mozilla.org/en-US/", "ms": 1880, "chars": 387, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320713.3773959, "tool": "pw", "task": "mdn", "cmd": "snapshot", "ms": 515, "chars": 21481, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320714.956244, "tool": "pw", "task": "mdn", "cmd": "click e54", "ms": 1543, "chars": 358, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320719.689795, "tool": "pw", "task": "mdn", "cmd": "snapshot", "ms": 290, "chars": 21532, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320724.074466, "tool": "pw", "task": "mdn", "cmd": "fill e348 flatMap", "ms": 271, "chars": 279, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320724.6255, "tool": "pw", "task": "mdn", "cmd": "press Enter", "ms": 512, "chars": 463, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320726.441649, "tool": "pw", "task": "mdn", "cmd": "snapshot", "ms": 259, "chars": 57740, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320726.4769301, "tool": "sb", "task": "mdn", "verdict": "success", "note": "click Search the site + type Search flatMap --enter: 2 calls, lands on flatMap page; needed 3 fixes (modal detect, header collapse, reachable label)"}
+{"kind": "done", "ts": 1791320726.508849, "tool": "ab", "task": "mdn", "verdict": "success", "note": "6 calls: snapshot -i found the button, click, snapshot again for combobox, fill, Enter, get url"}
+{"kind": "step", "ts": 1791320726.8860958, "tool": "ab", "task": "mdn", "cmd": "(stop)", "ms": 343, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320730.6684868, "tool": "pw", "task": "mdn", "verdict": "success", "note": "snapshot ~big each time (needed 2 to find the modal input); 6 calls"}
+{"kind": "step", "ts": 1791320731.019615, "tool": "pw", "task": "mdn", "cmd": "(stop)", "ms": 317, "chars": 25, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320743.4338188, "tool": "sb", "task": "bbc", "cmd": "goto https://www.bbc.co.uk/news", "ms": 1701, "chars": 5208, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320743.7201998, "tool": "sb", "task": "bbc", "cmd": "do click \"Reject additional cookies\"", "ms": 248, "chars": 5222, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320745.107049, "tool": "sb", "task": "gu", "cmd": "goto https://www.theguardian.com/uk", "ms": 1349, "chars": 1888, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320751.78814, "tool": "sb", "task": "gu", "cmd": "view", "ms": 289, "chars": 1756, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320762.472189, "tool": "sb", "task": "gu", "cmd": "click 459", "ms": 1990, "chars": 5364, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320796.305442, "tool": "sb", "task": "gh", "cmd": "goto https://github.com/search?q=semantic+browser+llm&type=repositories", "ms": 2448, "chars": 4319, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320801.800703, "tool": "sb", "task": "npm", "cmd": "goto https://www.npmjs.com/search?q=playwright", "ms": 5457, "chars": 743, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320815.367678, "tool": "sb", "task": "npm", "cmd": "do wait 8000", "ms": 8197, "chars": 629, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320822.1553469, "tool": "ab", "task": "npm", "cmd": "open https://www.npmjs.com/search?q=playwright", "ms": 2837, "chars": 96, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320826.348848, "tool": "ab", "task": "npm", "cmd": "get title", "ms": 109, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320829.090858, "tool": "pw", "task": "npm", "cmd": "open https://www.npmjs.com/search?q=playwright", "ms": 2706, "chars": 455, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320833.8872519, "tool": "sb", "task": "npm", "verdict": "fail", "note": "Cloudflare 'Just a moment' for all three tools (external); sb flagged it as a bot wall correctly"}
+{"kind": "step", "ts": 1791320834.1336079, "tool": "sb", "task": "npm", "cmd": "(stop)", "ms": 206, "chars": 15, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320834.171867, "tool": "ab", "task": "npm", "verdict": "fail", "note": "Cloudflare 'Just a moment' for all three tools (external); sb flagged it as a bot wall correctly"}
+{"kind": "step", "ts": 1791320834.7508538, "tool": "ab", "task": "npm", "cmd": "(stop)", "ms": 544, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320834.78668, "tool": "pw", "task": "npm", "verdict": "fail", "note": "Cloudflare 'Just a moment' for all three tools (external); sb flagged it as a bot wall correctly"}
+{"kind": "step", "ts": 1791320835.13778, "tool": "pw", "task": "npm", "cmd": "(stop)", "ms": 320, "chars": 25, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320840.631922, "tool": "sb", "task": "so", "cmd": "goto https://stackoverflow.com/questions/tagged/python?tab=votes", "ms": 5460, "chars": 801, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320842.0014322, "tool": "sb", "task": "gov", "cmd": "goto https://www.gov.uk/check-uk-visa", "ms": 1308, "chars": 1797, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320846.678111, "tool": "sb", "task": "gov", "cmd": "do click \"Reject additional cookies\" click \"Start now\"", "ms": 578, "chars": 1275, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320849.5964422, "tool": "sb", "task": "gov", "cmd": "do select 65 \"Japan\" click Continue", "ms": 405, "chars": 1281, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320855.581814, "tool": "sb", "task": "gov", "cmd": "do check 108 click Continue", "ms": 833, "chars": 1669, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320858.789006, "tool": "sb", "task": "gov", "cmd": "do check 153 click Continue", "ms": 798, "chars": 3918, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320863.6580229, "tool": "sb", "task": "gov", "verdict": "success", "note": "UK visa wizard: nationality->dual->purpose->result 'ETA or visa' in 4 do-calls"}
+{"kind": "step", "ts": 1791320865.84513, "tool": "ab", "task": "gov", "cmd": "open https://www.gov.uk/check-uk-visa", "ms": 2144, "chars": 107, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320865.9850729, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 94, "chars": 3406, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320869.24676, "tool": "ab", "task": "gov", "cmd": "click @e6", "ms": 176, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320869.3826911, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 77, "chars": 3319, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320869.518305, "tool": "ab", "task": "gov", "cmd": "click @e25", "ms": 99, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320870.6799302, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 102, "chars": 9992, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320873.758125, "tool": "ab", "task": "gov", "cmd": "select @e88 Japan", "ms": 77, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320873.914083, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 88, "chars": 9986, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320874.023026, "tool": "ab", "task": "gov", "cmd": "click @e89", "ms": 73, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320875.17726, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 105, "chars": 2465, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320878.039932, "tool": "ab", "task": "gov", "cmd": "click @e400", "ms": 90, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320878.1571321, "tool": "ab", "task": "gov", "cmd": "click @e360", "ms": 61, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320879.2894, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 77, "chars": 3080, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320883.59163, "tool": "ab", "task": "gov", "cmd": "click @e455", "ms": 88, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320883.719844, "tool": "ab", "task": "gov", "cmd": "click @e360", "ms": 64, "chars": 20, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320884.850209, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 81, "chars": 3079, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320884.885505, "tool": "ab", "task": "gov", "verdict": "success", "note": "same wizard: ~14 calls, snapshot -i after each step (ok, terse) ; refs shift each page"}
+{"kind": "step", "ts": 1791320885.199391, "tool": "ab", "task": "gov", "cmd": "(stop)", "ms": 280, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320896.686194, "tool": "ab", "task": "gov", "cmd": "open https://www.gov.uk/check-uk-visa", "ms": 1765, "chars": 107, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320896.7868102, "tool": "ab", "task": "gov", "cmd": "click @e6", "ms": 60, "chars": 18, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320896.956769, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 115, "chars": 3406, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320897.135214, "tool": "ab", "task": "gov", "cmd": "click @e25", "ms": 140, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320898.26678, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 84, "chars": 10217, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320898.364465, "tool": "ab", "task": "gov", "cmd": "select @e91 Japan", "ms": 58, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320898.514045, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 115, "chars": 10211, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320898.6388779, "tool": "ab", "task": "gov", "cmd": "click @e92", "ms": 83, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320899.771701, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 78, "chars": 2692, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320903.695785, "tool": "ab", "task": "gov", "cmd": "click @e408", "ms": 82, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320903.836822, "tool": "ab", "task": "gov", "cmd": "click @e368", "ms": 64, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320904.98415, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 92, "chars": 3307, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320905.112919, "tool": "ab", "task": "gov", "cmd": "click @e468", "ms": 77, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320905.260175, "tool": "ab", "task": "gov", "cmd": "click @e428", "ms": 112, "chars": 7, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320906.511461, "tool": "ab", "task": "gov", "cmd": "snapshot -i", "ms": 139, "chars": 3817, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791320911.13561, "tool": "ab", "task": "gov", "verdict": "success", "note": "CORRECTION: 1st attempt silently no-op'd on a stale Continue ref (ab says Done, I wrongly logged success); 2nd attempt re-read refs each page and reached the result. Call count includes both attempts"}
+{"kind": "step", "ts": 1791320911.6643069, "tool": "ab", "task": "gov", "cmd": "(stop)", "ms": 473, "chars": 17, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320970.192158, "tool": "sb", "task": "rc", "cmd": "goto https://www.google.com/recaptcha/api2/demo", "ms": 1936, "chars": 552, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320970.7869031, "tool": "sb", "task": "rc", "cmd": "captcha", "ms": 453, "chars": 228, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320975.953084, "tool": "sb", "task": "rc", "cmd": "captcha open", "ms": 1900, "chars": 381, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320978.1394958, "tool": "sb", "task": "rc", "cmd": "captcha", "ms": 125, "chars": 327, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320991.5085702, "tool": "sb", "task": "rc", "cmd": "captcha select 5 7 9", "ms": 273, "chars": 142, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791320998.265137, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 6713, "chars": 1768, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321007.1883469, "tool": "sb", "task": "rc", "cmd": "captcha select 5 9", "ms": 124, "chars": 139, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321009.650881, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 2427, "chars": 432, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321019.5583282, "tool": "sb", "task": "rc", "cmd": "captcha select 2 8 9", "ms": 163, "chars": 142, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321026.446249, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 6848, "chars": 1758, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321034.024435, "tool": "sb", "task": "rc", "cmd": "captcha select 9", "ms": 90, "chars": 136, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321036.46803, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 2406, "chars": 441, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321044.2128708, "tool": "sb", "task": "rc", "cmd": "captcha select 3 6 8", "ms": 180, "chars": 142, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321050.998465, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 6749, "chars": 1776, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321057.150665, "tool": "sb", "task": "rc", "cmd": "captcha select 3", "ms": 104, "chars": 136, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321059.719477, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 2528, "chars": 1760, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321066.165351, "tool": "sb", "task": "rc", "cmd": "captcha select 4 5 8", "ms": 123, "chars": 142, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321072.950958, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 6754, "chars": 1776, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321081.0851011, "tool": "sb", "task": "rc", "cmd": "captcha select 4 5 8", "ms": 154, "chars": 142, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321083.639232, "tool": "sb", "task": "rc", "cmd": "captcha submit", "ms": 2511, "chars": 534, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321088.192288, "tool": "sb", "task": "rc", "cmd": "view", "ms": 234, "chars": 432, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321088.558881, "tool": "sb", "task": "rc", "cmd": "click Submit", "ms": 323, "chars": 192, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791321095.963016, "tool": "sb", "task": "recaptcha", "verdict": "success", "note": "Google demo: 8 rounds of image grids (crosswalk, bus, 3x hydrant, dynamic replacement), server said 'Verification Success... Hooray!'"}
+{"kind": "step", "ts": 1791321098.9294322, "tool": "sb", "task": "hc", "cmd": "goto https://accounts.hcaptcha.com/demo", "ms": 2868, "chars": 826, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321104.8837109, "tool": "sb", "task": "hc", "cmd": "captcha open", "ms": 3146, "chars": 295, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321268.212126, "tool": "sb", "task": "hc", "cmd": "goto https://accounts.hcaptcha.com/demo", "ms": 2717, "chars": 933, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321274.999691, "tool": "sb", "task": "hc", "cmd": "captcha open", "ms": 6739, "chars": 456, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321289.799531, "tool": "sb", "task": "hc", "cmd": "captcha click 150,185", "ms": 6952, "chars": 1296, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321322.017399, "tool": "sb", "task": "hc", "cmd": "captcha submit", "ms": 1069, "chars": 141, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321328.343987, "tool": "sb", "task": "hc", "cmd": "goto https://accounts.hcaptcha.com/demo", "ms": 1644, "chars": 826, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321330.198118, "tool": "sb", "task": "hc", "cmd": "captcha open", "ms": 1821, "chars": 476, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321345.081634, "tool": "sb", "task": "hc", "cmd": "captcha click 65,210 80,325 175,365 180,245 385,380", "ms": 5475, "chars": 1269, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321350.999386, "tool": "sb", "task": "hc", "cmd": "captcha submit", "ms": 2582, "chars": 1228, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321367.337346, "tool": "sb", "task": "hc", "cmd": "captcha click 65,225 165,215 180,310 75,355 405,355 300,400", "ms": 6317, "chars": 1279, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321370.874627, "tool": "sb", "task": "hc", "cmd": "captcha submit", "ms": 2839, "chars": 1230, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321391.9034638, "tool": "sb", "task": "hc", "cmd": "captcha click 265,225 180,300 60,305 190,395 410,405 85,415", "ms": 5652, "chars": 1279, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321394.454632, "tool": "sb", "task": "hc", "cmd": "captcha submit", "ms": 2509, "chars": 1228, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321409.141769, "tool": "sb", "task": "hc", "cmd": "captcha click 75,230 180,255 405,200 75,370 280,395", "ms": 5481, "chars": 1269, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321415.7850208, "tool": "sb", "task": "hc", "cmd": "captcha submit", "ms": 6605, "chars": 513, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321688.76579, "tool": "sb", "task": "hc", "cmd": "goto https://accounts.hcaptcha.com/demo", "ms": 1587, "chars": 530, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321690.617666, "tool": "sb", "task": "hc", "cmd": "captcha open", "ms": 1814, "chars": 859, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321699.050674, "tool": "sb", "task": "hc", "cmd": "captcha", "ms": 99, "chars": 226, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321711.751285, "tool": "sb", "task": "hc", "cmd": "captcha open", "ms": 6643, "chars": 492, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321755.233978, "tool": "sb", "task": "hc", "cmd": "goto https://accounts.hcaptcha.com/demo", "ms": 2464, "chars": 933, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321759.710499, "tool": "sb", "task": "hc", "cmd": "captcha open", "ms": 2427, "chars": 454, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321789.2375848, "tool": "sb", "task": "hc", "cmd": "captcha drag 445,190 300,225", "ms": 2250, "chars": 1227, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321800.05332, "tool": "sb", "task": "hc", "cmd": "captcha submit", "ms": 2517, "chars": 798, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321805.3997471, "tool": "sb", "task": "hc", "cmd": "view", "ms": 139, "chars": 696, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321805.88541, "tool": "sb", "task": "hc", "cmd": "click Submit", "ms": 451, "chars": 896, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791321815.3628218, "tool": "sb", "task": "hcaptcha", "verdict": "success", "note": "hCaptcha demo: needed new 'canvas' kind + ruler + captcha drag/click; 3 puzzle types (click-different-icon, animals, drag-screw); 1st two attempts rejected (my image reading), drag puzzle accepted: siteverify success=true"}
+{"kind": "step", "ts": 1791321820.6443698, "tool": "sb", "task": "ts", "cmd": "goto https://demo.turnstile.workers.dev/", "ms": 5246, "chars": 395, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321829.151944, "tool": "sb", "task": "ts", "cmd": "captcha", "ms": 114, "chars": 228, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321834.800577, "tool": "sb", "task": "ts", "cmd": "captcha open", "ms": 1760, "chars": 412, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321838.1139462, "tool": "sb", "task": "ts", "cmd": "click Sign in", "ms": 254, "chars": 338, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791321845.651531, "tool": "sb", "task": "turnstile", "verdict": "success", "note": "Cloudflare demo (testing key): captcha open + Sign in -> token validated success=true"}
+{"kind": "step", "ts": 1791321847.339856, "tool": "sb", "task": "tx", "cmd": "goto https://captcha.com/demos/features/captcha-demo.aspx", "ms": 1658, "chars": 4905, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321851.066617, "tool": "sb", "task": "tx", "cmd": "captcha", "ms": 82, "chars": 195, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321860.149576, "tool": "sb", "task": "tx", "cmd": "captcha text CBS4", "ms": 90, "chars": 73, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321860.240065, "tool": "sb", "task": "tx", "cmd": "captcha submit", "ms": 57, "chars": 4804, "exit": 1, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321902.4564202, "tool": "sb", "task": "tx", "cmd": "goto https://captcha.com/demos/features/captcha-demo.aspx", "ms": 1822, "chars": 5058, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321902.5591838, "tool": "sb", "task": "tx", "cmd": "captcha", "ms": 67, "chars": 195, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321913.936844, "tool": "sb", "task": "tx", "cmd": "captcha text RMW89C", "ms": 60, "chars": 73, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321916.480546, "tool": "sb", "task": "tx", "cmd": "captcha submit", "ms": 2510, "chars": 5395, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321916.674766, "tool": "sb", "task": "tx", "cmd": "view", "ms": 156, "chars": 4801, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "done", "ts": 1791321979.380373, "tool": "sb", "task": "textcaptcha", "verdict": "success", "note": "captcha.com BotDetect demo: read RMW89C, text + submit, page said 'Correct!'; needed Validate-button + page-verdict fixes"}
+{"kind": "step", "ts": 1791321981.791929, "tool": "sb", "task": "xamazon", "cmd": "goto https://www.amazon.co.uk/s?k=usb+c+cable", "ms": 2379, "chars": 5264, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321982.699753, "tool": "sb", "task": "xebay", "cmd": "goto https://www.ebay.co.uk/sch/i.html?_nkw=usb+c+cable", "ms": 872, "chars": 422, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321984.718932, "tool": "sb", "task": "xopenstreetmap", "cmd": "goto https://www.openstreetmap.org/search?query=Leeds", "ms": 1982, "chars": 1696, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791321990.496803, "tool": "sb", "task": "xamazon", "cmd": "view --page 2", "ms": 117, "chars": 5035, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791322000.3722801, "tool": "sb", "task": "yt", "cmd": "goto https://www.youtube.com/results?search_query=semantic+browser", "ms": 2808, "chars": 2155, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791322001.65292, "tool": "sb", "task": "wt", "cmd": "goto https://en.wikipedia.org/wiki/List_of_largest_cities", "ms": 1246, "chars": 5176, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}
+{"kind": "step", "ts": 1791322001.81644, "tool": "sb", "task": "wt", "cmd": "find Tokyo", "ms": 132, "chars": 597, "exit": 0, "model": "Claude Sonnet 5.5 (Cursor agent)"}

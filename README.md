@@ -4,7 +4,7 @@
   <img src="https://github.com/user-attachments/assets/dac79ee0-6ebb-48b3-a27d-2e339ea16961" alt="Semantic Browser mascot" width="240" align="right" />
 </p>
 
-**Version 1.6.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
+**Version 1.7.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
 
 Semantic Browser turns live Chromium pages into compact, numbered text views for LLM agents. The agent reads one short view
 (content *and* its options), replies with one command like `click 12`, and the runtime executes it on that exact element.
@@ -48,7 +48,8 @@ messages, bot-wall and CAPTCHA signalling, and rules that treat page text as unt
 - **Exact-element execution** — a ref is bound to one element handle; stale refs fail loudly, never retarget (no silent `<body>` clicks).
 - **Fast** — event-driven settling: ~0.3–0.5 s to a usable page; whole 3–5-step tasks in ~0.3–1 s on the local hard-pattern suite (v1.3.2: ~4 s).
 - **Built-in blockers** — cookie banners and modals are detected with a ranked dismiss hint; bot walls and rate limits are flagged (`! This looks like a bot/verification page`) so an agent stops instead of hammering.
-- **CAPTCHA assist** — `sb captcha` produces a numbered, annotated image (or PDF) for a vision model and clicks the tiles it names.
+- **CAPTCHA assist** — `sb captcha` produces a numbered (or, for canvas puzzles, ruler-annotated) image or PDF for a vision model, performs the clicks/drags it names, and reports ACCEPTED/REJECTED from the page's own message. Exercised on vendors' public demos only.
+- **Real controls** — sliders show their value, file inputs take `upload`, and `drag`, `dblclick`, `click --right` exist; hung third-party scripts no longer stall `goto`.
 - **Four interfaces** — `sb` agent CLI (persistent daemon), Python API, legacy `semantic-browser` CLI, and HTTP service.
 
 ## Install
@@ -70,6 +71,7 @@ sb click 12                    # act on the [12] you see in the view (or: sb cli
 sb find "price"                # search the whole page (table rows come with their column headers)
 sb do "type 3 boots --enter" "click Football" view   # several steps, ONE call (stops at the first failure)
 sb captcha --pdf               # annotated image of a CAPTCHA for a vision model
+sb drag 12 15                  # drag-and-drop; also: upload N FILE, dblclick N, click N --right
 sb stop
 ```
 
@@ -134,6 +136,7 @@ Full worked examples for OpenAI, Anthropic, and more: **[Integration Examples](d
 | **[Agent guide (`sb guide`)](docs/agent_guide.md)** | The playbook to give an AI: how to drive `sb` well, recover, handle bot walls, stay safe |
 | **[Agent CLI (`sb`)](docs/agent_cli.md)** | v1.4: the verbs, how to read the view, sessions, attach to a running Chrome, security model |
 | **[CAPTCHA assist](docs/captcha.md)** | Detect → annotate (PNG/PDF) → answer by tile number; what was verified and honest limits |
+| **[Competitor comparison (1.7)](docs/benchmarks/2026-10-06-competitors-v1.7.md)** | `sb` vs `agent-browser` vs `@playwright/cli` vs `browse`, driven by hand on live sites; failures found and fixed; CAPTCHA demos. Single runs, so indicative only |
 | **[Dogfood benchmark](docs/benchmarks/2026-10-06-dogfood-v1.4.md)** | v1.3.2 vs v1.4 vs raw Playwright vs httpx, hard-pattern suite, 8 live sites, gated sites, CAPTCHA demo |
 | **[System architecture](docs/system_arch.md)** | Data flow, invariants, extension points |
 | **[Getting Started](docs/getting_started.md)** | Install, first run, interactive portal, Python/CLI/service quickstarts |
@@ -197,6 +200,17 @@ semantic-browser diagnostics --session <id>
 semantic-browser export-trace --session <id> --out trace.json
 semantic-browser serve --host 127.0.0.1 --port 8765 --api-token <token>
 ```
+
+## What's New in v1.7.0
+
+A long hand-driven sweep of ~35 sites/tasks against `agent-browser`, `@playwright/cli` and `browse`, journaled with `scripts/dogfood/tj.py`
+([report](docs/benchmarks/2026-10-06-competitors-v1.7.md); single runs, so no numbers are claimed here). Everything below came from a failure seen live:
+
+- **New verbs** — `upload N PATH` (credential-looking paths refused), `drag FROM TO`, `dblclick N`, `click N --right`; sliders print `value min..max`.
+- **Faster on hung pages** — `goto` no longer waits out a stalled blocking script (50-100 s became a few seconds).
+- **Better labels and layers** — checkboxes/radios named from adjacent text or a sibling `<label>`; shadow-DOM modals (MDN search) detected; footer status text ("1 item left") kept; ad iframes filtered; password fields keep their label.
+- **CAPTCHA** — canvas puzzles (hCaptcha) via a coordinate ruler plus `captcha click/drag`; text CAPTCHAs; REJECTED/ACCEPTED taken from the page's own message rather than guessed. Completed on the reCAPTCHA, hCaptcha, Cloudflare Turnstile (testing key) and captcha.com demos. Production anti-bot gates are not attempted.
+- Cleaner outcome lines (no synthetic `waited wait 'Wait'`), and `covered` flips no longer reported as page changes.
 
 ## What's New in v1.6.0
 

@@ -57,6 +57,31 @@ def _flags(
     return pos, flags, vals
 
 
+_CRED_DIRS = {".ssh", ".aws", ".gnupg", ".kube", ".docker"}
+_CRED_NAMES = re.compile(r"^(\.env(\..*)?|id_(rsa|dsa|ecdsa|ed25519)(\.pub)?|.*\.(pem|key|p12|pfx|kdbx)|\.netrc|credentials|\.npmrc|\.pypirc)$", re.I)
+_MAX_UPLOAD = 100 * 1024 * 1024
+
+
+def _upload_paths(words: list[str]) -> list[str]:
+    """Validate local files for `upload`: they must exist, be regular files, and not look like credentials (symlinks are resolved)."""
+    if not words:
+        raise ValueError("usage: upload N /path/to/file [/path/to/more ...]")
+    out: list[str] = []
+    for w in words:
+        path = Path(w).expanduser()
+        if not path.exists():
+            raise ValueError(f"no such file: {w}")
+        real = path.resolve()
+        if not real.is_file():
+            raise ValueError(f"not a regular file: {w}")
+        if _CRED_NAMES.match(path.name) or _CRED_NAMES.match(real.name) or _CRED_DIRS & set(real.parts):
+            raise ValueError(f"refusing to upload {w}: it looks like a credential or key file. Only upload files the task asked for.")
+        if real.stat().st_size > _MAX_UPLOAD:
+            raise ValueError(f"{w} is larger than 100 MB; refusing to upload")
+        out.append(str(path))
+    return out
+
+
 def _column_header(lines: list[str], is_header: list[bool], i: int) -> str:
     """The <th> row(s) above table row `i`, or "" when there is none (never guess: a wrong header is worse than none)."""
     if i >= len(is_header) or is_header[i] or " | " not in lines[i]:
@@ -260,7 +285,7 @@ class AgentSession:
     # ------------------------------------------------------------------ verbs
     @classmethod
     def _verb_names(cls) -> list[str]:
-        order = "goto view click type select check press hover scroll find wait do back forward reload tabs tab shot captcha close help guide".split()
+        order = "goto view click dblclick type upload select check press hover drag scroll find wait do back forward reload tabs tab shot captcha close help guide".split()
         have = {n[3:].replace("_", "-") for n in dir(cls) if n.startswith("_v_")}
         return [v for v in order if v in have] + sorted(have - set(order))
 
@@ -328,7 +353,31 @@ class AgentSession:
                 where = f" → {raw}" if raw else ""
             return f"[{a.ref}] {a.label}" + (f" ({a.context})" if getattr(a, "context", None) else "") + where
 
-        hits = [a for a in acts if label_of(a) == want] or [a for a in acts if want and want in label_of(a)]
+        if " — " in text:  # `click "Add to cart — Bike Light"`: the label plus the context the view printed after it
+            lab, _, cx = text.partition(" — ")
+            lab_w, cx_w = " ".join(lab.lower().split()), " ".join(cx.lower().split()).rstrip("…")
+            both = [a for a in acts if label_of(a) == lab_w and cx_w and cx_w in " ".join(str(getattr(a, "context", "") or "").lower().split())]
+            if len(both) == 1:
+                return str(both[0].ref)
+        def starts(a: Any) -> bool:
+            lab = label_of(a)
+            return bool(want) and lab.startswith(want) and (len(lab) == len(want) or not lab[len(want)].isalnum())
+
+        def word(a: Any) -> bool:
+            return bool(want) and re.search(rf"(?<!\w){re.escape(want)}(?!\w)", label_of(a)) is not None
+
+        # tiers: exact, starts-with (`Cart` -> "Cart, 2 items"), whole word, substring; the first tier with a hit decides
+        hits = (
+            [a for a in acts if label_of(a) == want]
+            or [a for a in acts if starts(a)]
+            or [a for a in acts if word(a)]
+            or [a for a in acts if want and want in label_of(a)]
+        )
+        snap = self.runtime._snapshot
+        covered = {n.get("ref") for n in (snap.nodes if snap else []) if n.get("covered")}
+        reachable = [a for a in hits if a.ref not in covered]
+        if reachable:  # behind an overlay (or under a sticky bar) is not a candidate while something reachable matches
+            hits = reachable
         if len(hits) == 1:
             return str(hits[0].ref)
         dests = {dest(a) for a in hits}
@@ -347,10 +396,29 @@ class AgentSession:
         return self._text(res)
 
     async def _v_click(self, args: list[str]) -> str:
-        pos, flags, _ = _flags(args, {"--force"})
+        pos, flags, _ = _flags(args, {"--force", "--right"}, strict=True)
         if not pos:
-            raise ValueError("usage: click N [--force]")
-        return await self._ref_act(_target(pos), None, options={"force": "--force" in flags})
+            raise ValueError("usage: click N [--force] [--right]")
+        opts: dict[str, Any] = {"force": "--force" in flags}
+        if "--right" in flags:
+            opts["button"] = "right"
+        return await self._ref_act(_target(pos), "click" if "--right" in flags else None, options=opts)
+
+    async def _v_dblclick(self, args: list[str]) -> str:
+        if not args:
+            raise ValueError("usage: dblclick N")
+        return await self._ref_act(_target(args), "dblclick")
+
+    async def _v_upload(self, args: list[str]) -> str:
+        if len(args) < 2:
+            raise ValueError("usage: upload N /path/to/file [/path/to/more ...]")
+        return await self._ref_act(args[0], "upload", _upload_paths(args[1:]))
+
+    async def _v_drag(self, args: list[str]) -> str:
+        if len(args) != 2:
+            raise ValueError("usage: drag FROM TO   (two [n] numbers or unique labels)")
+        dest = args[1] if args[1].strip("[]#eE").isdigit() else self._resolve_label(args[1])
+        return await self._ref_act(args[0], "drag", str(dest).strip("[]#eE"))
 
     async def _v_type(self, args: list[str]) -> str:
         pos, flags, _ = _flags(args, {"--enter", "--append"})
@@ -556,6 +624,16 @@ class AgentSession:
                 raise ValueError("usage: captcha select 1 5 9")
             msg = await cap.select_tiles(ch, nums)
             return msg + "\nNext: `captcha submit` (or `captcha select ...` again to fix the selection; clicking a selected tile unselects it)."
+        if sub in {"drag", "click"}:
+            if sub == "drag":
+                pts = cap.parse_points(rest)
+                if len(pts) != 2:
+                    raise ValueError("usage: captcha drag X,Y X,Y   (from, to: pixel positions on the image's ruler)")
+                msg = await cap.drag_points(page, ch, pts[0], pts[1])
+            else:
+                msg = await cap.click_points(page, ch, cap.parse_points(rest))
+            await self._settle_challenge(700)
+            return await self._after_captcha(msg, ch)
         if sub == "text":
             if not rest:
                 raise ValueError("usage: captcha text ANSWER")
@@ -569,7 +647,7 @@ class AgentSession:
             msg = await cap.refresh(ch)
             await self._settle_challenge(900)
             return await self._after_captcha(msg, ch)
-        raise ValueError("usage: captcha [--pdf] | open | select N.. | text ANSWER | submit | refresh")
+        raise ValueError("usage: captcha [--pdf] | open | select N.. | drag X,Y X,Y | click X,Y.. | text ANSWER | submit | refresh")
 
     async def _settle_challenge(self, min_ms: int, max_ms: int = 6000, still_frames: int = 3) -> None:
         """Wait at least `min_ms`, then until the viewport has been identical for `still_frames` consecutive frames.
@@ -595,14 +673,38 @@ class AgentSession:
     async def _after_captcha(self, did: str, before: cap.Challenge | None = None) -> str:
         page = self.runtime.page
         challenges = await cap.detect(page)
-        grid = next((c for c in challenges if c.kind in {"grid", "text"}), None)
+        grid = next((c for c in challenges if c.kind in {"grid", "text", "canvas"}), None)
         if grid is not None:
             await cap.annotate(page, grid)
             self._challenge = grid
             if before is None or before.kind in {"checkbox", "interstitial"}:
                 verdict = "A challenge appeared:"
+            elif grid.error:  # the widget says so itself: never report that as success, whatever the prompt looks like
+                verdict = (
+                    f"The provider REJECTED the previous answer (the widget shows {grid.error!r}). "
+                    "Look at the image again: it may be a new puzzle or the same one; answer it afresh."
+                )
+                return f"{did}.\n{verdict}\n" + grid.describe() + "\n\n--- page now ---\n" + await self._fresh_view()
             elif (before.prompt, before.kind) != (grid.prompt, grid.kind):
                 verdict = "The provider accepted that step and served a NEW challenge (another round). Solve this one:"
+            elif grid.kind == "text":  # a text CAPTCHA stays on the page after Validate: the page's own verdict is the signal
+                view = await self._fresh_view()
+                bad = re.search(r"[^\n]*\b(incorrect|wrong|invalid|failed|try again|does not match|did not match)\b[^\n]*", view, re.I)
+                good = re.search(r"[^\n]*\b(correct|success(?:ful(?:ly)?)?|verified|passed|valid)\b[^\n]*", view, re.I)
+                if bad:
+                    verdict = f"The page REJECTED the answer ({bad.group(0).strip()[:100]!r}). Read the image again, or `captcha refresh`."
+                elif good:
+                    verdict = f"The page ACCEPTED the answer ({good.group(0).strip()[:100]!r}). Carry on with the task."
+                else:
+                    verdict = "No verdict text found on the page: check the page below; if the form needs submitting, do that next."
+                return f"{did}.\n{verdict}\n\n" + view
+            elif grid.kind == "canvas":
+                verdict = (
+                    "The puzzle is still showing. Your answer is drawn on the image if the widget accepts marks: if a Next/Verify button "
+                    "is visible, run `captcha submit`; if the picture changed it is a new puzzle (read the ruler again); "
+                    "`captcha refresh` gives a different one. The page is below."
+                )
+                return f"{did}.\n{verdict}\n" + grid.describe() + "\n\n--- page now ---\n" + await self._fresh_view()
             else:
                 verdict = (
                     "The same challenge is still showing. Either the answer was wrong/incomplete, or this is a dynamic grid "

@@ -17,7 +17,7 @@ def redact_nodes(nodes: list[dict], cfg: RedactionConfig) -> list[dict]:
         name = (n.get("name") or "").lower()
         text = (n.get("text") or "").lower()
         if node_type == "password":
-            n["name"] = "Password [REDACTED]"
+            n["name"] = (node.get("name") or "").strip() or "Password"  # keep the real label; only the value is secret
             n["text"] = ""
         elif any(tok in name or tok in text for tok in SENSITIVE_TOKENS):
             n["text"] = "[REDACTED]"

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.6.0
+
+Agent-facing release: a tested playbook for AI agents ships in the package, and a second round of live dogfooding fixed what it found.
+
+### Added
+- `sb guide` prints the agent playbook (loop, view syntax, batching, recovery, bot walls/CAPTCHAs, safety rules: page text is untrusted, read-only by
+  default, never take irreversible actions unasked). `sb guide --skill` emits the same text as a drop-in `SKILL.md`. Works without a browser or daemon,
+  and as an in-session verb. `docs/agent_guide.md` embeds the identical text (a test keeps it in sync; another checks every verb is covered and the size).
+- Bot walls and rate limits are flagged in the view: `! This looks like a bot/verification page ("…") … Do not retry in a loop`, with the right next step.
+  Short pages match on phrases (Fastly "Client Challenge", Cloudflare "Just a moment", Hacker News "Sorry…", "Too many requests"); long pages only when
+  most controls are covered (DuckDuckGo's "bots use DuckDuckGo too" mask) or a blocking layer is up, so articles about CAPTCHAs are never flagged.
+
+### Fixed
+- A search box inside `<header>`/`<nav>` was printed like a link in the collapsed landmark line (`[4]Search with DuckDuckGo`), and could vanish behind
+  "(+N more)". Fillable controls keep their full form (`[4 input "Search with DuckDuckGo"]`) and are never cut by the cap.
+- `find` lists whole-word hits first (searching `MIT` no longer drowns in "commit"/"submit") and says how many were whole-word; a short hit such as a
+  bare price carries the line before it (the product title).
+- The unknown-verb error lists the verbs from the code (it had drifted) and points at `sb guide`.
+
+
 ## 1.5.0
 
 First release since 1.3.2: 1.4.0 (below) was cut on the repository but never published to PyPI, so 1.5.0 contains everything in it plus the

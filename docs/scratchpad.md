@@ -67,3 +67,15 @@
 - **zsh/macOS:** `sed -i` needs `sed -i ''`; a long `echo ======` is parsed as a command in zsh (use `echo "-----"`); don't pipe tool output through
   `head` and then conclude the page is short (I did, once, on Paddy Power).
 - **Chained `str.replace` edits can garble a line** (`after_title after_title`): run the tests immediately after each scripted edit.
+
+### v1.6 round-4 lessons (2026-10-06)
+
+- **A page can lie to your regex by being long.** Per-line truncation hid the gate phrase, and a 1500-char "short page" rule missed DuckDuckGo
+  (side-menu text). Match on the raw flow text, and use "most controls are covered" as the signal for long pages.
+- **Collapsing for tokens must not erase affordances.** `[4]Search with DuckDuckGo` looked like a link; the one control an agent needs on a search
+  engine home page was unusable. Collapse links and buttons, never fillable controls.
+- **Check whether the page or the tool is wrong before fixing.** DuckDuckGo's "everything covered" was the tool being right (a human-check mask).
+  The missing piece was *naming* it, not changing `covered`.
+- **A short `find` hit needs its neighbour** (bare price, date); whole-word hits first beats page order when the query is a short token.
+- **Docs for agents are code:** test them (verbs covered, size cap, no secrets/paths, docs copy equals source) or they drift like the verb list did.
+- **zsh does not word-split `$VAR`:** use a shell function (`sbx() { sb --session r4 "$@"; }`) rather than `SB="sb --session r4"`.

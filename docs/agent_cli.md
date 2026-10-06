@@ -1,4 +1,6 @@
-# `sb` — the agent CLI (v1.5)
+# `sb` — the agent CLI (v1.6)
+
+> Giving this to an AI? Start with **[agent_guide.md](agent_guide.md)** (`sb guide`): the short playbook. This page is the reference.
 
 `sb` is how an AI (or a shell script) drives a real, headful Chromium with one short command per step. A background
 daemon keeps the browser alive between commands, so each call is a ~25 ms socket round trip plus whatever the page
@@ -41,6 +43,7 @@ filled and submitted [1] 'Search catalogue' page changed (+4/-1 lines): …
 | `nav: [1]A [2]B … (+9 more …)` | collapsed navigation/footer; `view --expand nav` (or `footer`/`aside`/`all`) unfolds it |
 | `⟦frame: Payment⟧` | content inside an iframe (cross-origin too). Refs inside work like any other |
 | `! BLOCKING OVERLAY "Cookies" … dismiss with [4]` | a modal/consent layer hides the page; handle it first. The hint ranks close/reject/short-accept and never suggests sign-in, subscribe or pay. With no safe control it says `no obvious dismiss control` and lists the options. `view --all` shows the page behind it |
+| `! This looks like a bot/verification page …` | the site is showing a bot wall / human check / rate limit. Do not loop; `sb captcha` only if solving is part of the task, else report it |
 | `[7](unlabeled → /cart)` | a control with no text; for links the destination is shown |
 | `· \| · \| [95]1` | in tables that have `<th>` headers, `·` marks an empty cell so columns stay aligned |
 | `… more below (~900 tokens)` | the view is windowed (default ≈ 5 000 chars). `scroll down` or `view --page 2` |
@@ -67,13 +70,14 @@ where each goes (`3 elements match 'Sport': [17] Sport → /sport; [105] Sport �
 | `press KEY [N]` | Press a key (Enter, Escape, Tab, ArrowDown…), optionally focusing `[N]` first. |
 | `hover N` | Reveal hover menus. |
 | `scroll [down\|up\|top\|bottom] [N]` | Scrolls the window or the page's main scroll container (N screenfuls, 1–20); reports if already at the end. |
-| `find TEXT` | Case-insensitive search across the **entire** page (also behind an overlay). Long lines are centred on the match; a table row is followed by `↳ columns:` taken from its real `<th>` header row (omitted when there is none). Capped at 15 hits, and says so. |
+| `find TEXT` | Case-insensitive search across the **entire** page (also behind an overlay). Long lines are centred on the match; a table row is followed by `↳ columns:` taken from its real `<th>` header row (omitted when there is none). Whole-word hits are listed first (and counted); a short hit like a bare price carries the line before it. Capped at 15 hits, and says so. |
 | `do "STEP" "STEP" …` | Up to 12 verbs in one call (e.g. `do "click 3" "type 4 hello --enter" view`). Stops at the first failure (`stopped at step 2 of 5:` + that step's output). Intermediate steps print a one-line outcome; the last prints its full view. `close` and nested `do` are not allowed. |
 | `wait [MS]` / `wait text "T" [MS]` | Pause, or poll until text appears. |
 | `back` `forward` `reload` | History. |
 | `tabs` / `tab N` | Popups are adopted automatically ("opened in a new tab; now viewing it"); use these to switch. |
 | `shot [--marks] [--full] [PATH]` | PNG screenshot. `--marks` draws a box + number on every ref in the viewport. |
 | `captcha …` | See [captcha.md](captcha.md). |
+| `guide [--skill]` | Print the agent playbook (works with no browser running). `--skill` wraps it as a SKILL.md. |
 | `close` | End the session. |
 
 JavaScript `alert/confirm/prompt` dialogs are auto-accepted and reported as a note in the next view. Caution: that means a

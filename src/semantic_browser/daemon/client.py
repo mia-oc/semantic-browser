@@ -190,7 +190,12 @@ def main(argv: list[str] | None = None) -> None:
         from semantic_browser.verbs_help import HELP
 
         print(HELP + "\nsession options (first call only): --session NAME  --headless  --profile DIR  --cdp URL  --lite media|max  --budget CHARS")
-        print("other: sb sessions | sb stop [NAME|--all] | sb version")
+        print("other: sb guide [--skill] | sb sessions | sb stop [NAME|--all] | sb version")
+        return
+    if verb == "guide":
+        from semantic_browser.guide import guide_text, skill_text
+
+        print((skill_text() if "--skill" in args else guide_text()).rstrip("\n"))
         return
     if verb == "version":
         from semantic_browser import __version__

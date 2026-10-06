@@ -148,3 +148,92 @@ def test_unlabeled_links_show_where_they_go():
     assert format_element(_n(7, "link", "", "open", href="#")) == "[7](unlabeled)"
     assert format_element(_n(8, "link", "Docs", "open", href="/docs")) == "[8]Docs"  # labelled links are unchanged
     assert format_element(_n(9, "button", "")) == "[9 button](unlabeled)"
+
+
+# ---- bot / verification gates (seen live: PyPI "Client Challenge", Hacker News "Sorry", Reddit) -------------------
+
+def _gate(title, text):
+    return render_view(_snap([], [["t", text]], title=title)).text
+
+
+def test_gate_pages_are_flagged_with_the_right_next_step():
+    for title, text in [
+        ("Client Challenge", "Enter the characters seen in the image below:"),
+        ("Just a moment...", "Checking your browser before accessing example.com"),
+        ("Reddit - Please wait", "Verify you are human by completing the action below."),
+        ("Attention Required! | Cloudflare", "Please complete the security check to access the site"),
+        ("Sorry", "We're not able to serve your requests this quickly."),
+        ("", "Too many requests. Please slow down."),
+    ]:
+        out = _gate(title, text)
+        assert "! This looks like a bot/verification page" in out, (title, out)
+        assert "sb captcha" in out and "do not retry in a loop" in out.lower()
+
+
+def test_gate_flag_ignores_normal_and_long_pages():
+    assert "bot/verification" not in _gate("Weather", "Sunny with a chance of rain. Humans welcome.")
+    assert "bot/verification" not in _gate("Sign in", "Email Password This site is protected by reCAPTCHA and the Google Privacy Policy applies.")
+    article = "How CAPTCHAs work and why you must verify you are human on some sites. " * 60
+    assert len(article) > 2500
+    assert "bot/verification" not in _gate("Blog: CAPTCHA history", article)
+
+
+def test_find_ranks_whole_word_hits_before_substrings():
+    from semantic_browser.agent import _rank_hits
+
+    lines = ["82 Commits", "Open commit details", "Version 1 · License: MIT", "Submit", "MIT — see LICENSE."]
+    idx, whole = _rank_hits(lines, "mit")
+    assert whole == 2
+    assert idx[:2] == [2, 4]            # whole-word hits first, in page order
+    assert idx[2:] == [0, 1, 3]         # then substrings, in page order
+    # nothing whole-word: plain page order, whole == 0
+    assert _rank_hits(["alpha beta", "betamax"], "eta") == ([0, 1], 0)
+    # regex metacharacters in the query are literal
+    assert _rank_hits(["price (£5.69)", "x"], "(£5.69)") == ([0], 1)
+
+
+def test_collapsed_header_keeps_inputs_recognisable():
+    # DuckDuckGo: the search box lives in <header>; it must not look like a link
+    nodes = [_n(1, "link", "Logo", "open"), _n(2, "input", "Search with DuckDuckGo", "fill"), _n(3, "button", "Search")]
+    flow = [["r", "header", ""], ["e", 1, 0], ["e", 2, 0], ["e", 3, 0], ["R"], ["t", "Body"]]
+    out = render_view(_snap(nodes, flow)).text
+    assert '[2 input "Search with DuckDuckGo"]' in out
+    assert "[1]Logo" in out
+
+
+def test_collapsing_never_drops_a_fillable_control_past_the_cap():
+    nodes = [_n(i, "link", f"L{i}", "open") for i in range(1, 21)]
+    nodes.append(_n(21, "input", "Site search", "fill"))
+    nodes.append(_n(22, "select", "Language", "select_option", value="EN", options=["EN", "FR"]))
+    flow = [["r", "nav", "Main"], *[["e", n["ref"], 0] for n in nodes], ["R"], ["t", "Body"]]
+    v = render_view(_snap(nodes, flow))
+    line = next(ln for ln in v.text.splitlines() if ln.startswith("nav: "))
+    assert '[21 input "Site search"]' in line and '[22 select "Language"="EN" {EN|FR}]' in line
+    assert "[1]L1" in line and "more" in line
+    assert 21 in v.shown_refs and 22 in v.shown_refs
+
+
+def _long_page(covered: bool):
+    nodes = [_n(i, "link", f"Menu item {i}", "open", **({"covered": True} if covered else {})) for i in range(1, 9)]
+    filler = ["Learn more about our browser and products. " * 30]
+    flow = [["t", filler[0]]] + [["e", n["ref"], 0] for n in nodes] + [
+        ["t", "Unfortunately, bots use DuckDuckGo too. Please complete the following challenge to confirm this search was made by a human."]
+    ]
+    return render_view(_snap(nodes, flow, title="python release at DuckDuckGo")).text
+
+
+def test_gate_on_long_page_needs_the_page_to_be_covered():
+    # DuckDuckGo's anomaly modal: lots of page text, but a mask covers every control
+    assert "bot/verification" in _long_page(covered=True)
+    # the same sentence on a page whose controls are usable (e.g. a blog quoting it) is not a gate
+    assert "bot/verification" not in _long_page(covered=False)
+
+
+def test_find_adds_the_previous_line_to_short_hits():
+    from semantic_browser.agent import _hit_text
+
+    lines = ["[1165]Under the Tuscan Sun", "£37.33", "In stock", "A long sentence that mentions £37.33 inside plenty of other words so it stands alone fine"]
+    assert _hit_text(lines, 1, "£") == "[1165]Under the Tuscan Sun | £37.33"
+    assert "Under the Tuscan" not in _hit_text(lines, 3, "£")      # long hits stand alone
+    assert _hit_text(lines, 0, "tuscan") == "[1165]Under the Tuscan Sun"
+    assert _hit_text(["£1", "£2"], 1, "£") == "£2"                 # previous line that is itself a hit is not repeated

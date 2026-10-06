@@ -108,6 +108,33 @@
         "docs/benchmarks/2026-10-06-competitors-v1.7.md",
         "docs/benchmarks/raw/2026-10-06/replay-v1.7.jsonl"
       ]
+    },
+    {
+      "id": "suites-v1.7-2026-10-06",
+      "date_utc": "2026-10-06T22:30:00Z",
+      "commit": "release tag v1.7.1 (working tree)",
+      "task_pack": "local-hard-patterns-9 x3, real-sites-8 x3 interleaved, navigation-8 x3 warm+cold",
+      "task_count": 25,
+      "planner": "scripted oracle (no LLM) via scripts/dogfood/runner.py; navigation via scripts/dogfood/navbench.py",
+      "environment": {
+        "os": "macOS 24.6 arm64",
+        "python": "3.12.12",
+        "playwright": "1.58.0",
+        "browser": "chromium",
+        "mode": "headless"
+      },
+      "summary": {
+        "local": "sb 27/27, 0.47 s, 150 tok vs raw playwright 21/27, 0.58 s, 137 tok",
+        "live": "sb 24/24, 1.93 s, 2.5k tok vs raw playwright 17/24, 1.37 s, 12.6k tok",
+        "navigation": "sb 339 ms warm / 434 ms cold, 1.3k tok; playwright load 218/292 ms, 5.5-7.0k tok; httpx 35 ms, 38.8k tok"
+      },
+      "reports": [
+        "docs/benchmarks/2026-10-06-v1.7-suites.md",
+        "docs/benchmarks/raw/2026-10-06/v1.7-local.jsonl",
+        "docs/benchmarks/raw/2026-10-06/v1.7-real.jsonl",
+        "docs/benchmarks/raw/2026-10-06/v1.7-nav-warm.jsonl",
+        "docs/benchmarks/raw/2026-10-06/v1.7-nav-cold.jsonl"
+      ]
     }
   ]
 }

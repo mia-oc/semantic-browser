@@ -3,8 +3,8 @@
 > Giving this to an AI? Start with **[agent_guide.md](agent_guide.md)** (`sb guide`): the short playbook. This page is the reference.
 
 `sb` is how an AI (or a shell script) drives a real, headful Chromium with one short command per step. A background
-daemon keeps the browser alive between commands, so each call is a ~25 ms socket round trip plus whatever the page
-itself costs (tens of ms of overhead from the client).
+daemon keeps the browser alive between commands, so a call that does not touch the page (`find`, `view`) takes about 45-110 ms end to end
+(5 timed calls on 1.7, including Python start-up); actions add the page's own time and a short settle (typically 0.2-0.4 s).
 
 ```bash
 sb goto news.ycombinator.com        # opens the page, prints the view
@@ -112,8 +112,8 @@ Session options only matter on the call that *starts* the daemon. Environment eq
 
 `--lite media` blocks images, fonts and video **by resource type** (never by URL text, which broke Wikipedia in testing) and
 injects a no-animation stylesheet; `--lite max` also blocks well-known trackers. CAPTCHA provider hosts are allow-listed and the
-`captcha` verb switches blocking off for the rest of the session. **Measured benefit: none** on the benchmark set
-([results](benchmarks/2026-10-06-dogfood-v1.4.md)), so it is off by default; it may help on slow connections (untested).
+`captcha` verb switches blocking off for the rest of the session. **Measured benefit: none reliable** on the 1.7 benchmark set
+(navigation 417-439 ms with lite vs 339-434 ms without; live suite 1.69 s vs 1.93 s, within run-to-run swing; [results](benchmarks/2026-10-06-v1.7-suites.md)), so it is off by default; it may help on slow connections (untested).
 
 ## From Python
 

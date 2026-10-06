@@ -1,5 +1,7 @@
 # Review of v1.3.2 — end-to-end, evidence-based
 
+> **Historical review of 1.3.2.** Its numbers are not current; for 1.7 see [v1.7 suites](benchmarks/2026-10-06-v1.7-suites.md) and [competitor comparison](benchmarks/2026-10-06-competitors-v1.7.md).
+
 Method: read all of `src/`, ran the suite (116 pass, 77 s), then dogfooded with
 `scripts/dogfood/` (deterministic local fixtures + real sites) against a v1.3.2 worktree.
 Raw-Playwright reference is an *idealised* oracle (perfect locator choice, no model latency).

@@ -105,3 +105,6 @@
 - **A hand-driven single run is a story, not a benchmark.** To quote numbers, replay the shortest sequence per tool (`replay.py`: 3 interleaved cold-start rounds, medians). Be explicit that
   it is hindsight for every tool, and report where the product is *not* ahead (browser time was a tie; `agent-browser` was faster on shop and prints less on tiny pages). The shop task
   that failed hand-driven for `agent-browser` passed in the replay: the failure was discovering refs from its output, not the tool being unable to do it.
+- **Interleave live benchmarks.** Running `sb` then raw Playwright made `sb` look 50 % slower than 1.4; a side-by-side of tag v1.5.0 and 1.7.1 showed no change. Always alternate methods per round and bisect against an old tag before calling anything a regression.
+- **Where `sb` is slower, say so and say why.** Per step it waits for the page to settle (0.2-0.4 s) and the idealised raw-Playwright step does not; the README states the ~0.5 s per task cost next to the wins.
+- **Docs rot by version.** Quoted numbers must name the version they were measured on; old reports get a "historical" banner and a link to the current one.

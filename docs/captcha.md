@@ -81,4 +81,4 @@ says ACCEPTED or REJECTED instead of guessing from whether the challenge disappe
 * Only use this on sites and accounts you are entitled to automate. Many services forbid automated CAPTCHA completion in
   their terms; the tool exists for accessibility, testing and your own properties.
 * Results from the local test fixture and Google's public reCAPTCHA demo are recorded in
-  [`docs/benchmarks/2026-10-06-dogfood-v1.4.md`](benchmarks/2026-10-06-dogfood-v1.4.md) (§5); nothing is claimed beyond what is listed there.
+  [`docs/benchmarks/2026-10-06-dogfood-v1.4.md`](benchmarks/2026-10-06-dogfood-v1.4.md) (§5, 1.4 history) and, for 1.7, [`2026-10-06-competitors-v1.7.md`](benchmarks/2026-10-06-competitors-v1.7.md); nothing is claimed beyond what is listed there.

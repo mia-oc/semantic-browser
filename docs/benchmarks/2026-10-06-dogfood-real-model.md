@@ -1,5 +1,7 @@
 # Dogfood with a real model — round 1 → 3 (2026-10-06)
 
+> **Historical report (measured on 1.4.0 - 1.5.0).** Current figures, re-run on 1.7: [v1.7 suites](2026-10-06-v1.7-suites.md) and [competitor comparison](2026-10-06-competitors-v1.7.md).
+
 The earlier report ([2026-10-06-dogfood-v1.4.md](2026-10-06-dogfood-v1.4.md)) used a **scripted oracle** as the model. This one is the real thing: the
 tool was driven by **Claude Sonnet 5.5 (Cursor agent)**, one command per call, seeing only what `sb` printed, on live sites, with every call timed and
 journaled by `scripts/dogfood/sbj.py`. Typed text is redacted from the committed journals.

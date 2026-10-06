@@ -279,6 +279,7 @@ class NetTracker:
 
     def __init__(self) -> None:
         self._inflight: dict[int, float] = {}
+        self._blocking: dict[int, tuple[float, str]] = {}  # parser-blocking requests (script/stylesheet): started, url
         self._last_activity = time.monotonic()
         self._pages: list[Any] = []
 
@@ -297,13 +298,21 @@ class NetTracker:
         try:
             if req.resource_type in _TRACKED_TYPES:
                 self._inflight[id(req)] = time.monotonic()
+                if req.resource_type in ("script", "stylesheet"):
+                    self._blocking[id(req)] = (time.monotonic(), str(req.url))
                 self._last_activity = time.monotonic()
         except Exception:
             pass
 
     def _on_end(self, req: Any) -> None:
+        self._blocking.pop(id(req), None)
         if self._inflight.pop(id(req), None) is not None:
             self._last_activity = time.monotonic()
+
+    def stalled_blocking(self, older_than_s: float) -> list[str]:
+        """URLs of scripts/stylesheets that have been outstanding for at least `older_than_s` seconds."""
+        now = time.monotonic()
+        return [u for t, u in self._blocking.values() if now - t >= older_than_s]
 
     def inflight(self, ignore_older_than_s: float = 4.0) -> int:
         now = time.monotonic()

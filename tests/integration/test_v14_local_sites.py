@@ -480,3 +480,67 @@ async def test_title_only_change_is_reported_as_the_effect(sb):
     await sb.run("view")
     out = await sb.run("click Save settings")  # unquoted multi-word label
     assert "saved:Zed" in out.splitlines()[0] and "no visible change" not in out, out
+
+
+async def test_hung_blocking_script_does_not_stall_goto(sb, site):
+    """the-internet.herokuapp.com: HTML arrives instantly, a blocking script hangs for ages. Return what rendered, fast."""
+    import time
+
+    t0 = time.perf_counter()
+    out = await sb.run(f"goto {site}/hung_script")
+    took = time.perf_counter() - t0
+    assert took < 10, f"goto waited {took:.1f}s on a hung subresource"
+    assert "[1 button]Start" in out, out
+    assert "still loading" in out.lower(), out
+    clicked = await sb.run("click Start")
+    assert "Hello World!" in clicked, clicked
+
+
+async def test_stalled_head_script_is_skipped_so_the_body_renders(sb, site):
+    """A blocking <head> script that never arrives hides the whole body. After the grace, skip it and reload."""
+    import time
+
+    t0 = time.perf_counter()
+    out = await sb.run(f"goto {site}/hung_head")
+    took = time.perf_counter() - t0
+    assert took < 14, f"goto took {took:.1f}s"
+    assert "[1 button]Start" in out, out
+    assert "skipped" in out.lower() and "hang.js" in out, out
+    assert "Hello World!" in await sb.run("click Start")
+
+
+async def test_stalled_asset_is_retried_individually_not_thrown_away(sb, site):
+    """A jammed connection pool stalls good assets too (the-internet.herokuapp.com): retry each, keep what arrives."""
+    import time
+
+    import fixtures
+
+    fixtures.FLAKY_HITS["n"] = 0
+    t0 = time.perf_counter()
+    out = await sb.run(f"goto {site}/flaky_head")
+    assert time.perf_counter() - t0 < 14, out
+    assert "[1 button]Start" in out, out
+    assert "skipped" not in out.lower(), f"the retry succeeded, nothing should be reported as skipped: {out}"
+    assert "Hello World!" in await sb.run("click Start"), "the retried script must have run"
+
+
+async def test_identical_buttons_say_which_card_they_belong_to(sb, site):
+    """saucedemo: six 'Add to cart' buttons; the view must tell them apart, concisely and without doubled words."""
+    out = await sb.run(f"goto {site}/cards")
+    assert "Add to cart — Sauce Backpack" in out and "Add to cart — Bike Light" in out and "Add to cart — Bolt T-Shirt" in out, out
+    assert "Sauce Backpack Sauce Backpack" not in out, out
+    line = next(ln for ln in out.splitlines() if "Add to cart — Sauce Backpack" in ln)
+    assert "carry all" not in line, f"context should be the card's name, not its whole text: {line}"
+    clicked = await sb.run('click "Add to cart — Bike Light"')
+    assert not clicked.startswith("ERROR"), clicked
+
+
+async def test_label_prefers_the_control_that_starts_with_it(sb, site):
+    """`click Cart` must pick "Cart, 2 items", not the three "Add to cart — …" buttons that merely contain the word."""
+    await sb.run(f"goto {site}/cards")
+    out = await sb.run("click Cart")
+    assert not out.startswith("ERROR"), out
+    assert "Your cart" in out, out
+    await sb.run(f"goto {site}/cards")
+    amb = await sb.run("click Add")                      # genuinely ambiguous: still an error that lists the candidates
+    assert amb.startswith("ERROR") and "3 elements match" in amb, amb

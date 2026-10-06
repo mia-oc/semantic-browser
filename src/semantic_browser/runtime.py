@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 import uuid
 import warnings
@@ -38,6 +39,24 @@ from semantic_browser.telemetry.debug_dump import export_json_bundle
 from semantic_browser.telemetry.trace import TraceStore
 
 
+_STALLED = " (page still loading: a script or asset is stalled; showing what has rendered)"
+
+
+def _stalled_note(skipped: list[str]) -> str:
+    if not skipped:
+        return _STALLED
+    names = ", ".join(u.rsplit("/", 1)[-1][:40] or u[:40] for u in skipped[:3])
+    return f" (skipped stalled {names}, which blocked the page; it may behave differently)"
+
+
+_COVERED_RE = re.compile(r" covered(?=[\]])")
+
+
+def _plain_line(line: str) -> str:
+    """A view line without the transient `covered` flag, for before/after comparisons."""
+    return _COVERED_RE.sub("", line)
+
+
 class SemanticBrowserRuntime:
     """Deterministic semantic runtime for a live page."""
 
@@ -68,6 +87,7 @@ class SemanticBrowserRuntime:
         # v1.4 state
         self._refs = RefTable()
         self._net = NetTracker()
+        self._skipped: list[str] = []
         self._snapshot: PageSnapshot | None = None
         self._view: RenderedView | None = None
         self._prev_lines: set[str] = set()
@@ -696,8 +716,9 @@ class SemanticBrowserRuntime:
 
     def _describe_outcome(self, action, message, before, after, delta, popup_note=None) -> str:
         """One line telling the model what the action did, so it need not diff two pages itself."""
-        label = f"[{action.ref}] {action.label[:50]!r}" if action.ref is not None else f"{action.op} {action.label[:50]!r}"
-        bits = [f"{message or action.op} {label}"]
+        # ref-less ops (scroll, wait, press) have a synthetic label ("Wait", "Scroll down") that only wastes tokens
+        label = f"[{action.ref}] {action.label[:50]!r}" if action.ref is not None else ""
+        bits = [f"{message or action.op} {label}".strip()]
         if popup_note:
             bits.append(popup_note)
         if delta.navigated:
@@ -707,8 +728,11 @@ class SemanticBrowserRuntime:
         elif after.page.modal_active and not before.page.modal_active:
             bits.append("an overlay appeared and covers the page")
         if self._view is not None and not delta.navigated:
-            new_lines = [ln for ln in self._view.all_lines if ln not in self._prev_lines]
-            gone = len([ln for ln in self._prev_lines if ln not in set(self._view.all_lines)])
+            now = [_plain_line(ln) for ln in self._view.all_lines]
+            before_set = {_plain_line(ln) for ln in self._prev_lines}
+            now_set = set(now)
+            new_lines = [ln for ln in now if ln not in before_set]  # `covered` flips (an overlay opening/closing) are not page changes
+            gone = len([ln for ln in before_set if ln not in now_set])
             if new_lines or gone:
                 shown = "; ".join(ln[:90] for ln in new_lines[:4])
                 bits.append(f"page changed (+{len(new_lines)}/-{gone} lines){': ' + shown if shown else ''}")
@@ -722,21 +746,87 @@ class SemanticBrowserRuntime:
             self._prev_lines = set(self._view.all_lines)
         return " ".join(bits)
 
-    async def _goto(self, url: str, *, intent: str = "navigation") -> None:
-        await self._ensure_lite()
+    async def _navigating(self, call: Any) -> bool:
+        """Run a navigation (`goto`/`back`/...) and settle. True when DOMContentLoaded did not fire in time.
+
+        The response is awaited to `commit` only; DOMContentLoaded then gets `settle.dcl_grace_ms`. A stalled blocking script
+        (ads, trackers, a sick CDN) used to cost 20-50 s here although the HTML was long since usable."""
+        await call("commit")
+        stalled = False
+        waiter = getattr(self._page, "wait_for_load_state", None)
         try:
-            await self._page.goto(url, wait_until="domcontentloaded", timeout=20000)
-        except TypeError:
-            await self._page.goto(url)
-        except Exception as exc:
-            if "ERR_" in str(exc) and "TIMED_OUT" not in str(exc):
-                raise ActionExecutionError(f"navigation failed: {str(exc).splitlines()[0][:160]}") from exc
-            # Some sites never reach DOMContentLoaded quickly (long-polling, ads): continue with what we have.
+            if waiter is not None:
+                await waiter("domcontentloaded", timeout=self._config.settle.dcl_grace_ms)
+        except Exception:
+            stalled = True
+            self._trace.add("observe_warning", {"kind": "dcl_stalled", "grace_ms": self._config.settle.dcl_grace_ms})
+        if stalled:
+            self._skipped = await self._unstick()
+            await self._page.wait_for_timeout(250)  # the document will not become ready; let in-flight parsing paint, no full settle
+        else:
+            self._skipped = []
+            await self._settle("navigation")
+        return stalled
+
+    async def _unstick(self) -> list[str]:
+        """DOMContentLoaded is held up by scripts/stylesheets that never arrive. If that left the page blank, abort them and reload.
+
+        Returns the URLs skipped (empty when the page already had content or nothing blocking was stalled)."""
+        try:
+            blocked = self._net.stalled_blocking(self._config.settle.dcl_grace_ms / 1000 * 0.8)
+            if not blocked:
+                return []
+            rendered = await self._page.evaluate("() => !!(document.body && document.body.innerText && document.body.innerText.trim().length > 20)")
+            if rendered:
+                return []
+            urls = set(blocked)
+            skipped: set[str] = set()
+
+            async def handler(route: Any) -> None:
+                url = route.request.url
+                if url not in urls:
+                    await route.fallback()
+                    return
+                try:  # retry the stalled asset on its own connection: a jammed pool stalls good assets too
+                    resp = await route.fetch(timeout=6000)
+                    if resp.status >= 500:
+                        raise RuntimeError(f"HTTP {resp.status}")
+                    await route.fulfill(response=resp)
+                except Exception:
+                    skipped.add(url)
+                    await route.abort("blockedbyclient")
+
+            await self._page.route("**/*", handler)
             try:
-                await self._page.goto(url, wait_until="commit", timeout=20000)
-            except Exception as exc2:
-                raise ActionExecutionError(f"navigation failed: {str(exc2).splitlines()[0][:160]}") from exc2
-        await self._settle(intent)
+                await self._page.reload(wait_until="commit", timeout=20000)
+                try:
+                    await self._page.wait_for_load_state("domcontentloaded", timeout=self._config.settle.dcl_grace_ms + 3000)
+                except Exception:
+                    pass
+            finally:
+                try:
+                    await self._page.unroute("**/*", handler)
+                except Exception:
+                    pass
+            urls = skipped
+            self._trace.add("observe_warning", {"kind": "skipped_stalled", "urls": sorted(urls)[:5]})
+            return sorted(urls)
+        except Exception as exc:  # recovery is best effort; never turn a slow page into an error
+            self._trace.add("observe_warning", {"kind": "unstick_error", "message": str(exc)[:120]})
+            return []
+
+    async def _goto(self, url: str, *, intent: str = "navigation") -> bool:
+        await self._ensure_lite()
+
+        async def call(wait_until: str) -> None:
+            try:
+                await self._page.goto(url, wait_until=wait_until, timeout=20000)
+            except TypeError:  # minimal page objects (tests, embedders) without Playwright's keyword arguments
+                await self._page.goto(url)
+            except Exception as exc:
+                raise ActionExecutionError(f"navigation failed: {str(exc).splitlines()[0][:160]}") from exc
+
+        return await self._navigating(call)
 
     async def _step_after(self, op: str, message: str, before: Observation | None, *, request: ActionRequest | None = None) -> StepResult:
         observation = await self.observe(mode="summary" if op == "navigate" else "delta", settle=False)
@@ -761,26 +851,23 @@ class SemanticBrowserRuntime:
         if "://" not in url and not url.startswith(("about:", "data:")):
             url = "https://" + url
         before = self._current_observation
-        await self._goto(url)
-        return await self._step_after("navigate", f"navigated to {url}", before, request=ActionRequest(op="navigate", value=url))
+        stalled = await self._goto(url)
+        return await self._step_after("navigate", f"navigated to {url}" + (_stalled_note(self._skipped) if stalled else ""), before, request=ActionRequest(op="navigate", value=url))
 
     async def back(self) -> StepResult:
         before = self._current_observation
-        await self._page.go_back(wait_until="domcontentloaded")
-        await self._settle("navigation")
-        return await self._step_after("back", "went back", before)
+        stalled = await self._navigating(lambda w: self._page.go_back(wait_until=w))
+        return await self._step_after("back", "went back" + (_stalled_note(self._skipped) if stalled else ""), before)
 
     async def forward(self) -> StepResult:
         before = self._current_observation
-        await self._page.go_forward(wait_until="domcontentloaded")
-        await self._settle("navigation")
-        return await self._step_after("forward", "went forward", before)
+        stalled = await self._navigating(lambda w: self._page.go_forward(wait_until=w))
+        return await self._step_after("forward", "went forward" + (_stalled_note(self._skipped) if stalled else ""), before)
 
     async def reload(self) -> StepResult:
         before = self._current_observation
-        await self._page.reload(wait_until="domcontentloaded")
-        await self._settle("navigation")
-        return await self._step_after("reload", "reloaded", before)
+        stalled = await self._navigating(lambda w: self._page.reload(wait_until=w))
+        return await self._step_after("reload", "reloaded" + (_stalled_note(self._skipped) if stalled else ""), before)
 
     async def current_observation(self):
         return self._current_observation

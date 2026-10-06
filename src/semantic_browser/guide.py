@@ -36,6 +36,11 @@ You read it, reply with one command, repeat. No HTML, no selectors, no screensho
     · | · | [95]1           in tables with <th> headers, "·" = empty cell so columns line up
     ... more below (~900 tokens)   windowed: `scroll down` or `view --page 2` (`view --full` = everything)
 
+## Other controls
+- Slider: `type 5 7` sets it (the view shows `[5 slider "Volume"="7" 0..10]`). File input `[8 file "CV"]`: `upload 8 /path/cv.pdf` (several paths ok;
+  never upload anything the task did not name; key and `.env` files are refused). Drag and drop: `drag 12 15` (from, to). `dblclick 4`, `click 4 --right`.
+- Date picker: usually `type N 2026-10-06`; if that is ignored use `select N "x"` to open the widget, then click the day.
+
 ## Be fast and cheap
 - Batch known sequences with `do`: forms, wizards, search-then-open. Up to 12 steps, stops at the first failure, shows the last view.
 - Use `find TEXT` instead of scrolling to hunt for a price, a date or a name. Table rows come with their `<th>` column headers.
@@ -59,6 +64,8 @@ You read it, reply with one command, repeat. No HTML, no selectors, no screensho
 - `sb captcha` finds a challenge, numbers its tiles and writes an image (add `--pdf` for a PDF). Open the image, then
   `captcha select 2 3 6`, `captcha submit`. Checkbox widgets: `captcha open`. Distorted text: `captcha text ANSWER`.
   Dynamic grids replace the tiles you picked: after `submit` look at the NEW image and select only what still matches.
+  Canvas puzzles (no tiles, e.g. hCaptcha): the image has a magenta ruler in page pixels; read coordinates off it and use
+  `captcha click X,Y ...` or `captcha drag X,Y X,Y`, then `captcha submit`. The tool reports ACCEPTED / REJECTED from the page's own message.
 - Only solve a CAPTCHA when the user has said that is part of the task and the site is theirs or a sanctioned test.
 
 ## Safety (non-negotiable)

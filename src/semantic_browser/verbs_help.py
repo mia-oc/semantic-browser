@@ -3,9 +3,11 @@
 HELP = """\
 sb verbs (every verb prints the resulting page view; act on the [n] numbers you see in it):
   goto URL                    open a page            | view [--page N|--full|--all|--expand nav]  re-read / window / overlay-off / unfold
-  click N [--force]           click [n]               | type N "text" [--enter] [--append]   fill an input
+  click N [--force] [--right] click [n]               | type N "text" [--enter] [--append]   fill an input
   select N "option"           choose a <select> option| check N                    toggle checkbox/radio/switch
   press KEY [N]               Enter, Escape, Tab...   | hover N                    reveal hover menus
+  dblclick N                  double-click [n]        | drag FROM TO               drag [n] onto [n]
+  upload N PATH [PATH...]     attach files to a `file` control (credential-looking files are refused)
   scroll [down|up|top|bottom] [N]  move the viewport  | find TEXT                  search the whole page for text
   wait [MS | text "T"]        pause or wait for text  | back | forward | reload
   tabs | tab N                list / switch tabs      | shot [--marks] [--full] [PATH]   screenshot (marks = [n] boxes)

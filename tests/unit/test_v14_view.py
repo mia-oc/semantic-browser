@@ -237,3 +237,61 @@ def test_find_adds_the_previous_line_to_short_hits():
     assert "Under the Tuscan" not in _hit_text(lines, 3, "£")      # long hits stand alone
     assert _hit_text(lines, 0, "tuscan") == "[1165]Under the Tuscan Sun"
     assert _hit_text(["£1", "£2"], 1, "£") == "£2"                 # previous line that is itself a hit is not repeated
+
+
+def test_duplicate_label_context_is_shown_in_the_view():
+    node = _n(15, "button", "Add to cart", "click", ctx="Sauce Labs Backpack")
+    assert format_element(node) == "[15 button]Add to cart — Sauce Labs Backpack"
+    assert format_element({**node, "ctx": "x" * 80}).endswith("— " + "x" * 39 + "…")
+    assert format_element(_n(1, "button", "Save")) == "[1 button]Save"          # no ctx: unchanged
+    assert format_element(_n(2, "link", "Docs", "open", ctx="Footer")) == "[2]Docs — Footer"
+
+
+def test_link_context_only_when_the_duplicates_go_to_different_places():
+    same = [_n(1, "link", "View details", "open", ctx="Backpack", href="/p/1"), _n(2, "link", "View details", "open", ctx="Backpack", href="/p/1")]
+    out = render_view(_snap(same, [["e", 1, 0], ["t", " "], ["e", 2, 0]])).text
+    assert "—" not in out.split("\n", 1)[1]                      # same destination: context is noise
+    diff = [_n(1, "link", "Read more", "open", ctx="Anvils", href="/a"), _n(2, "link", "Read more", "open", ctx="Hammers", href="/h")]
+    out2 = render_view(_snap(diff, [["e", 1, 0], ["t", " "], ["e", 2, 0]])).text
+    assert "Read more — Anvils" in out2 and "Read more — Hammers" in out2
+    btn = [_n(1, "button", "Add", ctx="Anvils"), _n(2, "button", "Add", ctx="Hammers")]
+    out3 = render_view(_snap(btn, [["e", 1, 0], ["t", " "], ["e", 2, 0]])).text
+    assert "Add — Anvils" in out3 and "Add — Hammers" in out3     # buttons have no destination: always show
+
+
+def test_collapsed_footer_keeps_short_status_text_with_numbers():
+    """A collapsed footer must not swallow live data ("1 item left", "Showing 1-10 of 94") but may drop boilerplate."""
+    nodes = [_n(1, "link", "All", "open"), _n(2, "link", "Active", "open")]
+    flow = [
+        ["r", "footer", ""], ["b", 0], ["t", "1 item left!"], ["b", 1], ["e", 1, 2], ["t", " "], ["e", 2, 2], ["b", 3],
+        ["t", "© 2026 Acme Inc. All rights reserved."], ["b", 4], ["t", "Created by the Acme team"], ["R"], ["t", "Body"],
+    ]
+    v = render_view(_snap(nodes, flow))
+    footer = next(ln for ln in v.text.splitlines() if ln.startswith("footer:"))
+    assert "1 item left!" in footer and "[1]All" in footer and "[2]Active" in footer
+    assert "©" not in v.text and "Created by" not in v.text
+
+
+def test_find_still_sees_text_inside_collapsed_regions():
+    nodes = [_n(1, "link", "All", "open")]
+    flow = [["r", "footer", ""], ["b", 0], ["e", 1, 2], ["b", 3], ["t", "© 2026 Acme Inc. All rights reserved."], ["b", 4], ["t", "Created by the Acme team"], ["R"], ["t", "Body"]]
+    v = render_view(_snap(nodes, flow))
+    assert "Created by" not in v.text                                     # the view stays compact
+    assert any("Created by the Acme team" in ln for ln in v.all_lines)    # but `find` searches everything
+    assert len(v.all_lines) == len(v.header_rows)                         # the parallel list stays aligned
+
+
+def test_overlay_nested_in_a_collapsed_header_is_not_swallowed():
+    """MDN: the search modal lives inside <header>; collapsing the header must not fold the modal's input into its link list."""
+    nodes = [_n(1, "link", "Docs", "open"), _n(2, "link", "Blog", "open"), _n(3, "input", "Search", "fill", type="search")]
+    flow = [
+        ["r", "header", ""], ["e", 1, 0], ["e", 2, 0],
+        ["r", "layer", "Search"], ["b", 20], ["e", 3, 20], ["R"],
+        ["R"], ["t", "Body text"],
+    ]
+    v = render_view(_snap(nodes, flow, layer={"name": "Search", "area": 0.05}))
+    assert "BLOCKING OVERLAY" in v.text and '[3 input:search "Search"]' in v.text
+    assert "dismiss" in v.text or "Search" in v.text
+    v2 = render_view(_snap(nodes, flow, layer={"name": "Search", "area": 0.05}), options=ViewOptions(all_layers=True))
+    assert "header: [1]Docs [2]Blog" in v2.text           # the header still collapses...
+    assert '[3 input:search "Search"]' in v2.text.split("header:")[1].split("\n", 1)[1]  # ...but the modal keeps its own line

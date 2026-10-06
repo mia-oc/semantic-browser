@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.7.0
+
+A wide hand-driven dogfood sweep (about 35 sites and tasks) against `agent-browser`, `@playwright/cli` and `browse`, timed with `scripts/dogfood/tj.py`.
+Every failure was analysed, fixed test-first and re-run. Report: `docs/benchmarks/2026-10-06-competitors-v1.7.md` (single runs, so indicative only).
+
+### Added
+- Verbs: `upload N PATH [PATH...]` (refuses key/credential-looking paths such as `~/.ssh`, `.env`, `*.pem`, and files over 100 MB), `drag FROM TO`,
+  `dblclick N`, `click N --right`. Their errors are actionable (`click` on a file input says to use `upload N /path`).
+- View: sliders print `[n slider "label"="v" lo..hi]`; file inputs print `[n file "label"]`. HTML5 drag-and-drop sources/targets and sortable lists are recognised.
+- CAPTCHA: `canvas` kind (hCaptcha and similar draw on a `<canvas>`, so there are no tiles). `sb captcha` draws a magenta coordinate ruler in page pixels
+  and `captcha click X,Y ...` / `captcha drag X,Y X,Y ...` act on it. Text CAPTCHAs report the page's own verdict.
+- `scripts/dogfood/tj.py` (timing journal) and `docs/benchmarks/2026-10-06-competitors-v1.7.md` with its raw journal.
+
+### Fixed
+- `goto` waited 50-100 s on pages whose blocking `<script>`/`<link>` never arrived: it now returns after DOMContentLoaded plus a 5 s grace window, retries stalled
+  resources one by one, then skips them.
+- Checkbox/radio labels: adjacent bare text (`<input> Cheese`) and a sibling `<label>` (TodoMVC) now name the control instead of `(unlabeled)` or the page prose.
+- A modal inside a shadow root under `<header>` (MDN search) was invisible and ambiguous: visible `dialog[open]:modal` / `[aria-modal]` layers (including in open
+  shadow roots) are detected, and overlay lines are never collapsed into a landmark line.
+- Collapsed footers kept no text: `1 item left!` and similar numeric status notes survive, and collapsed text is searchable with `find`.
+- Password fields printed `[REDACTED]` as their label: the label is kept, the value stays hidden.
+- Ad iframes (by title) no longer pollute views.
+- CAPTCHA verdicts: a challenge disappearing is no longer taken as success. The widget's visible error text ("Please try again.") gives `REJECTED`; hidden
+  decoy error nodes are ignored; text CAPTCHAs read the page's "Correct!/Incorrect" message; the `Validate`/`Send`/`OK` buttons (also `input[type=button]`) are found.
+  Screenshots use CSS scale so image pixels equal page pixels.
+- Outcome lines no longer say `waited wait 'Wait'` / `scroll 'Scroll down'`, and an element becoming `covered`/uncovered is not reported as a page change.
+- `label` matching prefers a hit that is not covered by an overlay.
+
+### Notes
+- CAPTCHA solving was exercised on vendors' public demo pages only (Google reCAPTCHA, hCaptcha, Cloudflare Turnstile with its testing key, captcha.com). Production
+  anti-bot gates (npm, Stack Overflow, Reddit, PyPI, DuckDuckGo) are flagged, not bypassed.
+
 ## 1.6.0
 
 Agent-facing release: a tested playbook for AI agents ships in the package, and a second round of live dogfooding fixed what it found.

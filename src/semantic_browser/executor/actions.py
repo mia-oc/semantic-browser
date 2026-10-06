@@ -34,7 +34,7 @@ async def execute_action(page, action: ActionDescriptor, request: ActionRequest,
                 ok=True, message=f"pressed {key}", effect_hint="content_change" if key.lower() == "enter" else "state_change"
             )
         if refs is not None and action.ref is not None and action.op in {
-            "click", "open", "fill", "select_option", "toggle", "hover", "upload", "scroll_into_view", "press"
+            "click", "open", "fill", "select_option", "toggle", "hover", "upload", "scroll_into_view", "press", "dblclick", "drag"
         }:
             from semantic_browser.executor.ref_actions import execute_ref_action
 

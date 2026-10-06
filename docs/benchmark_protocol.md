@@ -12,6 +12,11 @@ Use this protocol before publishing benchmark numbers in `README.md`.
 - Environment details (OS, browser, headless/headful)
 - Run count and aggregation method
 
+## Tooling
+
+`scripts/dogfood/tj.py` journals hand-driven runs of any CLI (`tj TOOL TASK words...`, `tj --done TOOL TASK success|fail|partial "note"`, `tj --report`);
+it records calls, wall time and output size per step. See `docs/benchmarks/2026-10-06-competitors-v1.7.md` for an example run.
+
 ## Reproducibility rules
 
 1. Run at least 3 times for each method.

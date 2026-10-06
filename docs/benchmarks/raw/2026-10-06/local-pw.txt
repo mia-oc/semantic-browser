@@ -1,0 +1,39 @@
+  shop_duplicates            pw-aria          FAIL    204ms wrong_outcome:title='Shop'
+  shop_duplicates            pw-aria          FAIL    208ms wrong_outcome:title='Shop'
+  shop_duplicates            pw-aria          FAIL    209ms wrong_outcome:title='Shop'
+  cookie_overlay             pw-aria          OK     406ms 
+  cookie_overlay             pw-aria          OK     418ms 
+  cookie_overlay             pw-aria          OK     410ms 
+  shadow_login               pw-aria          OK     556ms 
+  shadow_login               pw-aria          OK     555ms 
+  shadow_login               pw-aria          OK     562ms 
+  iframe_payment             pw-aria          OK     390ms 
+  iframe_payment             pw-aria          OK     382ms 
+  iframe_payment             pw-aria          OK     377ms 
+  custom_dropdown_date       pw-aria          OK     754ms 
+  custom_dropdown_date       pw-aria          OK     773ms 
+  custom_dropdown_date       pw-aria          OK     775ms 
+  spa_settings               pw-aria          OK    1119ms 
+  spa_settings               pw-aria          OK    1120ms 
+  spa_settings               pw-aria          OK    1129ms 
+  search_read_price          pw-aria          OK     612ms 
+  search_read_price          pw-aria          OK     609ms 
+  search_read_price          pw-aria          OK     634ms 
+  lazy_feed_item35           pw-aria          FAIL   2642ms no_match:Open item 35
+  lazy_feed_item35           pw-aria          FAIL   2557ms no_match:Open item 35
+  lazy_feed_item35           pw-aria          FAIL   2637ms no_match:Open item 35
+  hover_menu                 pw-aria          OK     406ms 
+  hover_menu                 pw-aria          OK     412ms 
+  hover_menu                 pw-aria          OK     405ms 
+
+scenario                   impl                ok  ms(med) steps tok(med)  saw  fail
+cookie_overlay             pw-aria          3/3        410     3      137 3/3  
+custom_dropdown_date       pw-aria          3/3        773     5      301 3/3  
+hover_menu                 pw-aria          3/3        406     3       70 3/3  
+iframe_payment             pw-aria          3/3        382     3       56 3/3  
+lazy_feed_item35           pw-aria          0/3       2637     1      204 3/3  no_match:Open item 35
+search_read_price          pw-aria          3/3        612     3       69 0/3  
+shadow_login               pw-aria          3/3        556     4      137 3/3  
+shop_duplicates            pw-aria          0/3        208     2      271 3/3  wrong_outcome:title='Shop'
+spa_settings               pw-aria          3/3       1120     4      225 3/3  
+TOTAL pw-aria: success 21/27  median_ms=556  median_tokens=137

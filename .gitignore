@@ -52,17 +52,12 @@ corpus-report.json
 benchmark-outputs/
 benchmark-results/
 benchmark-runs/
-benchmarks/raw/
 benchmarks/tmp/
 
-# Local benchmark scratch + journals (keep canonical benchmark docs manually)
-docs/benchmarks/
+# Local benchmark scratch (canonical dated reports + raw data under docs/benchmarks/ ARE tracked)
 docs/benchmarks/journals/
 docs/benchmarks/tmp/
 docs/benchmarks/scratch/
-docs/harness/journals/
-docs/harness/*.json
-docs/harness/*.md
 
 # Browser/test harness leftovers
 playwright-report/

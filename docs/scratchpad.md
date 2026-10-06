@@ -41,7 +41,7 @@
   element on the next one. Never reuse a number.
 - **Do not override `HOME` in tests.** Playwright finds its browsers via `~/Library/Caches/ms-playwright`; the fixture silently skipped all 16
   integration tests. Look at the *skipped* count, not just "passed". Use `SB_HOME` for output dirs.
-- **CDP attach picks an existing tab.** Attaching to a live profile (`mia`) must open its own tab and close only that one.
+- **CDP attach picks an existing tab.** Attaching to a live, logged-in profile must open its own tab and close only that one.
 - **AF_UNIX paths max out at ~104 bytes on macOS.** Long `$HOME`/`SB_HOME` need a short fallback dir (tested).
 - **`.venv/bin/pip` pointed at Python 3.14 while tests run on 3.12.** Use `.venv/bin/python -m pip`.
 - **Benchmark oracles can be wrong too.** `^Football$` failed because duplicate labels get a context suffix; check whether the product or the

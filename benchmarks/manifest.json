@@ -1,24 +1,36 @@
 {
-  "version": 1,
+  "version": 2,
   "results": [
     {
-      "id": "reference-run-2026-03-12",
-      "date_utc": "2026-03-12T00:00:00Z",
-      "commit": "unversioned-local",
-      "task_pack": "shared-25-task-pack",
-      "task_count": 25,
-      "planner": "reference-harness",
+      "id": "dogfood-2026-10-06",
+      "date_utc": "2026-10-06T18:30:00Z",
+      "commit": "see git tag v1.4.0 / release notes",
+      "task_pack": "local-hard-patterns-9 + real-sites-8",
+      "task_count": 17,
+      "planner": "scripted oracle (no LLM); see docs/benchmarks/2026-10-06-dogfood-v1.4.md",
       "environment": {
+        "os": "macOS 24.6 arm64",
+        "python": "3.12.12",
+        "playwright": "1.58.0",
         "browser": "chromium",
         "mode": "headless"
       },
       "summary": {
-        "semantic_browser_success_rate": 1.0,
-        "openclaw_success_rate": 0.72,
-        "standard_success_rate": 0.24
+        "local_success": {
+          "sb_1_3_2": "12/27",
+          "playwright_aria": "21/27",
+          "sb_1_4": "27/27"
+        },
+        "real_success": {
+          "sb_1_3_2": "14/16",
+          "playwright_aria": "11/16",
+          "sb_1_4": "16/16"
+        }
       },
       "reports": [
-        "corpus-report.json"
+        "docs/benchmarks/2026-10-06-dogfood-v1.4.md",
+        "docs/benchmarks/raw/2026-10-06/local.jsonl",
+        "docs/benchmarks/raw/2026-10-06/real.jsonl"
       ]
     }
   ]

@@ -17,7 +17,7 @@ Status legend: `[x]` done · `[ ]` open
 
 ## Phase 2 — Measure (dogfood harness)
 - [x] Local deterministic fixtures for classically hard patterns (`scripts/dogfood/`, 9 scenarios).
-- [x] Real-site scenarios (8 live sites) incl. gated/profile sites (`mia` profile over CDP, read-only: Paddy Power, Gmail).
+- [x] Real-site scenarios (8 live sites) incl. gated/profile sites (a logged-in Chrome profile attached over CDP, read-only: Paddy Power, Gmail).
 - [x] Methods: `httpx`, raw Playwright (full aria snapshot), `sb-old` (v1.3.2 worktree), `sb-new` with option matrix (budget, lite).
 - [x] Baseline numbers for v1.3.2 captured **before** fixes (and re-run for the final report).
 - [x] Results: [`benchmarks/2026-10-06-dogfood-v1.4.md`](benchmarks/2026-10-06-dogfood-v1.4.md).

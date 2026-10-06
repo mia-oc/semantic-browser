@@ -70,7 +70,7 @@ _MARKS_JS = r"""(items) => {
 
 
 async def resolve_cdp_endpoint(endpoint: str) -> str:
-    """Accept `http://host:port` (as printed by Chrome/openclaw) as well as a full `ws://…/devtools/browser/…` URL."""
+    """Accept `http://host:port` (as printed by `chrome --remote-debugging-port`) as well as a full `ws://…/devtools/browser/…` URL."""
     if not endpoint.startswith(("http://", "https://")):
         return endpoint
     import asyncio

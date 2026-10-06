@@ -149,17 +149,15 @@ Live page → extract semantic tree → group into regions → curate actions �
 
 ## Benchmarks
 
-Legacy v1.3 cross-method comparison on a shared 25-task pack (see the [v1.4 dogfood report](docs/benchmarks/2026-10-06-dogfood-v1.4.md) for current numbers):
+Latest dogfood run (details, protocol, raw data and caveats: [docs/benchmarks/2026-10-06-dogfood-v1.4.md](docs/benchmarks/2026-10-06-dogfood-v1.4.md)):
 
-| Method | Success | Median planner input (tokens) | Median planner output (tokens) | Indicative cost/request (USD) |
-|--------|---------|---:|---:|---:|
-| Standard browser tooling | 24% (6/25) | 10,118 | 74 | $0.041 |
-| OpenClaw browser tooling | 72% (18/25) | 6,833 | 66 | $0.022 |
-| **Semantic Browser** | **100% (25/25)** | **540** | **14** | **$0.004** |
+| Method | Local hard-pattern suite | 8 live sites | Tokens read / step (live, median) |
+|--------|---:|---:|---:|
+| v1.3.2 | 12/27 | 14/16 | ~0.8k |
+| Raw Playwright accessibility snapshot | 21/27 | 11/16 | ~15k (max 143k) |
+| **v1.4** | **27/27** | **16/16** | ~2.5k (1.3k with `--budget 2500`) |
 
-At 5 tasks/day over a year: ~$75/year standard vs ~$7/year Semantic Browser.
-
-These are reference harness results, not universal guarantees. Protocol: [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md). Manifest: [`benchmarks/manifest.json`](benchmarks/manifest.json).
+These are single-machine results from a scripted stand-in for the model, not universal guarantees. Protocol: [`docs/benchmark_protocol.md`](docs/benchmark_protocol.md). Manifest: [`benchmarks/manifest.json`](benchmarks/manifest.json).
 
 ## CLI Reference
 

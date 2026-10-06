@@ -8,7 +8,7 @@ Use this protocol before publishing benchmark numbers in `README.md`.
 - Commit SHA under test
 - Runtime version
 - Task pack identifier and count
-- Planner/model identifier
+- Planner: a **named real model** (and how it was driven) or an explicitly labelled scripted stand-in; never an unnamed config
 - Environment details (OS, browser, headless/headful)
 - Run count and aggregation method
 

@@ -1,0 +1,27 @@
+  wikipedia_search           pw-aria          OK     705ms 
+  wikipedia_search           pw-aria          OK     751ms 
+  hn_comments                pw-aria          OK    1339ms 
+  hn_comments                pw-aria          OK    1341ms 
+  govuk_search               pw-aria          FAIL   6500ms no_match:Search GOV.UK
+  govuk_search               pw-aria          FAIL   6566ms no_match:Search GOV.UK
+  github_issues              pw-aria          FAIL   1506ms wrong_outcome:title='GitHub - microsoft/playwright: Playwrigh'
+  github_issues              pw-aria          OK     878ms 
+  bbc_sport_football         pw-aria          OK    1364ms 
+  bbc_sport_football         pw-aria          OK    1343ms 
+  ddg_search                 pw-aria          OK     750ms 
+  ddg_search                 pw-aria          OK     764ms 
+  nhs_search                 pw-aria          OK     977ms 
+  nhs_search                 pw-aria          OK     886ms 
+  amazon_search              pw-aria          FAIL   2141ms wrong_outcome:title='Amazon.co.uk : usb cable'
+  amazon_search              pw-aria          FAIL   2295ms wrong_outcome:title='Amazon.co.uk : usb cable'
+
+scenario                   impl                ok  ms(med) steps tok(med)  saw  fail
+amazon_search              pw-aria          0/2       2218     3    15473 2/2  wrong_outcome:title='Amazon.co.uk : usb cable'
+bbc_sport_football         pw-aria          2/2       1354     3    55086 2/2  
+ddg_search                 pw-aria          2/2        757     2     2614 2/2  
+github_issues              pw-aria          1/2       1192     2    15884 2/2  wrong_outcome:title='GitHub - microsoft/playwright: Playwrigh'
+govuk_search               pw-aria          0/2       6533     2     6125 2/2  no_match:Search GOV.UK
+hn_comments                pw-aria          2/2       1340     2   142731 2/2  
+nhs_search                 pw-aria          2/2        932     3     5706 2/2  
+wikipedia_search           pw-aria          2/2        728     2    94394 2/2  
+TOTAL pw-aria: success 11/16  median_ms=1340  median_tokens=15473

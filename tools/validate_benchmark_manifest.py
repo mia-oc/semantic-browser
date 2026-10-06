@@ -28,6 +28,10 @@ def main() -> int:
         if missing_fields:
             print(f"result[{idx}] missing keys: {sorted(missing_fields)}")
             return 1
+        for report in result["reports"]:
+            if not Path(report).exists():
+                print(f"result[{idx}] report file is missing: {report}")
+                return 1
     print("benchmark manifest is valid")
     return 0
 

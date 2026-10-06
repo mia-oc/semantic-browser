@@ -34,7 +34,7 @@ pip install "semantic-browser[full]"
 
 ```bash
 semantic-browser version
-# semantic-browser 1.7.0
+# semantic-browser 1.7.1
 
 semantic-browser doctor
 # ✓ Python 3.11+

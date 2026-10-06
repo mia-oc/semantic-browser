@@ -102,3 +102,6 @@
 - **Load flakiness is real:** with ~57 Chromium processes alive from dogfooding, hung-script integration tests failed once; they pass alone. Close
   dogfood sessions (`sb stop --all`, `agent-browser close --all`, `playwright-cli close-all`) before the final run.
 - **Honest benchmarking:** single runs, aggregates that include pre-fix runs, and a one-task `browse` sample are labelled as such and not quoted in the README.
+- **A hand-driven single run is a story, not a benchmark.** To quote numbers, replay the shortest sequence per tool (`replay.py`: 3 interleaved cold-start rounds, medians). Be explicit that
+  it is hindsight for every tool, and report where the product is *not* ahead (browser time was a tie; `agent-browser` was faster on shop and prints less on tiny pages). The shop task
+  that failed hand-driven for `agent-browser` passed in the replay: the failure was discovering refs from its output, not the tool being unable to do it.

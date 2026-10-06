@@ -63,6 +63,7 @@ Status legend: `[x]` done · `[ ]` open
 - [x] Navigation: DOMContentLoaded grace + `_unstick` for hung blocking resources (50-100 s `goto` -> a few seconds).
 - [x] CAPTCHA: canvas kind with coordinate ruler, `captcha click/drag`, REJECTED/ACCEPTED from the page's own text; demos completed: reCAPTCHA, hCaptcha, Turnstile (testing key), captcha.com text.
 - [x] Version 1.7.0; publish via `scripts/publish.sh --upload`.
+- [x] 1.7.1: repeat-run replay (`scripts/dogfood/replay.py`, 3 interleaved runs, medians) and README with measured figures + plain-language rationale.
 
 ## Follow-ups (not started; see benchmark report "Known limitations")
 - Brief mode: print only changed lines after non-navigating actions.

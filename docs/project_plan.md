@@ -49,6 +49,12 @@ Status legend: `[x]` done · `[ ]` open
 - [x] Round 3 (final code): 7/7 tasks, median 1 call.
 - [x] Release plumbing: `scripts/publish.sh`, `.env.example`, CI `pip-audit` fix. Version 1.5.0 (1.4.0 was never published).
 
+## Phase 6 — Agent-facing instructions and round 4 (v1.6)
+- [x] `sb guide` / `sb guide --skill` / `docs/agent_guide.md` (tests: verb coverage, size cap, safety rules, docs in sync, works with no daemon).
+- [x] README: "Give it to your agent" section, accurate "How It Works" (v1.4+ engine), v1.6 notes.
+- [x] Round 4 live tasks (GitHub, form, DuckDuckGo, Wikipedia ×2, catalogue, BBC, PyPI): fixed collapsed-header inputs, `find` ranking/context, gate flag.
+- [x] Version 1.6.0; publish via `scripts/publish.sh --upload`.
+
 ## Follow-ups (not started; see benchmark report "Known limitations")
 - Brief mode: print only changed lines after non-navigating actions.
 - Fold repeated sidebar chrome after in-site navigation (Paddy Power repeats ~50 menu links before the content).

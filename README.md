@@ -4,7 +4,7 @@
   <img src="https://github.com/user-attachments/assets/dac79ee0-6ebb-48b3-a27d-2e339ea16961" alt="Semantic Browser mascot" width="240" align="right" />
 </p>
 
-**Version 1.5.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
+**Version 1.6.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
 
 Semantic Browser turns live Chromium pages into compact, numbered text views for LLM agents. The agent reads one short view
 (content *and* its options), replies with one command like `click 12`, and the runtime executes it on that exact element.
@@ -27,12 +27,27 @@ Less confusion, less hallucination, dramatically less cost: on 8 live sites the 
 `--budget 2500`) instead of ~15k for a raw accessibility snapshot**, at ~1.4 s per two-step task with 16/16 success
 ([benchmark report](docs/benchmarks/2026-10-06-dogfood-v1.4.md)).
 
+## Give it to your agent (30 seconds)
+
+```bash
+pip install "semantic-browser[managed]" && semantic-browser install-browser
+sb guide            # the playbook an agent should read: loop, view syntax, recovery, bot walls, safety (~1.5k tokens)
+```
+
+* **Any LLM agent:** paste the output of `sb guide` into its system prompt, or tell it: *"To use the web, run `sb guide`, then drive `sb`."*
+* **Claude / Cursor skills:** `mkdir -p ~/.claude/skills/semantic-browser && sb guide --skill > ~/.claude/skills/semantic-browser/SKILL.md`
+* **Rules files (`AGENTS.md`, `.cursorrules`):** add the same one-liner.
+* The guide is tested against the code (every verb covered, size-capped) and also lives at [docs/agent_guide.md](docs/agent_guide.md).
+
+What the agent gets: one outcome line plus a numbered page per command, batching with `sb do`, whole-page `find`, honest failure
+messages, bot-wall and CAPTCHA signalling, and rules that treat page text as untrusted input and default to read-only.
+
 ## Why Semantic Browser
 
 - **One compact view** — page content with inline `[n]` refs; shadow DOM, iframes (cross-origin too), custom div widgets and duplicate labels handled.
 - **Exact-element execution** — a ref is bound to one element handle; stale refs fail loudly, never retarget (no silent `<body>` clicks).
 - **Fast** — event-driven settling: ~0.3–0.5 s to a usable page; whole 3–5-step tasks in ~0.3–1 s on the local hard-pattern suite (v1.3.2: ~4 s).
-- **Built-in blockers** — cookie banners, modals, and anti-bot gates are detected and signaled.
+- **Built-in blockers** — cookie banners and modals are detected with a ranked dismiss hint; bot walls and rate limits are flagged (`! This looks like a bot/verification page`) so an agent stops instead of hammering.
 - **CAPTCHA assist** — `sb captcha` produces a numbered, annotated image (or PDF) for a vision model and clicks the tiles it names.
 - **Four interfaces** — `sb` agent CLI (persistent daemon), Python API, legacy `semantic-browser` CLI, and HTTP service.
 
@@ -116,6 +131,7 @@ Full worked examples for OpenAI, Anthropic, and more: **[Integration Examples](d
 
 | Document | What it covers |
 |----------|---------------|
+| **[Agent guide (`sb guide`)](docs/agent_guide.md)** | The playbook to give an AI: how to drive `sb` well, recover, handle bot walls, stay safe |
 | **[Agent CLI (`sb`)](docs/agent_cli.md)** | v1.4: the verbs, how to read the view, sessions, attach to a running Chrome, security model |
 | **[CAPTCHA assist](docs/captcha.md)** | Detect → annotate (PNG/PDF) → answer by tile number; what was verified and honest limits |
 | **[Dogfood benchmark](docs/benchmarks/2026-10-06-dogfood-v1.4.md)** | v1.3.2 vs v1.4 vs raw Playwright vs httpx, hard-pattern suite, 8 live sites, gated sites, CAPTCHA demo |
@@ -134,19 +150,16 @@ Full worked examples for OpenAI, Anthropic, and more: **[Integration Examples](d
 ## How It Works
 
 ```
-Live page → extract semantic tree → group into regions → curate actions → render room text
-                                                                              ↓
-                                                              LLM planner picks action ID
-                                                                              ↓
-                                                              runtime resolves & executes
-                                                                              ↓
-                                                              observe delta → repeat
+Chromium page ──one JS walk per frame──▶ semantic nodes + reading-order flow ──▶ text view with inline [n] refs
+      ▲                                                                                   │
+      │                          agent reads the view, replies with one verb              ▼
+      └── runtime executes on the exact element handle, settles, reports the outcome ◀── `click 12`
 ```
 
-1. **Observe** — the runtime extracts the page's semantic structure, groups it into regions, curates the top actions, and renders a text-adventure "room".
-2. **Plan** — the LLM planner reads the room text and replies with one action ID.
-3. **Act** — the runtime resolves the action to a DOM element, executes it, waits for the page to settle, and produces a delta observation.
-4. **Repeat** — the planner sees the delta and picks the next action.
+1. **Observe** — one DOM pass per frame (shadow DOM, same- and cross-origin iframes) builds nodes and a reading-order flow; occlusion and overlay detection mark what is really clickable.
+2. **Render** — the view keeps content and controls together, collapses navigation, windows long pages and ranks overlay dismiss controls.
+3. **Act** — a ref is bound to one element handle for the whole session, so a stale ref fails loudly instead of clicking something else. The runtime waits for the page to settle and prints one outcome line (`-> now at …`, `page changed (+3/-1 lines)`, `no visible change`).
+4. **Repeat** — or batch known steps with `sb do`. Architecture: [docs/system_arch.md](docs/system_arch.md). The older planner/`observe`/`act` API (room text, action IDs) is still available for Python and service use: [Planner Contract](docs/planner_contract.md).
 
 ## Benchmarks
 
@@ -185,6 +198,16 @@ semantic-browser export-trace --session <id> --out trace.json
 semantic-browser serve --host 127.0.0.1 --port 8765 --api-token <token>
 ```
 
+## What's New in v1.6.0
+
+- **`sb guide`** — the agent playbook ships inside the package (`sb guide`, `sb guide --skill` for a drop-in SKILL.md). Tested for verb coverage and size.
+- **Bot walls are named** — Fastly/Cloudflare/DuckDuckGo-style gates and rate limits get a `! This looks like a bot/verification page` line with the right next step,
+  also on long pages when the controls are covered. Found live: PyPI "Client Challenge", DuckDuckGo "bots use DuckDuckGo too".
+- **Search boxes in headers stay search boxes** — collapsed header/nav lines used to print an `<input>` like a link (`[4]Search with DuckDuckGo`); fillable controls now keep
+  their full form and are never cut by the "(+N more)" cap.
+- **Better `find`** — whole-word hits first (`MIT` no longer drowns in "commit"), and a short hit (a bare price) carries its card title.
+- Unknown-verb errors list the verbs from the code and point at `sb guide`.
+
 ## What's New in v1.5.0
 
 Everything here came from driving `sb` as a real model (Claude Sonnet 5.5) on live sites, then fixing what hurt
@@ -201,23 +224,9 @@ Everything here came from driving `sb` as a real model (Claude Sonnet 5.5) on li
 
 Full list: [CHANGELOG.md](CHANGELOG.md). Note: 1.4.0 was never published to PyPI; 1.5.0 includes it.
 
-## What's New in v1.4.0
+## Earlier releases
 
-- **`sb` agent CLI + persistent daemon** — one short command per step, browser stays alive between calls (unix socket, `0700` dir).
-- **New page view engine (default)** — one JS pass per frame; shadow DOM, cross-origin iframes, clickable `div`s, occlusion/overlay detection,
-  numbered refs bound to exact elements (monotonic per session). Legacy engine: `extraction.engine="legacy"`.
-- **Fast settle** — DOM-quiet + network-quiet instead of fixed polling: local suite 4.1 s → 0.44 s median, real sites 4.5 s → 1.4 s.
-- **CAPTCHA assist** — detect, number tiles, crop PNG/PDF, `select`/`text`/`submit`; verified on Google's public reCAPTCHA demo (detection and multi-round
-  flow; provider acceptance is not claimed).
-- **Attach safely** — `--cdp` works in its own tab and never lists or adopts a person's other tabs.
-- **Lite mode** (`--lite media|max`, off by default) — shipped *unproven*: no measurable speed-up in the benchmark.
-- **Fixes found by dogfooding** — silent `<body>` clicks, duplicate-label clicks hitting the first match, stale refs after navigation, `view --expand`
-  advertised but missing, password/card/OTP values masked, and more (see [CHANGELOG](CHANGELOG.md)).
-- Bench harness: `scripts/dogfood/` (fixtures, oracle-model runner, `navbench`).
-
-Honest trade-off: the v1.4 view is ~3× larger than v1.3.2's (it shows *all* options instead of the top 25) but ~6–55× smaller than a raw accessibility snapshot.
-
-Full details: [CHANGELOG.md](CHANGELOG.md)
+1.4.0 introduced the `sb` agent CLI, the one-pass view engine, fast settling, CAPTCHA assist and safe `--cdp` attach (never published on its own; 1.5.0 was the first release to include it). Full history: [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

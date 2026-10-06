@@ -84,6 +84,20 @@ def _target(words: list[str]) -> str:
     return first if first.strip("[]#eE").isdigit() else " ".join(words)
 
 
+def _rank_hits(lines: list[str], needle: str) -> tuple[list[int], int]:
+    """Indexes of lines containing `needle` (case-insensitive): whole-word hits first, then substrings; page order within each."""
+    low = needle.lower()
+    pat = re.compile(rf"(?<!\w){re.escape(low)}(?!\w)")
+    whole: list[int] = []
+    part: list[int] = []
+    for i, ln in enumerate(lines):
+        t = ln.lower()
+        if low not in t:
+            continue
+        (whole if pat.search(t) else part).append(i)
+    return whole + part, len(whole)
+
+
 def _snippet(line: str, needle: str, width: int = 240) -> str:
     """Trim a long line to ~width chars centred on the match, so what you searched for is always visible."""
     if len(line) <= width:
@@ -92,6 +106,14 @@ def _snippet(line: str, needle: str, width: int = 240) -> str:
     start = max(0, min(pos - width // 2, len(line) - width)) if pos > 0 else 0
     end = min(len(line), start + width)
     return ("…" if start else "") + line[start:end] + ("…" if end < len(line) else "")
+
+
+def _hit_text(lines: list[str], i: int, needle: str) -> str:
+    """One `find` hit. A short hit (a bare price or date) is meaningless alone, so it carries the line before it (the card's title)."""
+    text = _snippet(lines[i], needle)
+    if len(lines[i].strip()) <= 24 and i > 0 and lines[i - 1].strip() and needle.lower() not in lines[i - 1].lower():
+        text = f"{_snippet(lines[i - 1], '', 90)} | {text}"
+    return text
 
 
 _MARKS_JS = r"""(items) => {
@@ -225,7 +247,7 @@ class AgentSession:
         verb, args = argv[0].lower(), argv[1:]
         handler = getattr(self, f"_v_{verb.replace('-', '_')}", None)
         if handler is None:
-            return f"ERROR: unknown verb {verb!r}. Verbs: goto view click type select check press hover scroll find wait do back forward reload tabs tab shot captcha close help"
+            return f"ERROR: unknown verb {verb!r}. Verbs: {' '.join(self._verb_names())}. Run `sb guide` for how to use them."
         try:
             out = await handler(args)
         except (ActionExecutionError, BrowserNotReadyError, SemanticBrowserError, RuntimeError, ValueError) as exc:
@@ -236,8 +258,19 @@ class AgentSession:
         return out
 
     # ------------------------------------------------------------------ verbs
+    @classmethod
+    def _verb_names(cls) -> list[str]:
+        order = "goto view click type select check press hover scroll find wait do back forward reload tabs tab shot captcha close help guide".split()
+        have = {n[3:].replace("_", "-") for n in dir(cls) if n.startswith("_v_")}
+        return [v for v in order if v in have] + sorted(have - set(order))
+
     async def _v_help(self, args: list[str]) -> str:
         return HELP
+
+    async def _v_guide(self, args: list[str]) -> str:
+        from semantic_browser.guide import guide_text, skill_text
+
+        return skill_text() if "--skill" in args else guide_text()
 
     async def _v_close(self, args: list[str]) -> str:
         return await self.close()
@@ -396,20 +429,21 @@ class AgentSession:
         # search the full-page rendering, not just the visible window
         full = self.runtime.rerender(mode="full")
         lines = full.all_lines
-        idx = [i for i, ln in enumerate(lines) if needle in ln.lower()]
+        idx, whole = _rank_hits(lines, needle)
         self.runtime.rerender()  # restore the normal window for later `view --page`
         label = " ".join(args)
         if not idx:
             return f"no match for {label!r} on this page (try `scroll down` if it loads lazily)."
         shown: list[str] = []
         for i in idx[:15]:
-            text = _snippet(lines[i], needle)
+            text = _hit_text(lines, i, needle)
             cols = _column_header(lines, full.header_rows, i)
             if cols:
                 text += f"\n    ↳ columns: {_snippet(cols, '', 160)}"
             shown.append(text)
         more = f"\n... {len(idx) - 15} more (be more specific: `find \"longer text\"`)" if len(idx) > 15 else ""
-        return f"{len(idx)} line(s) match {label!r}:\n" + "\n".join(shown) + more
+        note = f" ({whole} as a whole word, listed first)" if 0 < whole < len(idx) else ""
+        return f"{len(idx)} line(s) match {label!r}{note}:\n" + "\n".join(shown) + more
 
     async def _v_wait(self, args: list[str]) -> str:
         if args and args[0] == "text":

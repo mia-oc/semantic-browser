@@ -62,6 +62,7 @@
 |----------|------|
 | Recognise a new widget as clickable | `classify()` in `extractor/snapshot.js` |
 | Change how the page prints | `extractor/view.py` (`_Builder`) |
-| Add a verb | `agent.py` (`_v_<name>`) + `verbs_help.py` + `tests/integration/test_v14_local_sites.py` |
+| Add a verb | `agent.py` (`_v_<name>`) + `verbs_help.py` + `guide.py` (+ `docs/agent_guide.md` copy) + `tests/integration/test_v14_local_sites.py`; `tests/unit/test_agent_guide.py` fails if the guide or help miss it |
+| Change what agents are told | `guide.py` only, then refresh the block in `docs/agent_guide.md` (a test enforces they match) |
 | Add a CAPTCHA provider | `_PROVIDER_FRAMES` / selector tables in `captcha.py` |
 | Tune waiting | `SettleConfig` (`quiet_ms`, `net_quiet_ms`, `grace_ms`, caps) |

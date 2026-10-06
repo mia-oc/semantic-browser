@@ -105,8 +105,8 @@ def format_element(node: dict[str, Any], *, collapsed: bool = False) -> str:
         flags += " disabled"
     if node.get("covered"):
         flags += " covered"
-    if collapsed or kind == "link":
-        return f"[{ref}{flags}]{label}"
+    if kind == "link" or (collapsed and kind in ("button", "menuitem", "tab")):
+        return f"[{ref}{flags}]{label}"  # fillable controls keep their full form even inside a collapsed landmark
     if kind == "input":
         val = node.get("value") or ""
         t = node.get("type") or ""
@@ -246,13 +246,17 @@ class _Builder:
         if not collapse or not elems:
             return
         limit = 12 if kind != "footer" else 6
-        shown = elems[:limit]
+        keep = list(range(min(limit, len(elems))))
+        extra = [i for i in range(limit, len(elems)) if _FILLABLE_RE.match(elems[i])]
+        if extra:  # a search box or dropdown must never vanish behind "(+N more)"
+            keep = keep[: max(0, limit - len(extra))] + extra
+        shown = [elems[i] for i in keep]
         more = len(elems) - len(shown)
         text = f"{kind}: " + " ".join(shown) + (f" … (+{more} more: view --expand {kind})" if more > 0 else "")
         y = inner[0].y
         in_layer = inner[0].in_layer
         del self.lines[start:]
-        self.lines.append(_Line(text=text, y=y, refs=refs[:limit], elems=shown, kind="collapsed", in_layer=in_layer))
+        self.lines.append(_Line(text=text, y=y, refs=[refs[i] for i in keep if i < len(refs)], elems=shown, kind="collapsed", in_layer=in_layer))
 
     # -- consume tokens ------------------------------------------------------------------------------
     def consume(self, flow: list[list[Any]]) -> None:
@@ -332,6 +336,37 @@ class _Builder:
         return out
 
 
+_FILLABLE_RE = re.compile(r"\[\d+ (?:input|select|combobox|file)")
+_GATE_RE = re.compile(
+    r"client challenge|just a moment|attention required|checking your browser|security check|"
+    r"verif(?:y|ying) (?:that )?you(?: are|'re) (?:a )?human|are you (?:a )?(?:human|robot)|press (?:and|&) hold|"
+    r"unusual traffic|pardon our interruption|captcha (?:image|challenge|verification)|"
+    r"not able to serve your requests this quickly|too many requests|rate.?limit|access denied|"
+    r"(?:request|you have been) blocked|bots use \w+ too|made by a human|complete the following challenge",
+    re.I,
+)
+
+
+def _gate_hint(snap: PageSnapshot, lines: list[str]) -> str | None:
+    """Flag bot-wall / rate-limit pages. Only short pages qualify, so an article that mentions CAPTCHAs never trips it."""
+    title = snap.title or ""
+    source = [str(i[1]) for i in snap.flow if i and i[0] == "t" and len(i) > 1]  # rendered lines are truncated; use the source
+    raw = sum(len(t) for t in source) + sum(len(str(n.get("name") or "")) for n in snap.nodes)
+    refd = [n for n in snap.nodes if n.get("ref") is not None]
+    mostly_covered = len(refd) >= 3 and sum(1 for n in refd if n.get("covered")) / len(refd) >= 0.5
+    if raw > 1500 and not (mostly_covered or snap.layer):
+        return None  # a long, usable page that merely mentions CAPTCHAs is not a gate
+    text = "\n".join(source + lines)
+    m = _GATE_RE.search(title or "") or _GATE_RE.search(text)
+    if not m:
+        return None
+    return (
+        f'! This looks like a bot/verification page ("{m.group(0)[:40]}"): the site is refusing automation. '
+        "Do not retry in a loop. If solving it is part of your task and allowed: `sb captcha`; "
+        "otherwise wait and retry once, then report that the site blocked you."
+    )
+
+
 def render_view(
     snap: PageSnapshot,
     *,
@@ -359,6 +394,9 @@ def render_view(
 
     header_rows = [ln.header for ln in lines]
     all_lines = [ln.text for ln in lines]  # whole page, even behind an overlay: `find` must not go blind
+    gate = _gate_hint(snap, all_lines)
+    if gate:
+        head.append(gate)
     layer_dismiss: list[int] = []
     layer_mode = bool(snap.layer) and not opts.all_layers
     if layer_mode:

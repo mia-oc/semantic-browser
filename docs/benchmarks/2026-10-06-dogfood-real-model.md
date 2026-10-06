@@ -58,6 +58,20 @@ failed or were awkward in round 1 now complete, in one or two calls.
 Honest notes on round 3: the `f2` journal entry contains a slip of mine (I typed a ref number from a previous session; refs are per-session, and the
 hint said otherwise). The clean run is `f2b`. Tool time is dominated by real page loads, not by `sb`.
 
+## Round 4 (v1.6 candidate, run by hand, not through `sbj.py`)
+
+Seven fresh tasks driven from the new agent guide only, one command per call unless `do` is noted. Single run each, one machine.
+
+| Task | Result |
+|---|---|
+| GitHub repo page → licence | found; `find MIT` buried it under "commit" (fixed: whole-word first) |
+| httpbin pizza form, 5 steps in one `do`, submit | all values reached the server correctly (size, toppings, name, comments) |
+| DuckDuckGo search | search box printed like a link (fixed); then DDG served a human-check mask: now flagged as a bot page |
+| Wikipedia infobox fact; Wikipedia search | found via `find`; search went straight to the article |
+| books.toscrape category prices | `find £` returned bare prices (fixed: carries the title) |
+| BBC News front page | inline cookie banner with reject control visible; headlines read |
+| PyPI project page | Fastly "Client Challenge" (external); now flagged with the right next step, `sb captcha` detects it, not attempted |
+
 ## Not solved / blocked (reported, not hidden)
 
 - **Reddit** served its human-verification gate in headless, headful *and* the logged-in `mia` Chrome from this IP. It is an IP-level decision; the tool

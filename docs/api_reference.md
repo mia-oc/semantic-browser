@@ -6,6 +6,7 @@ Complete reference for every public class, method, and model in Semantic Browser
 
 ```python
 from semantic_browser import (
+    AgentSession,      # v1.4: one-string verbs ("goto", "click 7", ...) -> text; see agent_cli.md
     ManagedSession,
     SemanticBrowserRuntime,
     RuntimeConfig,
@@ -58,6 +59,25 @@ session = await ManagedSession.launch(
 |--------|-------------|
 | `await session.new_page()` | Open a new browser tab in this session's context. |
 | `await session.close()` | Close the session and browser (respects ownership mode). |
+
+---
+
+## AgentSession (v1.4)
+
+Verb layer shared by the `sb` CLI and the daemon. Returns text, never raises for page problems.
+
+```python
+s = await AgentSession.launch(headful=True, profile_dir=None, cdp=None, lite="off", budget=None)
+text = await s.run('type 3 "hello" --enter')      # same strings as the CLI; str or list[str]
+await s.close()
+```
+
+| Member | Description |
+|--------|-------------|
+| `launch(*, headful, profile_dir, profile_mode, cdp, name, lite, budget)` | Start a managed browser, or attach with `cdp="http://127.0.0.1:9222"` (a dedicated tab is opened; only it is closed on exit). |
+| `run(line)` | Execute one verb (see [agent_cli.md](agent_cli.md)). Output = outcome line + page view. |
+| `runtime` | The underlying `SemanticBrowserRuntime` (e.g. `rerender(page=2)`). |
+| `close()` | Close the session. |
 
 ---
 
@@ -248,6 +268,10 @@ Full action metadata. The `available_actions` list in `Observation` contains the
 | `primary` | `bool` | Whether this is a primary/CTA action |
 | `confidence` | `float` | Extraction confidence for this action (0.0–1.0) |
 | `locator_recipe` | `dict` | Internal locator data (for the executor, not the planner) |
+| `ref` | `int \| None` | v1.4: the number printed in the view (`[7]`); unique for the whole session, never reused after navigation |
+| `kind` | `str \| None` | v1.4: `link`, `button`, `input`, `select`, `checkbox`, `radio`, `switch`, `combobox`, … |
+| `context` | `str \| None` | v1.4: disambiguating text for duplicate labels |
+| `value` | `Any \| None` | v1.4: current value of inputs/selects |
 
 ### ActionRequest
 
@@ -271,6 +295,7 @@ Output of `runtime.act()`, `navigate()`, `back()`, `forward()`, `reload()`.
 | `request` | `ActionRequest` | The original request |
 | `status` | `StepStatus` | `"success"`, `"failed"`, `"blocked"`, `"stale"`, `"invalid"`, `"ambiguous"` |
 | `message` | `str \| None` | Human-readable status message |
+| `outcome` | `str \| None` | v1.4: one line saying what the action did and what changed (`-> now at …`, `overlay dismissed`, `page changed (+3/-1 lines): …`) |
 | `execution` | `ExecutionResult` | Detailed execution outcome |
 | `observation` | `Observation` | Post-action observation |
 | `delta` | `ObservationDelta \| None` | What changed |
@@ -381,6 +406,7 @@ config = RuntimeConfig(
     extraction=ExtractionConfig(max_elements=6000),
     redaction=RedactionConfig(enabled=True),
     telemetry=TelemetryConfig(enabled=True),
+    lite="off",   # v1.4: "off" | "media" | "max" — skip images/fonts/video (+ trackers); experimental, see benchmarks
 )
 ```
 
@@ -390,7 +416,12 @@ Controls how long the runtime waits for pages to stabilize before extraction.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `mutation_quiet_ms` | `int` | `300` | ms of DOM quiet before considering settled |
+| `mode` | `str` | `"fast"` | `"fast"` (event-driven: DOM quiet + in-flight requests, ~100–250 ms) or `"legacy"` (v1.3 polling loops) |
+| `quiet_ms` | `int` | `80` | v1.4: DOM must be mutation-free this long |
+| `net_quiet_ms` | `int` | `100` | v1.4: no in-flight document/xhr/fetch/script for this long |
+| `action_cap_ms` / `navigation_cap_ms` / `observe_cap_ms` | `int` | `2500` / `5000` / `800` | v1.4: hard caps per settle |
+| `grace_ms` / `grace_cap_ms` | `int` | `350` / `700` | v1.4: extra wait when a click/submit visibly changed nothing (timer-driven renders) |
+| `mutation_quiet_ms` | `int` | `300` | (legacy) ms of DOM quiet before considering settled |
 | `interactable_stable_ms` | `int` | `200` | ms of stable interactable count |
 | `layout_stable_ms` | `int` | `150` | ms of stable layout |
 | `max_settle_ms` | `int` | `15000` | Maximum settle wait |
@@ -400,6 +431,8 @@ Controls how long the runtime waits for pages to stabilize before extraction.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
+| `engine` | `str` | `"v2"` | v1.4 single-pass page view (shadow DOM, cross-origin frames, numbered refs). `"legacy"` restores the v1.3 extractor and room text |
+| `view_budget` | `int` | `5000` | v1.4: characters of page view per observation (`~1250` tokens). 2500 halves cost with equal success on the benchmark set |
 | `include_frames` | `bool` | `True` | Extract from iframes |
 | `max_elements` | `int` | `4000` | Maximum elements to process |
 | `content_group_min_items` | `int` | `3` | Minimum items to form a content group |
@@ -431,7 +464,8 @@ All errors inherit from `SemanticBrowserError`.
 | `SessionNotFoundError` | Session ID not found (service mode) |
 | `ActionNotFoundError` | Action ID doesn't match any known action |
 | `ActionStaleError` | Action target no longer exists on the page |
-| `ActionExecutionError` | Action failed during DOM execution |
+| `ElementGoneError` | v1.4 (subclass of `ActionStaleError`): the exact element a ref pointed at was removed/re-rendered |
+| `ActionExecutionError` | Action failed during DOM execution (v1.4: also raised instead of silently targeting `<body>`) |
 | `SettleTimeoutError` | Page failed to stabilize within `max_settle_ms` |
 | `ExtractionError` | Extraction pipeline failed |
 | `PageUnreliableError` | Page quality too low for deterministic operation |

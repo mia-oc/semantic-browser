@@ -4,30 +4,37 @@
   <img src="https://github.com/user-attachments/assets/dac79ee0-6ebb-48b3-a27d-2e339ea16961" alt="Semantic Browser mascot" width="240" align="right" />
 </p>
 
-**Version 1.3.2 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
+**Version 1.4.0 (Beta)** · [PyPI](https://pypi.org/project/semantic-browser/) · [Changelog](CHANGELOG.md) · [License: MIT](LICENSE)
 
-Semantic Browser turns live Chromium pages into compact semantic "rooms" for LLM planners. The planner sees a text-adventure description of the page, picks one action ID, and the runtime executes it deterministically.
+Semantic Browser turns live Chromium pages into compact, numbered text views for LLM agents. The agent reads one short view
+(content *and* its options), replies with one command like `click 12`, and the runtime executes it on that exact element.
 
 ```
-@ BBC News (bbc.co.uk)
-> Home page. Main content: "Top stories". Navigation: News, Sport, Weather.
-! Cookie consent banner detected -> dismiss [act-a1b2c3d4-0]
-1 open "News" [act-8f2a2d1c-0]
-2 open "Sport" [act-c3e119fa-0]
-3 fill Search BBC [act-0b9411de-0] *value
-+ 28 more [more]
+$ sb goto https://shop.example/search?q=anvil
+navigated to … -> 'Search: anvil'
+
+@ Search: anvil — https://shop.example/search?q=anvil   [screen 1/1]
+# Catalogue
+[1 input:search "Search catalogue"="anvil"] [2 button]Search
+- [3]Anvil Classic £49.99 In stock
+- [4]Anvil Pro £89.50 Low stock
+
+$ sb click 4
+clicked [4] 'Anvil Pro' -> now at 'Anvil Pro' (https://shop.example/p/anvil-pro)
 ```
 
-Less confusion, less hallucination, dramatically less cost.
+Less confusion, less hallucination, dramatically less cost: on 8 live sites the model reads a median **~2.5k tokens per step (1.3k with
+`--budget 2500`) instead of ~15k for a raw accessibility snapshot**, at ~1.4 s per two-step task with 16/16 success
+([benchmark report](docs/benchmarks/2026-10-06-dogfood-v1.4.md)).
 
 ## Why Semantic Browser
 
-- **Plain-text room descriptions** — prose, not JSON soup.
-- **Curated action surface** — top 25 actions, with `more` for progressive disclosure.
-- **Deterministic execution** — `observe → act → observe delta`, every time.
+- **One compact view** — page content with inline `[n]` refs; shadow DOM, iframes (cross-origin too), custom div widgets and duplicate labels handled.
+- **Exact-element execution** — a ref is bound to one element handle; stale refs fail loudly, never retarget (no silent `<body>` clicks).
+- **Fast** — event-driven settling: ~0.3–0.5 s to a usable page; whole 3–5-step tasks in ~0.3–1 s on the local hard-pattern suite (v1.3.2: ~4 s).
 - **Built-in blockers** — cookie banners, modals, and anti-bot gates are detected and signaled.
-- **Token-efficient** — median planner input of ~540 tokens vs ~10,000 for standard tooling.
-- **Three interfaces** — Python API, CLI, and HTTP service.
+- **CAPTCHA assist** — `sb captcha` produces a numbered, annotated image (or PDF) for a vision model and clicks the tiles it names.
+- **Four interfaces** — `sb` agent CLI (persistent daemon), Python API, legacy `semantic-browser` CLI, and HTTP service.
 
 ## Install
 
@@ -39,6 +46,18 @@ semantic-browser install-browser
 For service mode: `pip install "semantic-browser[server]"`
 
 ## Quickstart
+
+### Agent CLI (`sb`, new in 1.4)
+
+```bash
+sb goto news.ycombinator.com   # first call starts a background Chromium (headful); later calls reuse it
+sb click 12                    # act on the [12] you see in the view (or: sb click "comments")
+sb find "price"                # search the whole page
+sb captcha --pdf               # annotated image of a CAPTCHA for a vision model
+sb stop
+```
+
+Full verb list, view syntax, sessions, `--cdp` attach and security model: **[docs/agent_cli.md](docs/agent_cli.md)**.
 
 ### Interactive portal
 
@@ -96,6 +115,10 @@ Full worked examples for OpenAI, Anthropic, and more: **[Integration Examples](d
 
 | Document | What it covers |
 |----------|---------------|
+| **[Agent CLI (`sb`)](docs/agent_cli.md)** | v1.4: the verbs, how to read the view, sessions, attach to a running Chrome, security model |
+| **[CAPTCHA assist](docs/captcha.md)** | Detect → annotate (PNG/PDF) → answer by tile number; what was verified and honest limits |
+| **[Dogfood benchmark](docs/benchmarks/2026-10-06-dogfood-v1.4.md)** | v1.3.2 vs v1.4 vs raw Playwright vs httpx, hard-pattern suite, 8 live sites, gated sites, CAPTCHA demo |
+| **[System architecture](docs/system_arch.md)** | Data flow, invariants, extension points |
 | **[Getting Started](docs/getting_started.md)** | Install, first run, interactive portal, Python/CLI/service quickstarts |
 | **[Planner Contract](docs/planner_contract.md)** | The exact interface between Semantic Browser and an LLM planner — what the planner receives, what it should reply, how to handle blockers, failures, and stopping |
 | **[Integration Examples](docs/integration_examples.md)** | End-to-end examples: OpenAI chat, OpenAI function-calling, Anthropic tool use, HTTP service, CDP attach, error handling patterns |
@@ -126,7 +149,7 @@ Live page → extract semantic tree → group into regions → curate actions �
 
 ## Benchmarks
 
-Cross-method comparison on a shared 25-task pack:
+Legacy v1.3 cross-method comparison on a shared 25-task pack (see the [v1.4 dogfood report](docs/benchmarks/2026-10-06-dogfood-v1.4.md) for current numbers):
 
 | Method | Success | Median planner input (tokens) | Median planner output (tokens) | Indicative cost/request (USD) |
 |--------|---------|---:|---:|---:|
@@ -159,12 +182,21 @@ semantic-browser export-trace --session <id> --out trace.json
 semantic-browser serve --host 127.0.0.1 --port 8765 --api-token <token>
 ```
 
-## What's New in v1.3.2
+## What's New in v1.4.0
 
-- **Added `GET /health` endpoint** — unauthenticated liveness probe for orchestrators and watchdogs.
-- **Health payload includes release + runtime signal** — returns `{status, version, active_sessions}`.
-- **Service internals hardened** — endpoint now uses public registry API instead of private field access.
-- **Service docs corrected** — diagnostics endpoint method fixed to `GET` in HTTP reference.
+- **`sb` agent CLI + persistent daemon** — one short command per step, browser stays alive between calls (unix socket, `0700` dir).
+- **New page view engine (default)** — one JS pass per frame; shadow DOM, cross-origin iframes, clickable `div`s, occlusion/overlay detection,
+  numbered refs bound to exact elements (monotonic per session). Legacy engine: `extraction.engine="legacy"`.
+- **Fast settle** — DOM-quiet + network-quiet instead of fixed polling: local suite 4.1 s → 0.44 s median, real sites 4.5 s → 1.4 s.
+- **CAPTCHA assist** — detect, number tiles, crop PNG/PDF, `select`/`text`/`submit`; verified on Google's public reCAPTCHA demo (detection and multi-round
+  flow; provider acceptance is not claimed).
+- **Attach safely** — `--cdp` works in its own tab and never lists or adopts a person's other tabs.
+- **Lite mode** (`--lite media|max`, off by default) — shipped *unproven*: no measurable speed-up in the benchmark.
+- **Fixes found by dogfooding** — silent `<body>` clicks, duplicate-label clicks hitting the first match, stale refs after navigation, `view --expand`
+  advertised but missing, password/card/OTP values masked, and more (see [CHANGELOG](CHANGELOG.md)).
+- Bench harness: `scripts/dogfood/` (fixtures, oracle-model runner, `navbench`).
+
+Honest trade-off: the v1.4 view is ~3× larger than v1.3.2's (it shows *all* options instead of the top 25) but ~6–55× smaller than a raw accessibility snapshot.
 
 Full details: [CHANGELOG.md](CHANGELOG.md)
 

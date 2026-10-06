@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from semantic_browser.errors import ActionExecutionError
+from semantic_browser.errors import ActionExecutionError, ElementGoneError
 from semantic_browser.models import ActionDescriptor, ActionRequest
 
 
@@ -16,8 +16,31 @@ class ActionExecutionOutcome:
     evidence: dict[str, object] = field(default_factory=dict)
 
 
-async def execute_action(page, action: ActionDescriptor, request: ActionRequest) -> ActionExecutionOutcome:
+async def execute_action(page, action: ActionDescriptor, request: ActionRequest, refs=None) -> ActionExecutionOutcome:
     try:
+        if action.op == "scroll":
+            from semantic_browser.executor.ref_actions import scroll_page
+
+            info = await scroll_page(page, str(request.value or request.options.get("direction") or "down"))
+            moved = info["after"] != info["before"]
+            msg = f"scrolled {request.value or 'down'} ({info['container']}: {int(info['before'])} -> {int(info['after'])} of {int(info['max'])})"
+            if not moved:
+                msg += "; already at the end" if (request.value or "down") in {"down", "bottom"} else "; already at the top"
+            return ActionExecutionOutcome(ok=True, message=msg, effect_hint="content_change" if moved else "none", evidence=info)
+        if action.op == "press" and action.ref is None:
+            key = str(request.value or "Enter")
+            await page.keyboard.press(key)
+            return ActionExecutionOutcome(
+                ok=True, message=f"pressed {key}", effect_hint="content_change" if key.lower() == "enter" else "state_change"
+            )
+        if refs is not None and action.ref is not None and action.op in {
+            "click", "open", "fill", "select_option", "toggle", "hover", "upload", "scroll_into_view", "press"
+        }:
+            from semantic_browser.executor.ref_actions import execute_ref_action
+
+            before_url = page.url
+            msg, hint, ev = await execute_ref_action(page, refs, action, request)
+            return ActionExecutionOutcome(ok=True, message=msg, effect_hint=hint, evidence={"before_url": before_url, **ev})
         before_url = page.url
         context = getattr(page, "context", None)
         if callable(context):
@@ -144,6 +167,10 @@ async def execute_action(page, action: ActionDescriptor, request: ActionRequest)
             ms = int(request.options.get("ms", request.value or 500))
             await page.wait_for_timeout(ms)
             return ActionExecutionOutcome(ok=True, message="waited", effect_hint="none")
+    except ElementGoneError:
+        raise
+    except ActionExecutionError:
+        raise
     except Exception as exc:
         raise ActionExecutionError(str(exc)) from exc
     raise ActionExecutionError(f"Unsupported action op: {action.op}")

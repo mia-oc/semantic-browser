@@ -25,6 +25,10 @@ class ActionExecutionError(SemanticBrowserError):
     """Action failed during execution."""
 
 
+class ElementGoneError(ActionStaleError):
+    """The element behind a ref no longer exists (page re-rendered or navigated)."""
+
+
 class SettleTimeoutError(SemanticBrowserError):
     """Page failed to settle in time."""
 

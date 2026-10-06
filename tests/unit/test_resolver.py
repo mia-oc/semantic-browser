@@ -151,7 +151,10 @@ async def test_standard_html_button_still_uses_aria():
 
 
 @pytest.mark.asyncio
-async def test_fallback_to_body_when_no_recipe():
+async def test_no_recipe_raises_instead_of_silently_targeting_body():
+    """v1.3.2 fell back to <body>, so a click 'succeeded' on the wrong thing. It must fail loudly."""
+    from semantic_browser.errors import ActionExecutionError
+
     page = _Page()
     action = ActionDescriptor(
         id="a5",
@@ -160,9 +163,8 @@ async def test_fallback_to_body_when_no_recipe():
         confidence=0.5,
         locator_recipe={},
     )
-    _loc = await resolve_locator(page, action)
-    assert page.calls[-1][0] == "locator"
-    assert page.calls[-1][1] == ("body",)
+    with pytest.raises(ActionExecutionError, match="Could not locate"):
+        await resolve_locator(page, action)
 
 
 @pytest.mark.asyncio

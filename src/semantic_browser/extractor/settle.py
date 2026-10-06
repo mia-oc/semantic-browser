@@ -218,3 +218,138 @@ async def wait_for_settle(page: Any, config: SettleConfig, *, intent: str = "act
 
     await asyncio.sleep(mutation_quiet_ms / 1000)
     return report
+
+
+# ---------------------------------------------------------------------------------------------------
+# Fast settle (default): one in-page DOM-quiet promise + an event-driven network tracker.
+# ---------------------------------------------------------------------------------------------------
+
+_QUIET_JS = """
+([quietMs, maxMs]) => new Promise((resolve) => {
+  const t0 = performance.now();
+  let last = t0, n = 0;
+  const watched = new Set(['class', 'hidden', 'open', 'aria-expanded', 'aria-hidden', 'style', 'disabled']);
+  const mo = new MutationObserver((ms) => {
+    for (const m of ms) {
+      if (m.type === 'childList' && (m.addedNodes.length || m.removedNodes.length)) { last = performance.now(); n++; break; }
+      if (m.type === 'attributes' && watched.has(m.attributeName)) { last = performance.now(); n++; break; }
+    }
+  });
+  try { mo.observe(document.documentElement, { subtree: true, childList: true, attributes: true }); } catch (e) {}
+  // A *busy indicator* is something that says "work in progress" AND is not just a static class name:
+  // aria-busy / progressbar, or a visible element carrying a running CSS animation (spinners, skeleton pulses).
+  const BUSY_SEL = '[aria-busy="true"],[role="progressbar"],[class*="spinner" i],[class*="skeleton" i],[class*="loading" i],[class*="loader" i]';
+  const BUSY_TXT = /^\\s*(loading|please wait|fetching|searching|processing|just a moment)\\b[^\\n]{0,24}$/im;
+  const visible = (e) => { try { return e.checkVisibility ? e.checkVisibility({ checkVisibilityCSS: true }) : e.offsetParent !== null; } catch (x) { return false; } };
+  const animating = (e) => { try { return e.getAnimations({ subtree: true }).some((a) => a.playState === 'running'); } catch (x) { return false; } };
+  let busyChecks = 0;
+  const busy = () => {
+    if (++busyChecks > 30) return false;           // bounded cost (~1.8 s)
+    try {
+      for (const e of document.querySelectorAll(BUSY_SEL)) {
+        const r = e.getBoundingClientRect();
+        if (r.width > 4 && r.height > 4 && r.bottom > 0 && r.top < innerHeight && visible(e)
+            && (e.getAttribute('aria-busy') === 'true' || e.getAttribute('role') === 'progressbar' || animating(e))) return true;
+      }
+      const b = document.body;
+      if (b && b.innerText && b.innerText.length < 4000 && BUSY_TXT.test(b.innerText)) return true;
+    } catch (e) {}
+    return false;
+  };
+  const tick = () => {
+    const now = performance.now();
+    if (document.readyState === 'loading' && now - t0 < maxMs) { setTimeout(tick, 20); return; }
+    if (now - last >= quietMs && now - t0 < Math.min(maxMs, 2500) && busy()) { setTimeout(tick, 60); return; }
+    if (now - last >= quietMs || now - t0 >= maxMs) {
+      mo.disconnect();
+      resolve({ waited: Math.round(now - t0), mutations: n, timedOut: now - t0 >= maxMs });
+      return;
+    }
+    setTimeout(tick, Math.max(10, Math.min(25, quietMs / 2)));
+  };
+  requestAnimationFrame(() => setTimeout(tick, 0));
+})
+"""
+
+_TRACKED_TYPES = {"document", "xhr", "fetch", "script", "stylesheet", "other"}
+
+
+class NetTracker:
+    """Counts in-flight requests that can still change the DOM (ignores images, fonts, media, sockets)."""
+
+    def __init__(self) -> None:
+        self._inflight: dict[int, float] = {}
+        self._last_activity = time.monotonic()
+        self._pages: list[Any] = []
+
+    def attach(self, page: Any) -> None:
+        if any(p is page for p in self._pages):
+            return
+        self._pages.append(page)
+        try:
+            page.on("request", self._on_start)
+            page.on("requestfinished", self._on_end)
+            page.on("requestfailed", self._on_end)
+        except Exception:
+            pass
+
+    def _on_start(self, req: Any) -> None:
+        try:
+            if req.resource_type in _TRACKED_TYPES:
+                self._inflight[id(req)] = time.monotonic()
+                self._last_activity = time.monotonic()
+        except Exception:
+            pass
+
+    def _on_end(self, req: Any) -> None:
+        if self._inflight.pop(id(req), None) is not None:
+            self._last_activity = time.monotonic()
+
+    def inflight(self, ignore_older_than_s: float = 4.0) -> int:
+        now = time.monotonic()
+        return sum(1 for t in self._inflight.values() if now - t < ignore_older_than_s)
+
+    def quiet_for_ms(self) -> int:
+        if self.inflight() > 0:
+            return 0
+        return int((time.monotonic() - self._last_activity) * 1000)
+
+
+async def fast_settle(page: Any, net: NetTracker | None, config: SettleConfig, *, intent: str = "action") -> SettleReport:
+    cap_ms = {"navigation": config.navigation_cap_ms, "observe": config.observe_cap_ms}.get(intent, config.action_cap_ms)
+    quiet_ms = config.quiet_ms
+    report = SettleReport()
+    t0 = time.monotonic()
+    deadline = t0 + cap_ms / 1000
+    dom_ms = 0
+    net_wait_ms = 0
+    while True:
+        remaining_ms = max(1, int((deadline - time.monotonic()) * 1000))
+        t = time.monotonic()
+        try:
+            res = await page.evaluate(_QUIET_JS, [quiet_ms, min(remaining_ms, cap_ms)])
+            if isinstance(res, dict) and res.get("timedOut"):
+                report.instability.append("dom_never_quiet")
+        except Exception:
+            # navigation destroyed the context: wait for the new document, then loop
+            try:
+                await page.wait_for_load_state("domcontentloaded", timeout=max(200, remaining_ms))
+            except Exception:
+                await asyncio.sleep(0.05)
+        dom_ms += int((time.monotonic() - t) * 1000)
+        if net is None or net.inflight() == 0:
+            break
+        t = time.monotonic()
+        while net.inflight() > 0 and time.monotonic() < deadline:
+            await asyncio.sleep(0.02)
+        net_wait_ms += int((time.monotonic() - t) * 1000)
+        if time.monotonic() >= deadline:
+            break
+        # something finished: give the page one short quiet window to render the response
+        quiet_ms = min(quiet_ms, 60)
+        if net.quiet_for_ms() >= config.net_quiet_ms:
+            continue
+    if time.monotonic() >= deadline:
+        report.instability.append("settle_cap_reached")
+    report.durations_ms = {"dom_quiet": dom_ms, "network_wait": net_wait_ms, "total": int((time.monotonic() - t0) * 1000)}
+    return report

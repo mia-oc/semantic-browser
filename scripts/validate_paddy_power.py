@@ -18,7 +18,7 @@ def print_room(obs, label=""):
         print(f"  STEP: {label}")
     print(f"{'='*70}")
     print(p.room_text)
-    print(f"---")
+    print("---")
     print(f"  actions={m.action_count}  interactables={m.interactable_count}  "
           f"extraction_ms={m.extraction_ms}  route={m.extraction_route}  "
           f"quality={m.aria_quality}")

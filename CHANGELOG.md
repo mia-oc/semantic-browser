@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.4.0
+
+### Added
+- `sb` agent CLI with a persistent daemon (`semantic_browser.daemon`): verbs `goto view click type select check press hover scroll find wait back
+  forward reload tabs tab shot captcha close help`, sessions, `--headless/--profile/--cdp/--lite/--budget`, `sb sessions|stop|version`.
+  Targets are `[n]` refs or a unique visible label (`click "Sign in"`); ambiguous labels list candidates. `view --expand nav|footer|aside|all`.
+- `AgentSession` (Python) with the same verbs; exported lazily from `semantic_browser`.
+- v2 page-view engine (`extractor/snapshot.js`, `snapshot.py`, `view.py`, `engine_v2.py`): single DOM walk per frame, shadow DOM, cross-origin frames,
+  clickable-div heuristics, occlusion + blocking-overlay detection, reading-order view with inline refs and context for duplicate labels, budget windowing.
+- Ref-handle execution (`executor/ref_actions.py`): acts on the exact element; global `press` and ref `press` ops.
+- Fast settle (`SettleConfig.mode="fast"`): in-page MutationObserver quiet window + network tracker; caps 2.5 s action / 5 s navigation; grace re-settle
+  when a click visibly changed nothing.
+- CAPTCHA assist (`captcha.py`): reCAPTCHA/hCaptcha/Turnstile frame detection, tile finder, numbered badges, cropped PNG and dependency-free PDF,
+  `select/text/open/submit/refresh`.
+- Lite mode (`RuntimeConfig.lite = "off"|"media"|"max"`, CDP resource-type blocking). Off by default; no benefit measured.
+- `CDP` attach accepts `http://host:port`; the session uses its own tab only.
+- `scripts/dogfood/` harness (local fixtures, oracle model, httpx/Playwright/v1.3.2 comparisons, `navbench`), benchmark report and raw data.
+- Docs: `agent_cli.md`, `captcha.md`, `system_arch.md`, `vision.md`, `requirements.md`, `technical_spec.md`, `project_plan.md`, `review_v1.3.2.md`.
+
+### Changed
+- Default extraction engine is `v2` (`extraction.engine="legacy"` restores v1.3 behaviour). `room_text` uses the v1.4 view format.
+- Settle defaults: fast mode (legacy polling available via `settle.mode="legacy"`).
+- Refs are monotonic for a session and are never reused after navigation.
+- Resolver raises (`ActionExecutionError`/`ElementGoneError`) instead of silently falling back to `<body>`.
+- Captcha status text distinguishes *new round* / *same challenge still showing* / *gone*.
+
+### Fixed
+- Clicks "succeeding" on `<body>` when no locator matched; duplicate-label buttons always hitting the first match; stale refs hitting a different element
+  after navigation.
+- Settle waited ~3.5 s on pages with a `loading`-classed element (GitHub); busy-indicator now requires real motion/`aria-busy`.
+- Lite mode glob rules broke Wikipedia styles; now blocks by resource type.
+- Tab list leaked the titles of every tab in an attached browser; popups from unrelated tabs could be adopted. Now scoped to owned tabs.
+- Framework wrapper elements (`<app-header onclick=fn>`) were listed as giant buttons.
+- The view advertised `view --expand nav` without the command existing.
+- A submit button with "captcha" in its id was reported as a text CAPTCHA, outranking the real provider widget.
+- Password, `cc-*` and one-time-code field values are masked; daemon/captcha/shots directories are `0700` and ownership-checked.
+
+### Notes
+- The v1.4 view is ~3× larger than v1.3.2's (all options instead of the top 25); `--budget 2500` halves it with equal success on the benchmark set.
+- `semantic-browser` (legacy CLI/service/portal) keeps working; service routes unchanged.
+
 ## 1.3.2
 
 - Added unauthenticated `GET /health` service endpoint for liveness/readiness probes with

@@ -145,8 +145,8 @@ async def test_custom_element_css_fails_falls_to_tag_text():
 
 
 @pytest.mark.asyncio
-async def test_custom_element_all_fail_falls_to_body():
-    """If CSS and tag+text both miss, resolver eventually falls to body."""
+async def test_custom_element_all_fail_raises():
+    """If CSS and tag+text both miss, resolver must raise (never silently target <body>)."""
     page = _CountCheckPage(locator_counts={
         "btn-odds.stale": 0,
         'btn-odds:has-text("")': 0,
@@ -158,8 +158,11 @@ async def test_custom_element_all_fail_falls_to_body():
             "css_selector": "btn-odds.stale", "is_custom_element": True,
         },
     )
-    await resolve_locator(page, action)
-    assert any(c[0] == "locator" and c[1] == ("body",) for c in page.calls)
+    from semantic_browser.errors import ActionExecutionError
+
+    with pytest.raises(ActionExecutionError):
+        await resolve_locator(page, action)
+    assert not any(c[0] == "locator" and c[1] == ("body",) for c in page.calls)
 
 
 @pytest.mark.asyncio
@@ -201,5 +204,8 @@ async def test_css_fallback_checks_count():
         id="a5", op="click", label="Mystery", confidence=0.5,
         locator_recipe={"role": "", "name": "Mystery", "tag": "div", "css_selector": "div.ghost"},
     )
-    await resolve_locator(page, action)
-    assert page.calls[-1][1] == ("body",)
+    from semantic_browser.errors import ActionExecutionError
+
+    with pytest.raises(ActionExecutionError):
+        await resolve_locator(page, action)
+    assert ("locator", ("body",)) not in [(c[0], c[1]) for c in page.calls]
